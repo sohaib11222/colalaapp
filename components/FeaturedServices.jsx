@@ -1,0 +1,191 @@
+import React from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    FlatList,
+    Image,
+    TouchableOpacity,
+    Dimensions,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+const { width } = Dimensions.get('window');
+
+const services = [
+    {
+        id: '1',
+        title: 'Fashion designing Service',
+        store: 'Sasha Stores',
+        store_image: require('../assets/Ellipse 18.png'),
+        priceRange: '₦5,000 - ₦100,000',
+        rating: 4.5,
+        image: require('../assets/Frame 264 (4).png'),
+    },
+    {
+        id: '2',
+        title: 'Fashion designing Service',
+        store: 'Sasha Stores',
+        store_image: require('../assets/Ellipse 18.png'),
+        priceRange: '₦5,000 - ₦100,000',
+        rating: 4.5,
+        image: require('../assets/Frame 264 (5).png'),
+    },
+    {
+        id: '3',
+        title: 'Fashion designing Service',
+        store: 'Sasha Stores',
+        store_image: require('../assets/Ellipse 18.png'),
+        priceRange: '₦5,000 - ₦100,000',
+
+        rating: 4.5,
+        image: require('../assets/Rectangle 32.png'),
+    },
+];
+
+const FeaturedServices = () => {
+    return (
+        <View style={styles.container}>
+            {/* Header */}
+            <View style={styles.headerRow}>
+                <Text style={styles.title}>Features Services</Text>
+                <TouchableOpacity>
+                    <Text style={styles.viewAll}>View All</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Scrollable Cards */}
+            <FlatList
+                data={services}
+                keyExtractor={(item) => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingVertical: 12 }}
+                renderItem={({ item }) => (
+                    <View style={styles.card}>
+                        <Image source={item.image} style={styles.image} resizeMode="cover" />
+
+                        {/* Store Row */}
+                        <View style={styles.rowBetween}>
+                            <View style={styles.storeRow}>
+                                <Image
+                                    source={item.store_image}
+                                    style={styles.storeAvatar}
+                                />
+                                <Text style={styles.storeName}>{item.store}</Text>
+                            </View>
+                            <View style={styles.ratingRow}>
+                                <Ionicons name="star" size={12} color="#F44336" />
+                                <Text style={styles.rating}>{item.rating}</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.cardContent}>
+                            <Text style={styles.serviceTitle}>{item.title}</Text>
+                            <Text style={styles.priceRange}>{item.priceRange}</Text>
+
+                            <TouchableOpacity style={styles.detailsBtn}>
+                                <Text style={styles.detailsBtnText}>Details</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
+            />
+        </View>
+    );
+};
+
+export default FeaturedServices;
+
+const styles = StyleSheet.create({
+    container: {
+        marginTop: 16,
+        paddingHorizontal: 16,
+    },
+    headerRow: {
+        backgroundColor: '#E53E3E',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius:5,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    title: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    viewAll: {
+        color: 'white',
+        fontSize: 13,
+    },
+    card: {
+        width: width * 0.5,
+        backgroundColor: '#fff',
+        borderRadius: 14,
+        marginRight: 16,
+        overflow: 'hidden',
+        elevation:1
+    },
+    image: {
+        width: '100%',
+        height: 100,
+    },
+    cardContent: {
+        padding: 10,
+    },
+    rowBetween: {
+        flexDirection: 'row',
+        backgroundColor: "#F2F2F2",
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding:8
+    },
+    storeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    storeAvatar: {
+        width: 20,
+        height: 20,
+        borderRadius: 9,
+        marginRight: 6,
+    },
+    storeName: {
+        fontSize: 12,
+        color: '#F44336',
+        fontWeight: '500',
+    },
+    ratingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    rating: {
+        marginLeft: 3,
+        fontSize: 11,
+        color: '#000',
+    },
+    serviceTitle: {
+        fontSize: 13,
+        fontWeight: '600',
+        marginTop: 6,
+    },
+    priceRange: {
+        fontSize: 13,
+        color: '#F44336',
+        marginVertical: 6,
+        fontWeight: '700',
+    },
+    detailsBtn: {
+        backgroundColor: '#F44336',
+        borderRadius: 10,
+        paddingVertical: 10,
+        alignItems: 'center',
+        marginTop: 4,
+    },
+    detailsBtnText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: '400',
+    },
+});
