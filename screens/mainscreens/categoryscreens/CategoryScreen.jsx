@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from 'expo-router';
 
 
 // Sample category data
@@ -19,23 +20,24 @@ const initialCategories = [
     {
         id: '1',
         title: 'Phones & Tablets',
-        image: require('../../assets/Rectangle 32 (10).png'), // update path accordingly
+        image: require('../../../assets/Rectangle 32 (10).png'), // update path accordingly
         productCount: 500,
         isExpanded: true,
         subcategories: [
             {
                 group: 'Mobile Phones',
                 items: [
-                    //   { title: 'Smartphones', image: require('../assets/smartphone.png'), count: 27 },
-                    //   { title: 'Basic Phones', image: require('../assets/basic.png'), count: 33 },
+                    { title: 'Smartphones', image: require('../../../assets/phone1.png'), count: 27 },
+                    { title: 'Basic Phones', image: require('../../../assets/phone2.png'), count: 33 },
+                    { title: 'Basic Phones', image: require('../../../assets/phone2.png'), count: 33 },
                 ],
             },
             {
                 group: 'Tablets',
                 items: [
-                      { title: 'Android Tablets', image: require('../../assets/Frame 253.png'), count: 20 },
-                    //   { title: 'Educational Tablets', image: require('../assets/education_tablet.png'), count: 20 },
-                    //   { title: 'iPads', image: require('../assets/ipad.png'), count: 20 },
+                    { title: 'Android Tablets', image: require('../../../assets/Frame 253.png'), count: 20 },
+                    { title: 'Educational Tablets', image: require('../../../assets/tablet2.png'), count: 20 },
+                    { title: 'iPads', image: require('../../../assets/tablet1.png'), count: 20 },
                 ],
             },
         ],
@@ -60,6 +62,8 @@ const initialCategories = [
 ];
 
 const CategoryScreen = () => {
+    const navigation = useNavigation();
+  
     const [categories, setCategories] = useState(initialCategories);
 
     const toggleExpand = (id) => {
@@ -81,11 +85,13 @@ const CategoryScreen = () => {
                     <Text style={styles.title}>{item.title}</Text>
                     <Text style={styles.subText}>{item.productCount} products</Text>
                 </View>
-                <AntDesign
-                    name={item.isExpanded ? 'up' : 'down'}
-                    size={20}
-                    color="gray"
-                />
+                <View style={{ borderWidth: 1, borderColor: "#ccc", padding: 5, borderRadius: 20 }}>
+                    <AntDesign
+                        name={item.isExpanded ? 'up' : 'down'}
+                        size={20}
+                        color="red"
+                    />
+                </View>
             </TouchableOpacity>
 
             {item.isExpanded && item.subcategories.length > 0 && (
@@ -94,16 +100,25 @@ const CategoryScreen = () => {
                         <View key={index}>
                             <View style={styles.subHeader}>
                                 <Text style={styles.subTitle}>{group.group}</Text>
-                                <TouchableOpacity onPress={() => console.log(`View All for ${group.group}`)}>
+                                <TouchableOpacity
+                                    onPress={() =>
+                                        navigation.navigate("ProductsList", {
+                                            categoryTitle: group.group,
+                                            products: group.items, // or fetch from API
+                                        })
+                                    }
+                                >
                                     <Text style={styles.viewAll}>View All</Text>
                                 </TouchableOpacity>
+
                             </View>
                             <View style={styles.itemRow}>
                                 {group.items.map((sub, i) => (
                                     <View key={i} style={styles.subItem}>
-                                        <Image source={sub.image} style={styles.subImage} />
-                                        <Text style={styles.subItemTitle}>{sub.title}</Text>
-                                        <Text style={styles.subCount}>{sub.count} Products</Text>
+                                        <Image source={sub.image} style={[styles.subImage]} />
+                                        <View style={{ backgroundColor: "#F7F7F7", padding: 4, zIndex: 1, marginTop: -5, borderBottomRightRadius: 5, borderBottomLeftRadius: 5 }}>
+                                            <Text style={styles.subItemTitle}>{sub.title}</Text>
+                                            <Text style={styles.subCount}>{sub.count} Products</Text></View>
                                     </View>
                                 ))}
                             </View>
@@ -118,10 +133,10 @@ const CategoryScreen = () => {
         <SafeAreaView style={{ flex: 1, backgroundColor: '#f4f4f4' }}>
             <View style={styles.header}>
                 <View style={styles.headerTopRow}>
-                   <TouchableOpacity>
+                    <TouchableOpacity>
                         <Ionicons name="chevron-back" size={22} color="#fff" />
-                        </TouchableOpacity>
-                   
+                    </TouchableOpacity>
+
                     <Text style={styles.headerTitle}>Categories</Text>
                     <View style={styles.headerIcons}>
                         <TouchableOpacity style={[styles.iconButton, { backgroundColor: "#fff", padding: 6, borderRadius: 25 }]}>
@@ -159,11 +174,15 @@ const styles = StyleSheet.create({
     categoryContainer: {
         backgroundColor: '#fff',
         marginBottom: 12,
-        padding: 12,
+        paddingRight: 12,  // keep right padding
+        // paddingBottom: 12, // keep bottom padding
+        paddingTop: 0,     // no top padding
+        paddingLeft: 0,    // no left padding
         borderRadius: 12,
         elevation: 2,
     },
-     header: {
+
+    header: {
         backgroundColor: '#E53E3E',
         paddingTop: 60,
         paddingBottom: 25,
@@ -214,11 +233,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     categoryImage: {
-        width: 55,
-        height: 55,
-        borderRadius: 10,
+        width: 75,
+        height: 75,
+        borderBottomRightRadius: 10,
+        borderTopLeftRadius: 10,
         marginRight: 10,
-        padding:0
+        padding: 0
     },
     categoryTextContainer: {
         flex: 1,
@@ -233,28 +253,35 @@ const styles = StyleSheet.create({
     },
     subCategoryContainer: {
         marginTop: 10,
+        padding: 16
     },
     subHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginVertical: 6,
-        paddingHorizontal: 4,
+        paddingHorizontal: 8,
+        backgroundColor: "#E53E3E",
+        borderRadius: 5,
+        paddingVertical: 7
     },
     subTitle: {
-        fontWeight: 'bold',
-        fontSize: 14,
+        fontWeight: '400',
+        fontSize: 12,
+        color: "#fff"
     },
     viewAll: {
-        color: '#e63946',
-        fontWeight: '500',
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '400',
+        textDecorationLine: "underline"
     },
     itemRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 10,
+        // gap: 10,
     },
     subItem: {
-        width: '30%',
+        width: '30.3%',
         margin: 5,
     },
     subImage: {
@@ -271,7 +298,7 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: '#777',
     },
-       iconButton: {
+    iconButton: {
         marginLeft: 9,
     },
 });

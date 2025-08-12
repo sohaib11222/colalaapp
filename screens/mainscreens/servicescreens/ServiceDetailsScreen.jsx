@@ -8,7 +8,7 @@ const ServiceDetailsScreen = () => {
     const { params } = useRoute();
     const navigation = useNavigation();
     const { store } = params;
-
+    
     const priceBreakdown = [
         'General',
         'Male Wear',

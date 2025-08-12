@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/mainscreens/HomeScreen';
 import FeedScreen from '../screens/mainscreens/FeedScreen';
 import ChatScreen from '../screens/mainscreens/ChatScreen';
-import StoreScreen from '../screens/mainscreens/StoreScreen';
+import StoreScreen from '../screens/mainscreens/storesscreen/StoreScreen';
 import SettingsScreen from '../screens/mainscreens/SettingsScreen';
 
 import { Ionicons } from '@expo/vector-icons';
