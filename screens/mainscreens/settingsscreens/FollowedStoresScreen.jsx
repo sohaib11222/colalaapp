@@ -1,4 +1,4 @@
-// screens/StoresScreen.js
+// screens/FollowedStoresScreen.jsx
 import React, { useMemo, useState } from "react";
 import {
   View,
@@ -12,24 +12,24 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
-  primary: "#EF534E",
+  primary: "#E53E3E",
   bg: "#F5F6F8",
   card: "#FFFFFF",
   text: "#101318",
   sub: "#6C727A",
-  line: "#E9EBEF",
-  pill: "#F1F2F5",
+  line: "#ECEDEF",
+  pill: "#EDEDED",
 };
 
-/* -------------------- MOCK DATA -------------------- */
-const STORES = [
+/* -------------------- MOCK FOLLOWED -------------------- */
+const INITIAL_FOLLOWED = [
   {
     id: "1",
     name: "Sasha Stores",
@@ -96,49 +96,49 @@ const STORES = [
 const CARD_GAP = 10;
 const SCREEN_PADDING = 10;
 const CARD_WIDTH = (width - SCREEN_PADDING * 2 - CARD_GAP) / 2;
-const COVER_HEIGHT = 100; // reduced
-const AVATAR_SIZE = 44;   // reduced
+const COVER_HEIGHT = 100;
+const AVATAR_SIZE = 44;
 
-export default function StoresScreen() {
-  const [query, setQuery] = useState("");
+export default function FollowedStoresScreen() {
   const navigation = useNavigation();
+  const [query, setQuery] = useState("");
   const [filters, setFilters] = useState({
     location: "Location",
     category: "Category",
     review: "Review",
   });
 
-  const data = useMemo(() => {
-    if (!query.trim()) return STORES;
+  const visibleData = useMemo(() => {
+    if (!query.trim()) return INITIAL_FOLLOWED;
     const q = query.toLowerCase();
-    return STORES.filter(
-      s =>
+    return INITIAL_FOLLOWED.filter(
+      (s) =>
         s.name.toLowerCase().includes(q) ||
-        s.tags.some(t => t.toLowerCase().includes(q))
+        s.tags.some((t) => t.toLowerCase().includes(q))
     );
   }, [query]);
 
-  const onFilterPress = key => {
-    setFilters(prev => ({
+  const onFilterPress = (key) => {
+    setFilters((prev) => ({
       ...prev,
       [key]:
         prev[key] === (key === "location" ? "Lagos" : key === "category" ? "Phones" : "4.5+")
           ? key === "location"
             ? "Location"
             : key === "category"
-              ? "Category"
-              : "Review"
+            ? "Category"
+            : "Review"
           : key === "location"
-            ? "Lagos"
-            : key === "category"
-              ? "Phones"
-              : "4.5+",
+          ? "Lagos"
+          : key === "category"
+          ? "Phones"
+          : "4.5+",
     }));
   };
 
   const renderStore = ({ item }) => (
     <View style={styles.card}>
-      {/* full-bleed cover image */}
+      {/* full-bleed cover */}
       <Image source={{ uri: item.cover }} style={styles.cover} />
 
       {/* overlapping avatar */}
@@ -177,11 +177,10 @@ export default function StoresScreen() {
 
         <TouchableOpacity
           style={styles.cta}
-
           onPress={() =>
-            navigation.navigate('ServiceNavigator', {
-              screen: 'StoreDetails',
-              params: { store: item },      // <-- key change
+            navigation.navigate("ServiceNavigator", {
+              screen: "StoreDetails",
+              params: { store: item },
             })
           }
         >
@@ -193,41 +192,56 @@ export default function StoresScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      {/* Header */}
+      {/* ===== Header (white, no radius) ===== */}
       <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={22} color="#E53E3E" />
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+            }
+            style={styles.iconBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Stores</Text>
-          <View style={styles.headerIcons}>
-            <Ionicons name="cart-outline" size={22} color="#E53E3E" style={styles.icon} />
-            <Ionicons name="notifications-outline" size={22} color="#E53E3E" style={styles.icon} />
-          </View>
-        </View>
 
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          <TextInput
-            placeholder="Search any product, shop or category"
-            placeholderTextColor="#888"
-            style={styles.searchInput}
-          />
-          <Ionicons name="camera-outline" size={22} color="#444" style={styles.cameraIcon} />
+          <Text style={styles.headerTitle} pointerEvents="none">
+            Search
+          </Text>
+
+          <TouchableOpacity style={styles.iconBtn}>
+            <Ionicons name="cart-outline" size={20} color={COLOR.text} />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Filters */}
+      {/* ===== Search bar (outside header) ===== */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Stores"
+          placeholderTextColor="#888"
+          style={styles.searchInput}
+        />
+        {/* spacer to balance layout */}
+        <View style={{ width: 20 }} />
+      </View>
+
+      {/* Filters row (3 pills) */}
       <View style={styles.filtersRow}>
         <FilterPill label={filters.location} onPress={() => onFilterPress("location")} />
         <FilterPill label={filters.category} onPress={() => onFilterPress("category")} />
         <FilterPill label={filters.review} onPress={() => onFilterPress("review")} />
       </View>
 
+      {/* Results label */}
+      <Text style={styles.resultCount}>Search Results ({visibleData.length})</Text>
+
       {/* Grid */}
       <FlatList
-        data={data}
-        keyExtractor={item => item.id}
+        data={visibleData}
+        keyExtractor={(item) => item.id}
         numColumns={2}
         renderItem={renderStore}
         columnWrapperStyle={{ gap: CARD_GAP }}
@@ -239,12 +253,18 @@ export default function StoresScreen() {
         }}
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: COLOR.bg }}
+        ListEmptyComponent={
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyTitle}>No followed stores</Text>
+            <Text style={styles.emptySub}>Search or explore to follow stores.</Text>
+          </View>
+        }
       />
     </SafeAreaView>
   );
 }
 
-/* -------------------- Small Components -------------------- */
+/* -------------------- Small inline component -------------------- */
 const FilterPill = ({ label, onPress }) => (
   <TouchableOpacity style={styles.filter} onPress={onPress} activeOpacity={0.8}>
     <Text numberOfLines={1} style={styles.filterText}>
@@ -258,70 +278,60 @@ const FilterPill = ({ label, onPress }) => (
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLOR.bg },
 
+  // Header: white, no radius, thin bottom divider
   header: {
-    backgroundColor: COLOR.primary,
-    paddingHorizontal: SCREEN_PADDING,
-    paddingBottom: 16,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
-  },
-  title: { color: "#fff", fontSize: 18, fontWeight: "700" },
-
-  header: {
-    backgroundColor: '#E53E3E',
-    paddingTop: 60,
-    paddingBottom: 20,
+    backgroundColor: "#fff",
+    paddingTop: 25,
+    paddingBottom: 10,
     paddingHorizontal: 16,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
   },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  headerRow: {
+    height: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    position: "relative",
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
   },
   headerTitle: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
-    // textAlign: 'center',
-    color: '#fff',
-    fontSize: 20,
-    marginLeft: 12,
-    fontWeight: '400',
-  },
-  headerIcons: {
-    flexDirection: 'row',
-  },
-  // backBtn: {
-  //     backgroundColor: '#fff',
-  //     padding: 6,
-  //     borderRadius: 30,
-  // },
-  icon: {
-    backgroundColor: '#fff',
-    padding: 6,
-    borderRadius: 30,
-    marginLeft: 8,
-  },
-  searchContainer: {
-    marginTop: 20,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 50,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#333',
-  },
-  cameraIcon: {
-    marginLeft: 8,
+    textAlign: "center",
+    color: COLOR.text,
+    fontSize: 18,
+    fontWeight: "400",
+    zIndex: 0,
   },
 
+  // Search (outside header)
+  searchContainer: {
+    marginTop: 12,
+    marginHorizontal: 16,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    height: 58,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: "#333" },
+
+  // Filters row (three pills)
   filtersRow: {
     flexDirection: "row",
     gap: 10,
@@ -331,23 +341,32 @@ const styles = StyleSheet.create({
   filter: {
     flex: 1,
     height: 36,
-    backgroundColor: "#EDEDED",
+    backgroundColor: COLOR.pill,
     borderRadius: 10,
     paddingHorizontal: 12,
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 15,
+    marginBottom: 10,
     ...shadow(1),
   },
   filterText: { color: COLOR.text, fontSize: 12 },
+
+  // Results label
+  resultCount: {
+    paddingHorizontal: SCREEN_PADDING,
+    paddingTop: 4,
+    paddingBottom: 6,
+    color: COLOR.sub,
+    fontSize: 12,
+  },
 
   /* ---- Card ---- */
   card: {
     width: CARD_WIDTH,
     backgroundColor: COLOR.card,
     borderRadius: 18,
-    overflow: "visible", // allow avatar to hang over
+    overflow: "visible",
     position: "relative",
     ...shadow(12),
   },
@@ -363,14 +382,9 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    // borderWidth: 4,
-    // borderColor: "#fff",
     backgroundColor: "#fff",
   },
-  content: {
-    paddingHorizontal: 14,
-    paddingBottom: 12,
-  },
+  content: { paddingHorizontal: 14, paddingBottom: 12 },
   rowBetween: {
     flexDirection: "row",
     alignItems: "center",
@@ -384,19 +398,23 @@ const styles = StyleSheet.create({
   tagsRow: { flexDirection: "row", gap: 8, marginTop: 8, marginBottom: 10 },
   tagBase: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   tagBlue: { backgroundColor: "#E9F0FF", borderWidth: 1, borderColor: "#3D71FF" },
-  tagRed: { backgroundColor: "#FFE7E6", borderWidth: 1, borderColor: "#E53E3E" },
+  tagRed: { backgroundColor: "#FFE7E6", borderWidth: 1, borderColor: COLOR.primary },
   tagTextBase: { fontSize: 12, fontWeight: "600" },
   tagTextBlue: { color: "#3D71FF" },
   tagTextRed: { color: COLOR.primary },
 
   cta: {
     backgroundColor: COLOR.primary,
-    height: 38, // reduced
+    height: 38,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
   ctaText: { color: "#fff", fontWeight: "400", fontSize: 11 },
+
+  emptyWrap: { alignItems: "center", marginTop: 40 },
+  emptyTitle: { fontWeight: "700", color: COLOR.text, fontSize: 16 },
+  emptySub: { color: COLOR.sub, marginTop: 6, fontSize: 12 },
 });
 
 /* --------- tiny shadow helper --------- */
