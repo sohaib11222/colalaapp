@@ -11,8 +11,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 
 const HomeHeader = ({ user = { name: 'Maleek', location: 'Lagos, Nigeria' } }) => {
+  const navigation = useNavigation();
+  
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -36,7 +39,9 @@ const HomeHeader = ({ user = { name: 'Maleek', location: 'Lagos, Nigeria' } }) =
           <TouchableOpacity style={[styles.iconButton, {backgroundColor:"#fff", padding:6, borderRadius:25}]}>
             <Ionicons name="cart-outline" size={22} color="#E53E3E" />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconButton, {backgroundColor:"#fff", padding:6, borderRadius:25}]}>
+          <TouchableOpacity onPress={()=>navigation.navigate('ServiceNavigator', {
+            screen: 'Notifications',
+          })} style={[styles.iconButton, {backgroundColor:"#fff", padding:6, borderRadius:25}]}>
             <Ionicons name="notifications-outline" size={22} color="#E53E3E" />
           </TouchableOpacity>
         </View>

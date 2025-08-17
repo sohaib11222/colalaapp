@@ -318,7 +318,7 @@ export default function ReferralsScreen() {
                   style={{ flex: 1, color: COLOR.text }}
                 />
                 <TouchableOpacity style={styles.searchIconBtn}>
-                  <Ionicons name="scan-outline" size={18} color={COLOR.text} />
+                  <Ionicons name="camera-outline" size={18} color={COLOR.text} />
                 </TouchableOpacity>
               </View>
 
@@ -334,6 +334,10 @@ export default function ReferralsScreen() {
             <View style={styles.productCard}>
               <View style={styles.thumbWrap}>
                 <Image source={{ uri: item.image }} style={styles.productImg} />
+                <View style={styles.storeRow}>
+                  <Image source={{ uri: item.storeAvatar }} style={styles.storeAvatar} />
+                  <Text style={styles.storeName}>{item.storeName}</Text>
+                </View>
               </View>
 
               <View style={styles.productMain}>
@@ -343,10 +347,6 @@ export default function ReferralsScreen() {
                 <Text style={styles.productPrice}>{item.price}</Text>
                 <Text style={styles.productCommission}>Commission : {item.commission}</Text>
 
-                <View style={styles.storeRow}>
-                  <Image source={{ uri: item.storeAvatar }} style={styles.storeAvatar} />
-                  <Text style={styles.storeName}>{item.storeName}</Text>
-                </View>
               </View>
 
               <TouchableOpacity style={styles.copyBtnBig} onPress={() => copy(item.link)}>
@@ -609,6 +609,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    marginTop:20
   },
   gcBtnLight: { backgroundColor: "#fff" },
   gcBtnText: { fontWeight: "400", fontSize: 12 },
@@ -751,36 +752,37 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: COLOR.line,
-    borderRadius: 16,
+    borderRadius: 20,
     paddingRight: 12,
-    // IMPORTANT: let inner padding/margins work and keep the rounded corners
     overflow: "hidden",
   },
   thumbWrap: {
-    paddingLeft: 12,
-    paddingVertical: 10,
+    // paddingLeft: 12,
+    // paddingVertical: 10,
     paddingRight: 8,
   },
   productImg: { width: 106, height: 84, borderRadius: 12 },
   productMain: { flex: 1, paddingVertical: 10 },
-  productTitle: { color: COLOR.text, fontWeight: "700" },
+  productTitle: { color: COLOR.text, fontWeight: "500" },
   productPrice: { color: COLOR.primary, fontWeight: "700", marginTop: 4 },
-  productCommission: { color: COLOR.sub, marginTop: 8, fontSize: 12 },
-  storeRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
+  productCommission: { color: COLOR.sub, marginTop: 18, fontSize: 12 },
+  storeRow: { flexDirection: "row", alignItems: "center", marginTop: 3, marginLeft:10, marginBottom:4,
+   },
   storeAvatar: { width: 16, height: 16, borderRadius: 8, marginRight: 6 },
   storeName: { color: COLOR.sub, fontSize: 12 },
 
   copyBtnBig: {
     backgroundColor: COLOR.primary,
-    borderRadius: 10,
+    borderRadius: 7,
     paddingHorizontal: 14,
     height: 34,
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 10,
+    marginTop:50
   },
-  copyBtnBigTxt: { color: "#fff", fontSize: 12 },
+  copyBtnBigTxt: { color: "#fff", fontSize: 11 },
 
   /* Placeholder tabs */
   placeholder: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8 },

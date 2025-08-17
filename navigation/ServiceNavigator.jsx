@@ -10,6 +10,7 @@ import ServiceChatScreen from '../screens/mainscreens/servicescreens/ServiceChat
 import StoreDetailsScreen from '../screens/mainscreens/storesscreen/StoreDetailsScreen';
 import StoreChatScreen from '../screens/mainscreens/storesscreen/StoreChatScreen';
 import ChatDetailsScreen from '../screens/mainscreens/chatscreens/ChatDetailsScreen';
+import NotificationsScreen from '../screens/mainscreens/NotificationsScreen';
 
 // Add more service-related screens as needed
 
@@ -25,6 +26,7 @@ const ServiceNavigator = () => {
       <Stack.Screen name="StoreDetails" component={StoreDetailsScreen} />
       <Stack.Screen name="StoreChat" component={StoreChatScreen} />
       <Stack.Screen name="ChatDetails" component={ChatDetailsScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
 
 
     </Stack.Navigator>

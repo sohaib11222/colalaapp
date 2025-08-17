@@ -53,7 +53,7 @@ const ServicesScreen = () => {
             {/* 🔴 Header with Search */}
             <View style={styles.header}>
                 <View style={styles.headerTopRow}>
-                    <TouchableOpacity style={{ backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 10 }} onPress={() => navigation.goBack()}>
+                    <TouchableOpacity style={{ backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 10, zIndex:5 }} onPress={() => navigation.goBack()}>
                         <Ionicons name="chevron-back" size={22} color="#E53E3E" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Services</Text>

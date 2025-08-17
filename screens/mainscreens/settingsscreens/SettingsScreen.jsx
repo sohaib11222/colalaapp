@@ -26,7 +26,7 @@ const COLOR = {
 
 const SettingsScreen = () => {
   const navigation = useNavigation();
-  
+
   const cartCount = 2;
   const notifCount = 3;
 
@@ -49,27 +49,43 @@ const SettingsScreen = () => {
   const onPressRow = (key) => {
     // inside SettingsScreen onPressRow
     if (key === 'orders') navigation.navigate('SettingsNavigator', {
-        screen: "MyOrders",
-      
+      screen: "MyOrders",
+
     });
-        if (key === 'saved') navigation.navigate('SettingsNavigator', {
-        screen: "SavedItems",
-      
+    if (key === 'saved') navigation.navigate('SettingsNavigator', {
+      screen: "SavedItems",
+
     });
-            if (key === 'followed') navigation.navigate('SettingsNavigator', {
-        screen: "FollowedStores",
-      
+    if (key === 'followed') navigation.navigate('SettingsNavigator', {
+      screen: "FollowedStores",
+
     });
-               if (key === 'reviews') navigation.navigate('SettingsNavigator', {
-        screen: "MyReviews",
-      
+    if (key === 'reviews') navigation.navigate('SettingsNavigator', {
+      screen: "MyReviews",
+
     });
-                   if (key === 'referrals') navigation.navigate('SettingsNavigator', {
-        screen: "Referals",
-      
+    if (key === 'referrals') navigation.navigate('SettingsNavigator', {
+      screen: "Referals",
+
     });
-    
-    
+
+    if (key === 'loyalty') navigation.navigate('SettingsNavigator', {
+      screen: "MyPoints",
+
+    });
+
+
+    if (key === 'support') navigation.navigate('SettingsNavigator', {
+      screen: "Support",
+
+    });
+
+    if (key === 'faqs') navigation.navigate('SettingsNavigator', {
+      screen: "FAQs",
+
+    });
+
+
 
   };
 
@@ -89,7 +105,7 @@ const SettingsScreen = () => {
                 </View>
               )}
             </HeaderIconCircle>
-            <HeaderIconCircle onPress={() => onPressRow('notifications')}>
+            <HeaderIconCircle onPress={() => onPress('notifications')}>
               <Ionicons name="notifications-outline" size={18} color={COLOR.primary} />
               {notifCount > 0 && (
                 <View style={styles.headerBadge}>
@@ -123,11 +139,15 @@ const SettingsScreen = () => {
             <Text style={styles.walletLabel}>Main Wallet</Text>
             <Text style={styles.walletAmount}>₦50,000</Text>
           </View>
-          <TouchableOpacity style={styles.viewWalletBtn} onPress={() => onPressRow('wallet')}>
+          <TouchableOpacity style={styles.viewWalletBtn} onPress={() => navigation.navigate('SettingsNavigator', {
+            screen: "ShoppingWallet",
+          })}>
             <Text style={styles.viewWalletText}>View Wallet</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.holdingBar} onPress={() => onPressRow('holding')}>
+        <TouchableOpacity style={styles.holdingBar} onPress={() => navigation.navigate('SettingsNavigator', {
+          screen: "EscrowWallet",
+        })}>
           <Text style={styles.holdingText}>
             ₦50,000 locked in holding wallet <Text style={{ color: '#640505', fontSize: 13 }}>· Click to view</Text>
           </Text>
@@ -136,7 +156,9 @@ const SettingsScreen = () => {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
         {/* Edit Profile */}
-        <TouchableOpacity style={styles.primaryBtn} onPress={() => onPressRow('editProfile')}>
+        <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate('SettingsNavigator', {
+          screen: "EditProfile",
+        })}>
           <Text style={styles.primaryBtnText}>Edit Profile</Text>
         </TouchableOpacity>
 
@@ -219,7 +241,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLOR.primary,
     paddingHorizontal: 16,
     paddingBottom: 16,
-    paddingTop: 40,
+    paddingTop: 32,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
   },

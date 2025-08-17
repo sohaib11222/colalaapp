@@ -133,7 +133,7 @@ const CategoryScreen = () => {
         <SafeAreaView style={{ flex: 1, backgroundColor: '#f4f4f4' }}>
             <View style={styles.header}>
                 <View style={styles.headerTopRow}>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={()=>navigation.goBack()} style={{zIndex:5}}>
                         <Ionicons name="chevron-back" size={22} color="#fff" />
                     </TouchableOpacity>
 

@@ -9,6 +9,12 @@ import SavedItemsScreen from '../screens/mainscreens/settingsscreens/SavedItemsS
 import FollowedStoresScreen from '../screens/mainscreens/settingsscreens/FollowedStoresScreen';
 import MyReviewsScreen from '../screens/mainscreens/settingsscreens/MyReviewsScreen';
 import ReferalsScreen from '../screens/mainscreens/settingsscreens/ReferralsScreen';
+import ShoppingWalletScreen from '../screens/mainscreens/settingsscreens/ShoppingWalletScreen.jsx';
+import EscrowWalletScreen from '../screens/mainscreens/settingsscreens/EscrowWalletScreen.jsx';
+import MyPointsScreen from '../screens/mainscreens/settingsscreens/MyPointsScreen.jsx';
+import SupportScreen from '../screens/mainscreens/settingsscreens/SupportScreen.jsx';
+import FAQsScreen from '../screens/mainscreens/settingsscreens/FAQsScreen.jsx';
+import EditProfileScreen from '../screens/mainscreens/settingsscreens/EditProfileScreen.jsx';
 
 
 const Stack = createNativeStackNavigator();
@@ -22,6 +28,12 @@ const SettingsNavigator = () => {
       <Stack.Screen name="FollowedStores" component={FollowedStoresScreen} />
       <Stack.Screen name="MyReviews" component={MyReviewsScreen} />
       <Stack.Screen name="Referals" component={ReferalsScreen} />
+      <Stack.Screen name="ShoppingWallet" component={ShoppingWalletScreen} />
+      <Stack.Screen name="EscrowWallet" component={EscrowWalletScreen} />
+      <Stack.Screen name="MyPoints" component={MyPointsScreen} />
+      <Stack.Screen name="Support" component={SupportScreen} />
+      <Stack.Screen name="FAQs" component={FAQsScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
 
      
 

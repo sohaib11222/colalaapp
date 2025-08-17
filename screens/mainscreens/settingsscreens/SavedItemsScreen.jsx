@@ -503,7 +503,7 @@ const SavedItemsScreen = ({ navigation }) => {
       {!isPosts && (
         <>
           <View style={styles.searchBox}>
-            <Ionicons name="search" size={18} color="#9AA0A6" />
+            {/* <Ionicons name="search" size={18} color="#9AA0A6" /> */}
             <TextInput
               style={styles.searchInput}
               placeholder={placeholder}
@@ -577,8 +577,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F7F7F7' },
 
   header: {
-    paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 8,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 25 : 0, paddingBottom: 12, marginBottom:10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor:"#fff"
   },
   circleBtn: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0F0F0',
@@ -587,20 +587,20 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '600', color: COLOR.text },
 
   tabsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingBottom: 8 },
-  tabBtn: { flex: 1, backgroundColor: '#F2F2F2', paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+  tabBtn: { flex: 1, backgroundColor: '#fff', paddingVertical: 10, borderRadius: 7, alignItems: 'center' },
   tabBtnActive: { backgroundColor: COLOR.primary },
-  tabText: { color: COLOR.text, fontSize: 13, fontWeight: '500' },
+  tabText: { color: COLOR.text, fontSize: 13, fontWeight: '400' },
   tabTextActive: { color: COLOR.white },
 
   searchBox: {
     marginHorizontal: 16, marginTop: 6, marginBottom: 8,
-    backgroundColor: COLOR.white, borderRadius: 12, paddingHorizontal: 12, height: 42,
+    backgroundColor: COLOR.white, borderRadius: 20, paddingHorizontal: 12, height: 60,
     flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: COLOR.border,
   },
   searchInput: { flex: 1, fontSize: 14, color: COLOR.text },
 
   filtersRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, marginBottom: 6 },
-  filterChip: { flex: 1, backgroundColor: COLOR.white, borderRadius: 12, paddingHorizontal: 12, height: 42,
+  filterChip: { flex: 1, backgroundColor: "#EDEDED", borderRadius: 12, paddingHorizontal: 12, height: 42,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: COLOR.border },
   filterText: { color: COLOR.text, fontSize: 13 },
 

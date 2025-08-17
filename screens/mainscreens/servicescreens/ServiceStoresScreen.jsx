@@ -158,6 +158,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         padding: 6,
         borderRadius: 30,
+        zIndex:5
     },
     icon: {
         backgroundColor: '#fff',
