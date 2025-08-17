@@ -36,7 +36,9 @@ const HomeHeader = ({ user = { name: 'Maleek', location: 'Lagos, Nigeria' } }) =
 
         {/* Icons */}
         <View style={styles.iconRow}>
-          <TouchableOpacity style={[styles.iconButton, {backgroundColor:"#fff", padding:6, borderRadius:25}]}>
+          <TouchableOpacity onPress={()=>navigation.navigate('ServiceNavigator', {
+            screen: 'Cart',
+          })} style={[styles.iconButton, {backgroundColor:"#fff", padding:6, borderRadius:25}]}>
             <Ionicons name="cart-outline" size={22} color="#E53E3E" />
           </TouchableOpacity>
           <TouchableOpacity onPress={()=>navigation.navigate('ServiceNavigator', {

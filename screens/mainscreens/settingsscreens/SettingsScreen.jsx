@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import ThemedText from '../../../components/ThemedText';
 
 const COLOR = {
   primary: '#E53E3E',
@@ -42,8 +43,8 @@ const SettingsScreen = () => {
   ];
 
   const menuOthers = [
-    { key: 'loyalty', label: 'Loyalty Points', img: { uri: 'https://cdn-icons-png.flaticon.com/512/1828/1828889.png' }, leftColor: '#E11D48' }, // rose
-    { key: 'leaderboard', label: 'Seller Leaderboard', img: { uri: 'https://cdn-icons-png.flaticon.com/512/3523/3523063.png' }, leftColor: '#06B6D4' }, // cyan
+    { key: 'loyalty', label: 'Loyalty Points', img: require('../../../assets/Vector (4).png'), leftColor: '#fff' }, // rose
+    { key: 'leaderboard', label: 'Seller Leaderboard', img: require('../../../assets/Vector (5).png'), leftColor: '#fff' }, // cyan
   ];
 
   const onPressRow = (key) => {
@@ -101,7 +102,7 @@ const SettingsScreen = () => {
               <Ionicons name="cart-outline" size={18} color={COLOR.primary} />
               {cartCount > 0 && (
                 <View style={styles.headerBadge}>
-                  <Text style={styles.headerBadgeText}>{cartCount}</Text>
+                  <ThemedText style={styles.headerBadgeText}>{cartCount}</ThemedText>
                 </View>
               )}
             </HeaderIconCircle>
@@ -192,8 +193,8 @@ const SettingsScreen = () => {
         {/* Logout */}
         <OptionPillCard
           label="Logout"
-          img={{ uri: 'https://cdn-icons-png.flaticon.com/512/1828/1828479.png' }}
-          leftColor="#DC2626"
+          img={ require('../../../assets/Vector (6).png') }
+          leftColor="#fff"
           onPress={() => onPressRow('logout')}
           textColor={COLOR.danger}
         />
@@ -333,7 +334,7 @@ const styles = StyleSheet.create({
   pillIcon: {
     width: 24,
     height: 24,
-    tintColor: '#FFFFFF', // remove if your PNGs are already white
+    // tintColor: '#FFFFFF', // remove if your PNGs are already white
   },
 
   // White card that overlaps the rail

@@ -1,113 +1,179 @@
-// MyOrdersScreen.jsx
-import React from 'react';
+import React from "react";
 import {
+  SafeAreaView,
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
-  Image,
-  SafeAreaView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { StatusBar } from 'expo-status-bar';
+  FlatList,
+  Platform,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
+/* ---------- THEME ---------- */
 const COLOR = {
-  primary: '#E53E3E',
-  white: '#FFFFFF',
-  text: '#101318',
-  sub: '#6C727A',
-  border: '#ECEDEF',
-  chip: '#F5F6F8',
-  pinkLite: '#F8D8D8', // soft pink circle
+  primary: "#E53E3E",
+  bg: "#F5F6F8",
+  card: "#FFFFFF",
+  text: "#101318",
+  sub: "#6C727A",
+  line: "#ECEDEF",
+  softRedBg: "#FDE9E9",
 };
 
-const mockOrders = [
-  { id: 'Ord-1wcjcn', stores: 2, amount: '₦9,999,990' },
-  { id: 'Ord-1wcjcn2', stores: 2, amount: '₦9,999,990' },
-  { id: 'Ord-1wcjcn3', stores: 2, amount: '₦9,999,990' },
-  { id: 'Ord-1wcjcn4', stores: 2, amount: '₦9,999,990' },
-  { id: 'Ord-1wcjcn5', stores: 2, amount: '₦9,999,990' },
+const currency = (n) => `₦${Number(n).toLocaleString()}`;
+
+/* ---------- MOCK DATA ---------- */
+const ORDERS = [
+  { id: "Ord-1wcjcnefmvk", stores: 2, total: 9_999_990 },
+  { id: "Ord-1wcjcnefmvk-2", stores: 2, total: 9_999_990 },
+  { id: "Ord-1wcjcnefmvk-3", stores: 2, total: 9_999_990 },
+  { id: "Ord-1wcjcnefmvk-4", stores: 2, total: 9_999_990 },
+  { id: "Ord-1wcjcnefmvk-5", stores: 2, total: 9_999_990 },
 ];
 
-export default function MyOrdersScreen({ navigation }) {
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
-      style={styles.card}
-    >
-      {/* Left icon circle */}
-      <View style={styles.leftCircle}>
-        <Ionicons name="cart" size={20} color="#E53E3E" />
-      </View>
-
-      {/* Middle texts */}
-      <View style={{ flex: 1 }}>
-        <Text style={styles.orderId} numberOfLines={1}>{item.id}</Text>
-        <Text style={styles.storesText}>{item.stores} stores</Text>
-      </View>
-
-      {/* Amount right */}
-      <Text style={styles.amountText}>{item.amount}</Text>
-    </TouchableOpacity>
-  );
+export default function MyOrdersScreen() {
+  const navigation = useNavigation();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={20} color="#111" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Details</Text>
-        <View style={{ width: 36 }} />{/* spacer to center title */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+            }
+            style={styles.backBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={22} color={COLOR.text} />
+          </TouchableOpacity>
+
+          <Text style={styles.headerTitle} pointerEvents="none">
+            Order Details
+          </Text>
+
+          <View style={{ width: 40, height: 40 }} />
+        </View>
       </View>
 
+      {/* List */}
       <FlatList
+        data={ORDERS}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
-        data={mockOrders}
-        keyExtractor={(i) => i.id}
-        renderItem={renderItem}
-        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.card}
+            onPress={() =>
+              navigation.navigate("OrderDetails", {
+                order: {
+                  id: item.id,
+                  stores: [
+                    // pass the order’s real stores/items here; fallback mock will render if omitted
+                  ],
+                },
+              })
+            }
+          >
+            {/* Left icon bubble */}
+            <View style={styles.iconBubble}>
+              <Ionicons name="cart-outline" size={22} color={COLOR.primary} />
+            </View>
+
+            {/* Middle text */}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.orderId} numberOfLines={1}>
+                {item.id}
+              </Text>
+              <Text style={styles.storesTxt}>{item.stores} stores</Text>
+            </View>
+
+            {/* Right amount */}
+            <Text style={styles.amount}>{currency(item.total)}</Text>
+          </TouchableOpacity>
+        )}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
   );
 }
 
+/* ---------- Styles ---------- */
+function shadow(e = 8) {
+  return Platform.select({
+    android: { elevation: e },
+    ios: {
+      shadowColor: "#000",
+      shadowOpacity: 0.06,
+      shadowRadius: e / 2,
+      shadowOffset: { width: 0, height: e / 3 },
+    },
+  });
+}
+
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 12, paddingTop: 22, paddingBottom: 10,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
+    backgroundColor: "#fff",
+    paddingTop: 30,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerRow: {
+    height: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    position: "relative",
   },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    alignItems: 'center', justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 5
   },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '600', color: '#111' },
+  headerTitle: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    color: COLOR.text,
+    fontSize: 18,
+    fontWeight: "400",
+  },
 
   card: {
-    backgroundColor: COLOR.white,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLOR.card,
     borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1, borderColor: '#EFEFEF',
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 1,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    ...shadow(6),
   },
-  leftCircle: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: "#F1D1D1",
-    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  iconBubble: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLOR.softRedBg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
-  orderId: { fontSize: 14.5, fontWeight: '600', color: COLOR.text },
-  storesText: { marginTop: 3, fontSize: 12, color: COLOR.sub },
-  amountText: { marginLeft: 10, fontSize: 14.5, fontWeight: '800', color: COLOR.primary },
+  orderId: { color: COLOR.text, fontWeight: "600" },
+  storesTxt: { color: COLOR.sub, marginTop: 4, fontSize: 12 },
+  amount: { color: COLOR.primary, fontWeight: "800" },
 });

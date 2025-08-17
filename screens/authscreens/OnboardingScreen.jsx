@@ -1,5 +1,6 @@
 import { useNavigation } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import ThemedText from '../../components/ThemedText';
 import React from 'react';
 import {
   View,
@@ -48,8 +49,8 @@ const OnboardingScreen = () => {
 
       {/* Bottom card overlay */}
       <View style={styles.overlayCard}>
-        <Text style={styles.welcomeText}>Welcome to</Text>
-        <Text style={styles.brandName}>COLALA</Text>
+        <ThemedText font='manrope' style={styles.welcomeText}>Welcome to</ThemedText>
+        <ThemedText font='oleo' weight='bold' style={styles.brandName}>COLALA</ThemedText>
         <Text style={styles.subText}>Why Choose Colala ?</Text>
 
         <ScrollView

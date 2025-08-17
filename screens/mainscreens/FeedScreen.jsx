@@ -71,8 +71,12 @@ const FeedHeader = () => (
     <View style={styles.headerTopRow}>
       <Text style={styles.headerTitle}>Social Feeds</Text>
       <View style={styles.headerIcons}>
-        <Ionicons name="cart-outline" size={22} color="#E53E3E" style={styles.icon} />
-        <Ionicons name="notifications-outline" size={22} color="#E53E3E" style={styles.icon} />
+        <TouchableOpacity>
+          <Ionicons name="cart-outline" size={22} color="#E53E3E" style={styles.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity>
+          <Ionicons name="notifications-outline" size={22} color="#E53E3E" style={styles.icon} />
+        </TouchableOpacity>
       </View>
     </View>
 
@@ -595,7 +599,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: COLOR.line,
   },
-  postImage: { height: 300, borderRadius: 10, resizeMode: "cover", borderTopRightRadius:30, borderTopLeftRadius:30 },
+  postImage: { height: 300, borderRadius: 10, resizeMode: "cover", borderTopRightRadius: 30, borderTopLeftRadius: 30 },
 
   dotsRow: {
     position: "absolute",

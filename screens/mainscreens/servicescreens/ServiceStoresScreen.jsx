@@ -1,280 +1,753 @@
-import React from 'react';
+// screens/services/ServiceStoresScreen.jsx
+import React, { useMemo, useState } from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    FlatList,
-    Image,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  Image,
+  Modal,
+  ScrollView,
+  SafeAreaView,
+  Platform,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
-const ServiceStoresScreen = () => {
-    const navigation = useNavigation();
-    const route = useRoute();
-    const { serviceTitle } = route.params;
-
-    const filters = ['Location', 'Store', 'Services', 'Price', 'Ratings', 'Sort by'];
-
-    const stores = [
-        {
-            id: '1',
-            name: 'Sasha Stores',
-            price: '₦5,000 - ₦100,000',
-            image: require('../../../assets/Rectangle 32.png'),
-            rating: 4.5,
-            profileImage: require('../../../assets/Ellipse 18.png'),
-            service: 'Fashion designing Service',
-        },
-        {
-            id: '2',
-            name: 'Sasha Stores',
-            price: '₦5,000 - ₦100,000',
-            image: require('../../../assets/Frame 264 (4).png'),
-            rating: 4.5,
-            profileImage: require('../../../assets/Ellipse 18.png'),
-            service: 'Fashion designing Service',
-        },
-        {
-            id: '3',
-            name: 'Sasha Stores',
-            price: '₦5,000 - ₦100,000',
-            image: require('../../../assets/Frame 264 (5).png'),
-            rating: 4.5,
-            profileImage: require('../../../assets/Ellipse 18.png'),
-            service: 'Fashion designing Service',
-        },
-    ];
-
-    return (
-        <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <View style={styles.headerTopRow}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Ionicons name="chevron-back" size={22} color="#E53E3E" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>{serviceTitle}</Text>
-                    <View style={styles.headerIcons}>
-                        <Ionicons name="cart-outline" size={22} color="#E53E3E" style={styles.icon} />
-                        <Ionicons name="notifications-outline" size={22} color="#E53E3E" style={styles.icon} />
-                    </View>
-                </View>
-
-                {/* Search */}
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        placeholder="Search any product, shop or category"
-                        placeholderTextColor="#888"
-                        style={styles.searchInput}
-                    />
-                    <Ionicons name="camera-outline" size={22} color="#444" style={styles.cameraIcon} />
-                </View>
-            </View>
-
-            {/* Filters */}
-            <View style={styles.filterContainer}>
-                {filters.map((label) => (
-                    <TouchableOpacity key={label} style={styles.filterButton}>
-                        <Text style={styles.filterText}>{label}</Text>
-                        <Ionicons name="chevron-down" size={14} color="#1A1A1A" />
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-
-            {/* Store Cards */}
-            <FlatList
-                data={stores}
-                numColumns={2}
-                keyExtractor={(item) => item.id}
-                columnWrapperStyle={{ justifyContent: 'space-between' }}
-                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
-                renderItem={({ item }) => (
-                    <View style={styles.card}>
-                        <Image source={item.image} style={styles.cardImage} />
-                        <View style={styles.cardHeader}>
-                            <Image source={item.profileImage} style={styles.profileImage} />
-                            <Text style={styles.storeName}>{item.name}</Text>
-                            <View style={styles.ratingContainer}>
-                                <Ionicons name="star" size={14} color="#E53E3E" />
-                                <Text style={styles.rating}>{item.rating}</Text>
-                            </View>
-                        </View>
-                        <View style={styles.cardBody}>
-                            <Text style={styles.serviceName}>{item.service}</Text>
-                            <Text style={styles.price}>{item.price}</Text>
-                            <TouchableOpacity
-                                style={styles.detailsBtn}
-                                onPress={() => navigation.navigate('SeviceDeatils', { store: item })}
-                            >
-                                <Text style={styles.detailsText}>Details</Text>
-                            </TouchableOpacity>
-
-                        </View>
-                    </View>
-                )}
-
-            />
-        </View>
-    );
+/* ------------ THEME ------------ */
+const COLOR = {
+  primary: "#E53E3E",
+  bg: "#FFFFFF",
+  text: "#1A1A1A",
+  sub: "#6C727A",
+  line: "#E6E6E6",
+  chip: "#EDEDED",
+  chipSelectedBg: "#FDE9E9",
+  chipSelectedBorder: "#F6B6B6",
 };
 
-export default ServiceStoresScreen;
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
+function shadow(e = 14) {
+  return Platform.select({
+    android: { elevation: e },
+    ios: {
+      shadowColor: "#000",
+      shadowOpacity: 0.08,
+      shadowRadius: e / 2,
+      shadowOffset: { width: 0, height: e / 3 },
     },
-    header: {
-        backgroundColor: '#E53E3E',
-        paddingTop: 60,
-        paddingBottom: 20,
-        paddingHorizontal: 16,
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
-    },
-    headerTopRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    headerTitle: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        textAlign: 'center',
-        color: '#fff',
-        fontSize: 20,
-        marginLeft: -120,
-        fontWeight: '400',
-    },
-    headerIcons: {
-        flexDirection: 'row',
-    },
-    backBtn: {
-        backgroundColor: '#fff',
-        padding: 6,
-        borderRadius: 30,
-        zIndex:5
-    },
-    icon: {
-        backgroundColor: '#fff',
-        padding: 6,
-        borderRadius: 30,
-        marginLeft: 8,
-    },
-    searchContainer: {
-        marginTop: 20,
-        backgroundColor: 'white',
-        borderRadius: 12,
-        paddingHorizontal: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        height: 50,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 14,
-        color: '#333',
-    },
-    cameraIcon: {
-        marginLeft: 8,
-    },
-    filterContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginLeft: 25,
-        paddingHorizontal: -5,
-        paddingTop: 20,
-        rowGap: -25,
-        columnGap: 5
-    },
-    filterButton: {
-        width: '30%',
-        backgroundColor: '#EDEDED',
-        paddingVertical: 13,
-        paddingHorizontal: 15,
-        borderRadius: 7,
-        marginBottom: 5,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    filterText: {
-        fontSize: 12,
-        color: '#1A1A1A',
-        fontWeight: '400',
-    },
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        overflow: 'hidden',
-        marginTop: 10,
-        width: '48.5%',
-        elevation: 2,
-    },
-    cardImage: {
-        width: '100%',
-        height: 100,
-    },
-    cardBody: {
-        padding: 10,
-        paddingTop: 0
-    },
-    storeName: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        marginBottom: 4,
-        fontWeight: 500
-    },
-    price: {
-        fontSize: 13,
-        color: '#E53E3E',
-        marginBottom: 6,
-        fontWeight: 700
-    },
-    detailsBtn: {
-        backgroundColor: '#E53E3E',
-        paddingVertical: 10,
-        borderRadius: 10,
-    },
-    detailsText: {
-        color: '#fff',
-        fontSize: 10,
-        textAlign: 'center',
-        fontWeight: 400
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 6,
-        padding: 6,
-        backgroundColor: "#F2F2F2"
-    },
-    profileImage: {
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        marginRight: 6,
-    },
-    ratingContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginLeft: 'auto',
-    },
-    rating: {
-        fontSize: 10,
-        marginLeft: 3,
-        color: '#1A1A1A',
-    },
-    serviceName: {
-        fontSize: 12,
-        fontWeight: '500',
-        color: '#1A1A1A',
-        marginBottom: 4,
-    },
+  });
+}
 
+/* ------------ MOCK DATA FOR FILTERS ------------ */
+const POPULAR_STATES = [
+  "All Lagos State",
+  "Lagos State",
+  "Oyo State",
+  "FCT , Abuja",
+  "Rivers State",
+];
+const ALL_STATES = [
+  "Abia State",
+  "Adamawa State",
+  "Akwa Ibom State",
+  "Anambra State",
+  "Bauchi State",
+  "Bayelsa State",
+  "Benue State",
+  "Borno State",
+  "Cross River State",
+  "Delta State",
+  "Edo State",
+  "Ekiti State",
+  "Enugu State",
+];
+
+const POPULAR_STORES = ["Sasha Stores", "Adam Stores"];
+const ALL_STORES = [
+  "Tarra Stores",
+  "Vee Stores",
+  "Adewale Stores",
+  "Favour Stores",
+  "Scent Villa Stores",
+];
+
+const SERVICES = ["Apple", "Samsung", "Tecno", "Gucci", "Nike", "Adidas"];
+
+const PRICE_BUCKETS = [
+  "Under 100k",
+  "100k - 200k",
+  "200k - 300k",
+  "Above 300k",
+];
+
+const RATINGS = ["All", "4 - 5 Stars", "3 - 4 Stars", "Under 4 Stars"];
+const SORTS = ["Recommended", "Newest", "Lowest Price", "Highest Price"];
+
+/* ------------ BOTTOM SHEET WRAPPER ------------ */
+const BottomSheet = ({ visible, onClose, title, children }) => {
+  if (!visible) return null;
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View style={styles.sheetContainer}>
+          <View style={styles.sheetHeader}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose} style={styles.sheetClose}>
+              <Ionicons name="close" size={18} color={COLOR.text} />
+            </TouchableOpacity>
+          </View>
+          {children}
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+/* ------------ MAIN ------------ */
+export default function ServiceStoresScreen() {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { serviceTitle } = route.params ?? { serviceTitle: "Service" };
+
+  const filtersOrder = [
+    "Location",
+    "Store",
+    "Services",
+    "Price",
+    "Ratings",
+    "Sort by",
+  ];
+
+  // picked values (shown directly on chips)
+  const [picked, setPicked] = useState({
+    Location: null,
+    Store: null,
+    Services: null,
+    Price: null,
+    Ratings: null,
+    "Sort by": null,
+  });
+
+  // which sheet is open
+  const [sheet, setSheet] = useState(null);
+
+  // temp for min/max price (only case needing Apply)
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+
+  const openSheet = (key) => setSheet(key);
+  const closeSheet = () => setSheet(null);
+  const clearPick = (key) => setPicked((p) => ({ ...p, [key]: null }));
+
+  /* ------------ STORE CARDS ------------ */
+  const stores = useMemo(
+    () => [
+      {
+        id: "1",
+        name: "Sasha Stores",
+        price: "₦5,000 - ₦100,000",
+        image: require("../../../assets/Rectangle 32.png"),
+        rating: 4.5,
+        profileImage: require("../../../assets/Ellipse 18.png"),
+        service: "Fashion designing Service",
+      },
+      {
+        id: "2",
+        name: "Sasha Stores",
+        price: "₦5,000 - ₦100,000",
+        image: require("../../../assets/Frame 264 (4).png"),
+        rating: 4.5,
+        profileImage: require("../../../assets/Ellipse 18.png"),
+        service: "Fashion designing Service",
+      },
+      {
+        id: "3",
+        name: "Sasha Stores",
+        price: "₦5,000 - ₦100,000",
+        image: require("../../../assets/Frame 264 (5).png"),
+        rating: 4.5,
+        profileImage: require("../../../assets/Ellipse 18.png"),
+        service: "Fashion designing Service",
+      },
+    ],
+    []
+  );
+
+  /* ------------ RENDER ------------ */
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color={COLOR.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{serviceTitle}</Text>
+          <View style={styles.headerIcons}>
+            <Ionicons name="cart-outline" size={22} color={COLOR.primary} style={styles.icon} />
+            <Ionicons name="notifications-outline" size={22} color={COLOR.primary} style={styles.icon} />
+          </View>
+        </View>
+
+        {/* Search */}
+        <View style={styles.searchContainer}>
+          <TextInput
+            placeholder="Search any product, shop or category"
+            placeholderTextColor="#888"
+            style={styles.searchInput}
+          />
+          <Ionicons name="camera-outline" size={22} color="#444" style={styles.cameraIcon} />
+        </View>
+      </View>
+
+      {/* Filters grid */}
+      <View style={styles.filterContainer}>
+        {filtersOrder.map((label) => {
+          const value = picked[label];
+          const selected = !!value;
+          return (
+            <TouchableOpacity
+              key={label}
+              style={[
+                styles.filterButton,
+                selected && {
+                  backgroundColor: COLOR.chipSelectedBg,
+                  borderColor: COLOR.chipSelectedBorder,
+                  borderWidth: 1,
+                },
+              ]}
+              onPress={() => openSheet(label)}
+              activeOpacity={0.9}
+            >
+              <View style={styles.chipLeft}>
+                {/* For selected Sort by, show a funnel icon like the mock */}
+                {label === "Sort by" && selected && (
+                  <Ionicons
+                    name="filter-outline"
+                    size={14}
+                    color={COLOR.primary}
+                    style={{ marginRight: 6 }}
+                  />
+                )}
+                <Text
+                  style={[
+                    styles.filterText,
+                    selected && { color: COLOR.primary, fontWeight: "700" },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {selected ? value : label}
+                </Text>
+              </View>
+
+              {/* Right icon: chevron when not selected; X to clear when selected */}
+              {selected ? (
+                <TouchableOpacity
+                  onPress={() => clearPick(label)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close" size={14} color={COLOR.primary} />
+                </TouchableOpacity>
+              ) : (
+                <Ionicons name="chevron-down" size={14} color={COLOR.text} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Store Cards */}
+      <FlatList
+        data={stores}
+        numColumns={2}
+        keyExtractor={(item) => item.id}
+        columnWrapperStyle={{ justifyContent: "space-between" }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Image source={item.image} style={styles.cardImage} />
+            <View style={styles.cardHeader}>
+              <Image source={item.profileImage} style={styles.profileImage} />
+              <Text style={styles.storeName}>{item.name}</Text>
+              <View style={styles.ratingContainer}>
+                <Ionicons name="star" size={14} color={COLOR.primary} />
+                <Text style={styles.rating}>{item.rating}</Text>
+              </View>
+            </View>
+            <View style={styles.cardBody}>
+              <Text style={styles.serviceName}>{item.service}</Text>
+              <Text style={styles.price}>{item.price}</Text>
+              <TouchableOpacity
+                style={styles.detailsBtn}
+                onPress={() => navigation.navigate("SeviceDeatils", { store: item })}
+              >
+                <Text style={styles.detailsText}>Details</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        showsVerticalScrollIndicator={false}
+      />
+
+      {/* -------- Location Sheet -------- */}
+      <BottomSheet
+        visible={sheet === "Location"}
+        onClose={closeSheet}
+        title="Location"
+      >
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={COLOR.sub} style={{ marginRight: 8 }} />
+          <TextInput
+            placeholder="Search location"
+            placeholderTextColor={COLOR.sub}
+            style={{ flex: 1, color: COLOR.text }}
+          />
+        </View>
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          <Text style={styles.groupTitle}>Popular</Text>
+          {POPULAR_STATES.map((s) => (
+            <TouchableOpacity
+              key={s}
+              style={styles.listRow}
+              onPress={() => {
+                setPicked((p) => ({ ...p, Location: s }));
+                closeSheet();
+              }}
+            >
+              <Text style={styles.listMain}>{s}</Text>
+              <Text style={styles.listSub}>5,000 products</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={COLOR.text}
+                style={{ marginLeft: "auto" }}
+              />
+            </TouchableOpacity>
+          ))}
+
+          <Text style={[styles.groupTitle, { marginTop: 14 }]}>All States</Text>
+          {ALL_STATES.map((s) => (
+            <TouchableOpacity
+              key={s}
+              style={styles.listRow}
+              onPress={() => {
+                setPicked((p) => ({ ...p, Location: s }));
+                closeSheet();
+              }}
+            >
+              <Text style={styles.listMain}>{s}</Text>
+              <Text style={styles.listSub}>5,000 products</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={COLOR.text}
+                style={{ marginLeft: "auto" }}
+              />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </BottomSheet>
+
+      {/* -------- Store Sheet -------- */}
+      <BottomSheet visible={sheet === "Store"} onClose={closeSheet} title="Store">
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={COLOR.sub} style={{ marginRight: 8 }} />
+          <TextInput
+            placeholder="Search Stores"
+            placeholderTextColor={COLOR.sub}
+            style={{ flex: 1, color: COLOR.text }}
+          />
+        </View>
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          <Text style={styles.groupTitle}>Popular</Text>
+          {POPULAR_STORES.map((name) => (
+            <TouchableOpacity
+              key={name}
+              style={styles.storeRow}
+              onPress={() => {
+                setPicked((p) => ({ ...p, Store: name }));
+                closeSheet();
+              }}
+            >
+              <Image
+                source={require("../../../assets/Ellipse 18.png")}
+                style={styles.avatar}
+              />
+              <View>
+                <Text style={styles.listMain}>{name}</Text>
+                <Text style={styles.listSub}>5,000 products</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+
+          <Text style={[styles.groupTitle, { marginTop: 14 }]}>All Stores</Text>
+          {ALL_STORES.map((name) => (
+            <TouchableOpacity
+              key={name}
+              style={styles.storeRow}
+              onPress={() => {
+                setPicked((p) => ({ ...p, Store: name }));
+                closeSheet();
+              }}
+            >
+              <Image
+                source={require("../../../assets/Ellipse 18.png")}
+                style={styles.avatar}
+              />
+              <View>
+                <Text style={styles.listMain}>{name}</Text>
+                <Text style={styles.listSub}>5,000 products</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </BottomSheet>
+
+      {/* -------- Services Sheet -------- */}
+      <BottomSheet
+        visible={sheet === "Services"}
+        onClose={closeSheet}
+        title="Store"
+      >
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={COLOR.sub} style={{ marginRight: 8 }} />
+          <TextInput
+            placeholder="Search Services"
+            placeholderTextColor={COLOR.sub}
+            style={{ flex: 1, color: COLOR.text }}
+          />
+        </View>
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          {SERVICES.map((s) => (
+            <TouchableOpacity
+              key={s}
+              style={styles.simpleRow}
+              onPress={() => {
+                setPicked((p) => ({ ...p, Services: s }));
+                closeSheet();
+              }}
+            >
+              <Text style={styles.listMain}>{s}</Text>
+              <Ionicons name="chevron-forward" size={18} color={COLOR.text} />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </BottomSheet>
+
+      {/* -------- Price Sheet -------- */}
+      <BottomSheet visible={sheet === "Price"} onClose={closeSheet} title="Price">
+        <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 16 }}>
+          <View style={[styles.inputBox, { flex: 1 }]}>
+            <TextInput
+              placeholder="Min"
+              placeholderTextColor={COLOR.sub}
+              keyboardType="numeric"
+              value={minPrice}
+              onChangeText={setMinPrice}
+              style={{ color: COLOR.text }}
+            />
+          </View>
+          <View style={[styles.inputBox, { flex: 1 }]}>
+            <TextInput
+              placeholder="Max"
+              placeholderTextColor={COLOR.sub}
+              keyboardType="numeric"
+              value={maxPrice}
+              onChangeText={setMaxPrice}
+              style={{ color: COLOR.text }}
+            />
+          </View>
+        </View>
+
+        <ScrollView style={{ marginTop: 12 }} contentContainerStyle={{ paddingBottom: 24 }}>
+          {PRICE_BUCKETS.map((p) => (
+            <TouchableOpacity
+              key={p}
+              style={styles.bucketRow}
+              onPress={() => {
+                setPicked((v) => ({ ...v, Price: p }));
+                setMinPrice("");
+                setMaxPrice("");
+                closeSheet();
+              }}
+            >
+              <Text style={[styles.listMain, { marginBottom: 0 }]}>{p}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <View style={{ padding: 16 }}>
+          <TouchableOpacity
+            style={styles.applyBtn}
+            onPress={() => {
+              const label = `${minPrice || "0"}k - ${maxPrice || "∞"}`;
+              setPicked((p) => ({ ...p, Price: label }));
+              setMinPrice("");
+              setMaxPrice("");
+              closeSheet();
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>Apply</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
+
+      {/* -------- Ratings Sheet -------- */}
+      <BottomSheet visible={sheet === "Ratings"} onClose={closeSheet} title="Reviews">
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          {RATINGS.map((r) => (
+            <TouchableOpacity
+              key={r}
+              style={styles.radioRow}
+              onPress={() => {
+                setPicked((p) => ({ ...p, Ratings: r }));
+                closeSheet();
+              }}
+            >
+              <Text style={styles.listMain}>{r}</Text>
+              <View style={styles.radio} />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </BottomSheet>
+
+      {/* -------- Sort Sheet -------- */}
+      <BottomSheet visible={sheet === "Sort by"} onClose={closeSheet} title="Sort By">
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          {SORTS.map((r) => (
+            <TouchableOpacity
+              key={r}
+              style={styles.radioRow}
+              onPress={() => {
+                setPicked((p) => ({ ...p, "Sort by": r }));
+                closeSheet();
+              }}
+            >
+              <Text style={styles.listMain}>{r}</Text>
+              <View style={styles.radio} />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </BottomSheet>
+    </SafeAreaView>
+  );
+}
+
+/* ------------ STYLES ------------ */
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: COLOR.primary,
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerTitle: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "400",
+    marginLeft:-120
+  },
+  headerIcons: { flexDirection: "row" },
+  backBtn: { backgroundColor: "#fff", padding: 6, borderRadius: 30, zIndex: 5 },
+  icon: { backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 8 },
+
+  searchContainer: {
+    marginTop: 20,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    height: 50,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: "#333" },
+  cameraIcon: { marginLeft: 8 },
+
+  /* filter grid */
+  filterContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    gap: 8,
+  },
+  filterButton: {
+    width: "31.8%",
+    backgroundColor: COLOR.chip,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  chipLeft: { flexDirection: "row", alignItems: "center", flexShrink: 1 },
+  filterText: { fontSize: 12, color: COLOR.text, fontWeight: "400", maxWidth: "85%" },
+
+  /* cards */
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    overflow: "hidden",
+    marginTop: 10,
+    width: "48.5%",
+    ...shadow(6),
+  },
+  cardImage: { width: "100%", height: 100 },
+  cardBody: { padding: 10, paddingTop: 0 },
+  storeName: { fontSize: 12, fontWeight: "700" },
+  price: { fontSize: 13, color: COLOR.primary, marginBottom: 6, fontWeight: "700" },
+  detailsBtn: { backgroundColor: COLOR.primary, paddingVertical: 10, borderRadius: 10 },
+  detailsText: { color: "#fff", fontSize: 10, textAlign: "center", fontWeight: "400" },
+  cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 6, padding: 6, backgroundColor: "#F2F2F2" },
+  profileImage: { width: 18, height: 18, borderRadius: 9, marginRight: 6 },
+  ratingContainer: { flexDirection: "row", alignItems: "center", marginLeft: "auto" },
+  rating: { fontSize: 10, marginLeft: 3, color: COLOR.text },
+  serviceName: { fontSize: 12, fontWeight: "500", color: COLOR.text, marginBottom: 4 },
+
+  /* bottom sheet */
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" },
+  sheetContainer: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    maxHeight: "82%",
+    overflow: "hidden",
+  },
+  sheetHeader: {
+    paddingTop: 10,
+    paddingBottom: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  sheetHandle: {
+    position: "absolute",
+    top: 6,
+    alignSelf: "center",
+    width: 120,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: "#E5E5E5",
+  },
+  sheetTitle: { fontSize: 20, fontWeight: "700", color: COLOR.text, marginTop: 8 },
+  sheetClose: { position: "absolute", right: 12, top: 10, padding: 6 },
+
+  searchBar: {
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    margin: 16,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F6F6F6",
+  },
+  groupTitle: { color: COLOR.text, fontWeight: "600", marginHorizontal: 16, marginBottom: 10, marginTop: 4 },
+
+  listRow: {
+    marginHorizontal: 16,
+    backgroundColor: "#F2F2F2",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    padding: 12,
+    marginBottom: 10,
+  },
+  listMain: { color: COLOR.text, fontWeight: "600", marginBottom: 3 },
+  listSub: { color: COLOR.sub, fontSize: 11 },
+
+  storeRow: {
+    marginHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#F2F2F2",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    padding: 12,
+    marginBottom: 10,
+  },
+  avatar: { width: 34, height: 34, borderRadius: 17 },
+
+  simpleRow: {
+    marginHorizontal: 16,
+    padding: 14,
+    backgroundColor: "#F2F2F2",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+
+  inputBox: {
+    height: 48,
+    backgroundColor: "#F2F2F2",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    paddingHorizontal: 12,
+    justifyContent: "center",
+  },
+  bucketRow: {
+    marginHorizontal: 16,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    backgroundColor: "#EFEFEF",
+    marginBottom: 10,
+  },
+  applyBtn: {
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: COLOR.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  radioRow: {
+    marginHorizontal: 16,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    backgroundColor: "#EFEFEF",
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: COLOR.sub,
+    marginLeft: "auto",
+  },
 });

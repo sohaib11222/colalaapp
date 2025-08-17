@@ -165,6 +165,7 @@ const styles = StyleSheet.create({
     borderColor: COLOR.line,
     alignItems: "center",
     justifyContent: "center",
+    zIndex:5
   },
   headerTitle: {
     position: "absolute",
