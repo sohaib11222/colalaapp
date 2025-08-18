@@ -13,7 +13,7 @@ import {
 import { AntDesign } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
-
+import ThemedText from '../../../components/ThemedText';
 
 // Sample category data
 const initialCategories = [
@@ -82,8 +82,8 @@ const CategoryScreen = () => {
             >
                 <Image source={item.image} style={styles.categoryImage} />
                 <View style={styles.categoryTextContainer}>
-                    <Text style={styles.title}>{item.title}</Text>
-                    <Text style={styles.subText}>{item.productCount} products</Text>
+                    <ThemedText style={styles.title}>{item.title}</ThemedText>
+                    <ThemedText style={styles.subText}>{item.productCount} products</ThemedText>
                 </View>
                 <View style={{ borderWidth: 1, borderColor: "#ccc", padding: 5, borderRadius: 20 }}>
                     <AntDesign
@@ -99,7 +99,7 @@ const CategoryScreen = () => {
                     {item.subcategories.map((group, index) => (
                         <View key={index}>
                             <View style={styles.subHeader}>
-                                <Text style={styles.subTitle}>{group.group}</Text>
+                                <ThemedText style={styles.subTitle}>{group.group}</ThemedText>
                                 <TouchableOpacity
                                     onPress={() =>
                                         navigation.navigate("ProductsList", {
@@ -108,7 +108,7 @@ const CategoryScreen = () => {
                                         })
                                     }
                                 >
-                                    <Text style={styles.viewAll}>View All</Text>
+                                    <ThemedText style={styles.viewAll}>View All</ThemedText>
                                 </TouchableOpacity>
 
                             </View>
@@ -117,8 +117,8 @@ const CategoryScreen = () => {
                                     <View key={i} style={styles.subItem}>
                                         <Image source={sub.image} style={[styles.subImage]} />
                                         <View style={{ backgroundColor: "#F7F7F7", padding: 4, zIndex: 1, marginTop: -5, borderBottomRightRadius: 5, borderBottomLeftRadius: 5 }}>
-                                            <Text style={styles.subItemTitle}>{sub.title}</Text>
-                                            <Text style={styles.subCount}>{sub.count} Products</Text></View>
+                                            <ThemedText style={styles.subItemTitle}>{sub.title}</ThemedText>
+                                            <ThemedText style={styles.subCount}>{sub.count} Products</ThemedText></View>
                                     </View>
                                 ))}
                             </View>
@@ -133,11 +133,11 @@ const CategoryScreen = () => {
         <SafeAreaView style={{ flex: 1, backgroundColor: '#f4f4f4' }}>
             <View style={styles.header}>
                 <View style={styles.headerTopRow}>
-                    <TouchableOpacity onPress={()=>navigation.goBack()} style={{zIndex:5}}>
-                        <Ionicons name="chevron-back" size={22} color="#fff" />
+                    <TouchableOpacity style={{ backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 10, zIndex: 5 }} onPress={() => navigation.goBack()}>
+                        <Ionicons name="chevron-back" size={22} color="#E53E3E" />
                     </TouchableOpacity>
 
-                    <Text style={styles.headerTitle}>Categories</Text>
+                    <ThemedText font='oleo' style={styles.headerTitle}>Categories</ThemedText>
                     <View style={styles.headerIcons}>
                         <TouchableOpacity style={[styles.iconButton, { backgroundColor: "#fff", padding: 6, borderRadius: 25 }]}>
                             <Ionicons name="cart-outline" size={22} color="#E53E3E" />
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
         right: 0,
         textAlign: 'center',
         color: '#fff',
-        fontSize: 20,
+        fontSize: 24,
         marginLeft: -180,
         fontWeight: '400',
     },

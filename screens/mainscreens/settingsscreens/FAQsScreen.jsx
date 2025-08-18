@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Image,
   TouchableOpacity,
@@ -12,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import ThemedText from "../../../components/ThemedText";
 
 /* ---- THEME ---- */
 const COLOR = {
@@ -54,9 +54,9 @@ export default function FAQsScreen() {
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle} pointerEvents="none">
+          <ThemedText style={styles.headerTitle} pointerEvents="none">
             FAQs
-          </Text>
+          </ThemedText>
 
           {/* spacer for symmetry */}
           <View style={{ width: 40, height: 40 }} />
@@ -98,7 +98,7 @@ export default function FAQsScreen() {
                   activeOpacity={0.85}
                   style={styles.cardHead}
                 >
-                  <Text style={styles.cardTitle}>{item.q}</Text>
+                  <ThemedText style={styles.cardTitle}>{item.q}</ThemedText>
                   <Ionicons
                     name={open ? "chevron-down" : "chevron-forward"}
                     size={18}
@@ -111,7 +111,7 @@ export default function FAQsScreen() {
                     {item.bullets.map((b, i) => (
                       <View key={`${item.id}-b${i}`} style={styles.bulletRow}>
                         <View style={styles.bulletDot} />
-                        <Text style={styles.bulletText}>{b}</Text>
+                        <ThemedText style={styles.bulletText}>{b}</ThemedText>
                       </View>
                     ))}
                   </View>

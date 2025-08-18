@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Image,
   TouchableOpacity,
@@ -14,6 +13,7 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import ThemedText from "../../../components/ThemedText"; // 👈 import ThemedText
 
 const { width } = Dimensions.get("window");
 const COLOR = {
@@ -115,26 +115,25 @@ export default function ChatListScreen({ navigation }) {
             name: item.name,
             profileImage: item.avatar, // or your API avatar field
           },
-          // you can also pass chat_id if you fetch messages server-side
           chat_id: item.id,
         })
       }
     >
       <Image source={{ uri: item.avatar }} style={styles.avatar} />
       <View style={{ flex: 1, paddingRight: 10 }}>
-        <Text style={styles.name} numberOfLines={1}>
+        <ThemedText style={styles.name} numberOfLines={1}>
           {item.name}
-        </Text>
-        <Text style={styles.preview} numberOfLines={1}>
+        </ThemedText>
+        <ThemedText style={styles.preview} numberOfLines={1}>
           {item.lastMessage}
-        </Text>
+        </ThemedText>
       </View>
 
       <View style={styles.rightCol}>
-        <Text style={styles.time}>{item.time}</Text>
+        <ThemedText style={styles.time}>{item.time}</ThemedText>
         {item.unread > 0 ? (
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{item.unread}</Text>
+            <ThemedText style={styles.badgeText}>{item.unread}</ThemedText>
           </View>
         ) : (
           <View style={{ height: 18 }} />
@@ -155,7 +154,7 @@ export default function ChatListScreen({ navigation }) {
           style={styles.header}
         >
           <View style={styles.headerRow}>
-            <Text style={styles.headerTitle}>Chats</Text>
+            <ThemedText font="oleo" style={styles.headerTitle}>Chats</ThemedText>
 
             <View style={styles.headerIcons}>
               <TouchableOpacity style={styles.headerBtn}>
@@ -215,7 +214,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: "#fff",
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "400",
   },
   headerIcons: { flexDirection: "row", gap: 10 },
@@ -245,7 +244,6 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 8,
-    // backgroundColor: "#F1F2F5",
     alignItems: "center",
     justifyContent: "center",
   },

@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   FlatList,
@@ -12,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
+import ThemedText from "../../../components/ThemedText"; // <-- adjust path if needed
 
 /* ---- THEME ---- */
 const COLOR = {
@@ -41,15 +41,15 @@ const LockRow = ({ item, onPressStore }) => (
     </View>
 
     <View style={{ flex: 1 }}>
-      <Text style={styles.rowTitle}>{item.title}</Text>
+      <ThemedText style={styles.rowTitle}>{item.title}</ThemedText>
       <TouchableOpacity onPress={onPressStore} activeOpacity={0.8}>
-        <Text style={styles.rowLink}>{item.store}</Text>
+        <ThemedText style={styles.rowLink}>{item.store}</ThemedText>
       </TouchableOpacity>
     </View>
 
     <View style={{ alignItems: "flex-end" }}>
-      <Text style={styles.rowAmount}>{item.amount}</Text>
-      <Text style={styles.rowWhen}>{item.when}</Text>
+      <ThemedText style={styles.rowAmount}>{item.amount}</ThemedText>
+      <ThemedText style={styles.rowWhen}>{item.when}</ThemedText>
     </View>
   </View>
 );
@@ -71,7 +71,7 @@ export default function EscrowWalletScreen() {
           >
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle} pointerEvents="none">Escrow Wallet</Text>
+          <ThemedText style={styles.headerTitle} pointerEvents="none">Escrow Wallet</ThemedText>
           <View style={{ width: 40, height: 40 }} />
         </View>
       </View>
@@ -89,11 +89,11 @@ export default function EscrowWalletScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.gradientCard}
             >
-              <Text style={styles.gcLabel}>Shopping Wallet</Text>
-              <Text style={styles.gcAmount}>N35,000</Text>
+              <ThemedText style={styles.gcLabel}>Shopping Wallet</ThemedText>
+              <ThemedText style={styles.gcAmount}>N35,000</ThemedText>
             </LinearGradient>
 
-            <Text style={styles.sectionTitle}>History</Text>
+            <ThemedText style={styles.sectionTitle}>History</ThemedText>
           </>
         }
         renderItem={({ item }) => (

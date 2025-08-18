@@ -1,7 +1,8 @@
 // components/HomeHeader.tsx
-
+import ThemedText from './ThemedText';
 import React from 'react';
 import {
+
   View,
   Text,
   TextInput,
@@ -26,9 +27,9 @@ const HomeHeader = ({ user = { name: 'Maleek', location: 'Lagos, Nigeria' } }) =
             style={styles.profileImage}
           />
           <View>
-            <Text style={styles.greeting}>Hi, {user.name}</Text>
+            <ThemedText style={styles.greeting}>Hi, {user.name}</ThemedText>
             <View style={styles.locationRow}>
-              <Text style={styles.location}>{user.location}</Text>
+              <ThemedText style={styles.location}>{user.location}</ThemedText>
               <Ionicons name="caret-down" size={14} color="white" style={{ marginLeft: 4 }} />
             </View>
           </View>

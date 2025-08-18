@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import ThemedText from "../../../components/ThemedText";
 
 /* ------------ THEME ------------ */
 const COLOR = {
@@ -146,9 +147,9 @@ export default function EditProfileScreen() {
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle} pointerEvents="none">
+          <ThemedText style={styles.headerTitle} pointerEvents="none">
             Edit Profile
-          </Text>
+          </ThemedText>
 
           <View style={{ width: 40, height: 40 }} />
         </View>
@@ -160,17 +161,17 @@ export default function EditProfileScreen() {
           onPress={() => setTab("profile")}
           style={[styles.tab, tab === "profile" ? styles.tabActive : styles.tabInactive]}
         >
-          <Text style={[styles.tabTxt, tab === "profile" ? styles.tabTxtActive : styles.tabTxtIn]}>
+          <ThemedText style={[styles.tabTxt, tab === "profile" ? styles.tabTxtActive : styles.tabTxtIn]}>
             Edit Profile
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setTab("addresses")}
           style={[styles.tab, tab === "addresses" ? styles.tabActive : styles.tabInactive]}
         >
-          <Text style={[styles.tabTxt, tab === "addresses" ? styles.tabTxtActive : styles.tabTxtIn]}>
+          <ThemedText style={[styles.tabTxt, tab === "addresses" ? styles.tabTxtActive : styles.tabTxtIn]}>
             Saved Addresses
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
       </View>
 
@@ -192,7 +193,7 @@ export default function EditProfileScreen() {
 
           {/* Reset password row */}
           <TouchableOpacity style={styles.rowBtn} onPress={openReset} activeOpacity={0.8}>
-            <Text style={styles.rowLabel}>Change Password</Text>
+            <ThemedText style={styles.rowLabel}>Change Password</ThemedText>
             <Ionicons name="chevron-forward" size={18} color={COLOR.text} />
           </TouchableOpacity>
 
@@ -200,7 +201,7 @@ export default function EditProfileScreen() {
 
           {/* Save button */}
           <TouchableOpacity style={styles.saveBtn}>
-            <Text style={styles.saveTxt}>Save</Text>
+            <ThemedText style={styles.saveTxt}>Save</ThemedText>
           </TouchableOpacity>
         </View>
       ) : (
@@ -224,7 +225,7 @@ export default function EditProfileScreen() {
           {/* Add New fixed button */}
           <View style={styles.addBar}>
             <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
-              <Text style={styles.addBtnTxt}>Add New</Text>
+              <ThemedText style={styles.addBtnTxt}>Add New</ThemedText>
             </TouchableOpacity>
           </View>
         </>
@@ -240,7 +241,7 @@ export default function EditProfileScreen() {
           <View style={styles.sheet}>
             <View style={styles.handle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Reset Password</Text>
+              <ThemedText style={styles.sheetTitle}>Reset Password</ThemedText>
               <TouchableOpacity onPress={closeReset} style={styles.closeBtn}>
                 <Ionicons name="close" size={18} color={COLOR.text} />
               </TouchableOpacity>
@@ -248,7 +249,7 @@ export default function EditProfileScreen() {
 
             {step === 1 && (
               <>
-                <Text style={styles.sheetHint}>Reset you password via your registered email</Text>
+                <ThemedText style={styles.sheetHint}>Reset you password via your registered email</ThemedText>
                 <View style={styles.inputIconWrap}>
                   <Ionicons name="mail-outline" size={18} color={COLOR.sub} style={{ marginRight: 8 }} />
                   <TextInput
@@ -261,14 +262,14 @@ export default function EditProfileScreen() {
                   />
                 </View>
                 <TouchableOpacity style={styles.proceedBtn} onPress={() => setStep(2)}>
-                  <Text style={styles.proceedTxt}>Proceed</Text>
+                  <ThemedText style={styles.proceedTxt}>Proceed</ThemedText>
                 </TouchableOpacity>
               </>
             )}
 
             {step === 2 && (
               <>
-                <Text style={styles.sheetHint}>Enter the code we sent to your email.</Text>
+                <ThemedText style={styles.sheetHint}>Enter the code we sent to your email.</ThemedText>
                 <View style={styles.codeRow}>
                   <TextInput
                     placeholder="Enter Code"
@@ -276,17 +277,17 @@ export default function EditProfileScreen() {
                     style={[styles.inputIcon, { flex: 1 }]}
                   />
                   <TouchableOpacity style={styles.pasteBtn}>
-                    <Text style={{ color: COLOR.primary, fontWeight: "600" }}>Paste</Text>
+                    <ThemedText style={{ color: COLOR.primary, fontWeight: "600" }}>Paste</ThemedText>
                   </TouchableOpacity>
                 </View>
-                <Text style={{ color: COLOR.text, marginTop: 8 }}>
+                <ThemedText style={{ color: COLOR.text, marginTop: 8 }}>
                   You can resend code in{" "}
-                  <Text style={{ color: COLOR.primary, fontWeight: "700" }}>
+                  <ThemedText style={{ color: COLOR.primary, fontWeight: "700" }}>
                     {`00:${String(secs).padStart(2, "0")}`}
-                  </Text>
-                </Text>
+                  </ThemedText>
+                </ThemedText>
                 <TouchableOpacity style={[styles.proceedBtn, { marginTop: 16 }]} onPress={() => setStep(3)}>
-                  <Text style={styles.proceedTxt}>Proceed</Text>
+                  <ThemedText style={styles.proceedTxt}>Proceed</ThemedText>
                 </TouchableOpacity>
               </>
             )}
@@ -308,9 +309,9 @@ export default function EditProfileScreen() {
             >
               <Ionicons name="chevron-back" size={22} color={COLOR.text} />
             </TouchableOpacity>
-            <Text style={styles.fullTitle} pointerEvents="none">
+            <ThemedText style={styles.fullTitle} pointerEvents="none">
               {editId ? "Edit Address" : "Add Address"}
-            </Text>
+            </ThemedText>
             <View style={{ width: 40, height: 40 }} />
           </View>
 
@@ -341,7 +342,7 @@ export default function EditProfileScreen() {
 
             <View style={{ padding: 16, backgroundColor: COLOR.bg }}>
               <TouchableOpacity style={styles.saveBtn} onPress={saveAddress}>
-                <Text style={styles.saveTxt}>Save</Text>
+                <ThemedText style={styles.saveTxt}>Save</ThemedText>
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -395,7 +396,7 @@ function NewPassword({ onDone }) {
       </View>
 
       <TouchableOpacity style={styles.proceedBtn} onPress={onDone}>
-        <Text style={styles.proceedTxt}>Proceed</Text>
+        <ThemedText style={styles.proceedTxt}>Proceed</ThemedText>
       </TouchableOpacity>
     </>
   );
@@ -407,47 +408,47 @@ function AddressCard({ a, onEdit, onDelete, onMakeDefault }) {
       {/* Top row */}
       <View style={styles.addrTop}>
         <View style={styles.addrTitleWrap}>
-          <Text style={styles.addrTitle}>{a.label}</Text>
+          <ThemedText style={styles.addrTitle}>{a.label}</ThemedText>
           {a.isDefault ? (
             <View style={styles.badge}>
-              <Text style={styles.badgeTxt}>Default Address</Text>
+              <ThemedText style={styles.badgeTxt}>Default Address</ThemedText>
             </View>
           ) : (
             <TouchableOpacity onPress={onMakeDefault} style={[styles.badge, { backgroundColor: "#FFF3F3", borderColor: "#FFD0D0" }]}>
-              <Text style={[styles.badgeTxt, { color: COLOR.primary }]}>Make Default</Text>
+              <ThemedText style={[styles.badgeTxt, { color: COLOR.primary }]}>Make Default</ThemedText>
             </TouchableOpacity>
           )}
         </View>
 
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity onPress={onEdit} style={styles.editChip} activeOpacity={0.85}>
-            <Text style={styles.editChipTxt}>Edit</Text>
+            <ThemedText style={styles.editChipTxt}>Edit</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity onPress={onDelete} style={{ marginLeft: 16 }}>
-            <Text style={styles.deleteTxt}>Delete</Text>
+            <ThemedText style={styles.deleteTxt}>Delete</ThemedText>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Fields */}
       <View style={{ marginTop: 16 }}>
-        <Text style={styles.fieldLbl}>Phone number</Text>
-        <Text style={styles.fieldVal}>{a.phone}</Text>
+        <ThemedText style={styles.fieldLbl}>Phone number</ThemedText>
+        <ThemedText style={styles.fieldVal}>{a.phone}</ThemedText>
 
         <View style={{ flexDirection: "row", marginTop: 14 }}>
           <View style={{ flex: 1, paddingRight: 18 }}>
-            <Text style={styles.fieldLbl}>State</Text>
-            <Text style={styles.fieldVal}>{a.state}</Text>
+            <ThemedText style={styles.fieldLbl}>State</ThemedText>
+            <ThemedText style={styles.fieldVal}>{a.state}</ThemedText>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.fieldLbl}>Local Government</Text>
-            <Text style={styles.fieldVal}>{a.lga}</Text>
+            <ThemedText style={styles.fieldLbl}>Local Government</ThemedText>
+            <ThemedText style={styles.fieldVal}>{a.lga}</ThemedText>
           </View>
         </View>
 
         <View style={{ marginTop: 14 }}>
-          <Text style={styles.fieldLbl}>Full Address</Text>
-          <Text style={styles.fieldVal}>{a.full}</Text>
+          <ThemedText style={styles.fieldLbl}>Full Address</ThemedText>
+          <ThemedText style={styles.fieldVal}>{a.full}</ThemedText>
         </View>
       </View>
     </View>
@@ -462,9 +463,9 @@ const RowInput = (props) => (
 
 const RowPicker = ({ label, onPress }) => (
   <TouchableOpacity style={styles.rowInput} onPress={onPress} activeOpacity={0.8}>
-    <Text style={{ color: label === "State" || label === "Local Government" ? COLOR.sub : COLOR.text }}>
+    <ThemedText style={{ color: label === "State" || label === "Local Government" ? COLOR.sub : COLOR.text }}>
       {label}
-    </Text>
+    </ThemedText>
     <Ionicons name="chevron-forward" size={18} color={COLOR.text} />
   </TouchableOpacity>
 );

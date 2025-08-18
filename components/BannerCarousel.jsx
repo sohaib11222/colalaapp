@@ -1,6 +1,7 @@
 // components/BannerCarousel.js
 
 import React, { useRef, useState } from 'react';
+import ThemedText from './ThemedText';
 import {
     View,
     Image,

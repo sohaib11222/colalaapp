@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   FlatList,
@@ -18,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Clipboard from "expo-clipboard";
+import ThemedText from "../../../components/ThemedText"; // <-- adjust path if needed
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
@@ -155,7 +155,7 @@ export default function ReferralsScreen() {
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle} pointerEvents="none">Referrals</Text>
+          <ThemedText style={styles.headerTitle} pointerEvents="none">Referrals</ThemedText>
           <View style={{ width: 40, height: 40 }} />
         </View>
       </View>
@@ -174,9 +174,9 @@ export default function ReferralsScreen() {
               onPress={() => setTab(t.key)}
               style={[styles.tabBtn, active ? styles.tabActive : styles.tabInactive]}
             >
-              <Text style={[styles.tabTxt, active ? styles.tabTxtActive : styles.tabTxtInactive]}>
+              <ThemedText style={[styles.tabTxt, active ? styles.tabTxtActive : styles.tabTxtInactive]}>
                 {t.label}
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           );
         })}
@@ -197,13 +197,13 @@ export default function ReferralsScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.gradientCard}
               >
-                <Text style={styles.gcLabel}>Referral Earnings</Text>
-                <Text style={styles.gcAmount}>N35,000</Text>
+                <ThemedText style={styles.gcLabel}>Referral Earnings</ThemedText>
+                <ThemedText style={styles.gcAmount}>N35,000</ThemedText>
 
                 <View style={styles.gcBtnRow}>
                   <View>
-                    <Text style={styles.gcSmall}>No of referrals</Text>
-                    <Text style={styles.gcCount}>20</Text>
+                    <ThemedText style={styles.gcSmall}>No of referrals</ThemedText>
+                    <ThemedText style={styles.gcCount}>20</ThemedText>
                   </View>
 
                   <View style={{ flexDirection: "row", gap: 10, marginLeft: "auto" }}>
@@ -211,13 +211,13 @@ export default function ReferralsScreen() {
                       style={[styles.gcBtn, styles.gcBtnLight]}
                       onPress={() => setWithdrawVisible(true)}
                     >
-                      <Text style={[styles.gcBtnText, styles.gcBtnTextDark]}>Withdraw</Text>
+                      <ThemedText style={[styles.gcBtnText, styles.gcBtnTextDark]}>Withdraw</ThemedText>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.gcBtn, styles.gcBtnLight]}
                       onPress={() => setTransferVisible(true)}
                     >
-                      <Text style={[styles.gcBtnText, styles.gcBtnTextDark]}>Transfer</Text>
+                      <ThemedText style={[styles.gcBtnText, styles.gcBtnTextDark]}>Transfer</ThemedText>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -225,22 +225,22 @@ export default function ReferralsScreen() {
 
               {/* Referral Code box */}
               <View style={styles.codeWrap}>
-                <Text style={styles.codeLabel}>Referral Code</Text>
+                <ThemedText style={styles.codeLabel}>Referral Code</ThemedText>
                 <View style={styles.codeRow}>
-                  <Text style={styles.codeText}>{code}</Text>
+                  <ThemedText style={styles.codeText}>{code}</ThemedText>
                   <TouchableOpacity onPress={() => copy(code)} style={styles.copyBtn}>
                     <Ionicons name="copy-outline" size={18} color={COLOR.text} />
                   </TouchableOpacity>
                 </View>
-                {copied ? <Text style={styles.copiedTxt}>Copied!</Text> : null}
+                {copied ? <ThemedText style={styles.copiedTxt}>Copied!</ThemedText> : null}
               </View>
 
               {/* How it works */}
-              <Text style={styles.sectionTitle}>Refer and Earn on Colala</Text>
-              <Text style={styles.sectionBody}>
+              <ThemedText style={styles.sectionTitle}>Refer and Earn on Colala</ThemedText>
+              <ThemedText style={styles.sectionBody}>
                 Refer your friends and unlock exclusive rewards. The more friends you bring in, the
                 more you earn.
-              </Text>
+              </ThemedText>
 
               {/* Timeline steps with continuous vertical line */}
               <View style={styles.timelineWrap}>
@@ -275,7 +275,7 @@ export default function ReferralsScreen() {
             </View>
           </View>
 
-          <Text style={styles.faqsTitle}>Referral FAQs</Text>
+          <ThemedText style={styles.faqsTitle}>Referral FAQs</ThemedText>
 
           {/* Accordion list */}
           {FAQS.map((item) => {
@@ -287,13 +287,13 @@ export default function ReferralsScreen() {
                   style={styles.faqHeader}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.faqQ}>{item.q}</Text>
+                  <ThemedText style={styles.faqQ}>{item.q}</ThemedText>
                   <Ionicons name={open ? "remove" : "add"} size={20} color={COLOR.text} />
                 </TouchableOpacity>
 
                 {open && (
                   <View style={styles.faqBody}>
-                    <Text style={styles.faqA}>{item.a}</Text>
+                    <ThemedText style={styles.faqA}>{item.a}</ThemedText>
                   </View>
                 )}
               </View>
@@ -336,21 +336,21 @@ export default function ReferralsScreen() {
                 <Image source={{ uri: item.image }} style={styles.productImg} />
                 <View style={styles.storeRow}>
                   <Image source={{ uri: item.storeAvatar }} style={styles.storeAvatar} />
-                  <Text style={styles.storeName}>{item.storeName}</Text>
+                  <ThemedText style={styles.storeName}>{item.storeName}</ThemedText>
                 </View>
               </View>
 
               <View style={styles.productMain}>
-                <Text style={styles.productTitle} numberOfLines={1}>
+                <ThemedText style={styles.productTitle} numberOfLines={1}>
                   {item.title}
-                </Text>
-                <Text style={styles.productPrice}>{item.price}</Text>
-                <Text style={styles.productCommission}>Commission : {item.commission}</Text>
+                </ThemedText>
+                <ThemedText style={styles.productPrice}>{item.price}</ThemedText>
+                <ThemedText style={styles.productCommission}>Commission : {item.commission}</ThemedText>
 
               </View>
 
               <TouchableOpacity style={styles.copyBtnBig} onPress={() => copy(item.link)}>
-                <Text style={styles.copyBtnBigTxt}>Copy link</Text>
+                <ThemedText style={styles.copyBtnBigTxt}>Copy link</ThemedText>
               </TouchableOpacity>
             </View>
           )}
@@ -374,7 +374,7 @@ export default function ReferralsScreen() {
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Transfer</Text>
+              <ThemedText style={styles.sheetTitle}>Transfer</ThemedText>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setTransferVisible(false)}>
                 <Ionicons name="close" size={18} color={COLOR.text} />
               </TouchableOpacity>
@@ -390,7 +390,7 @@ export default function ReferralsScreen() {
             />
 
             <TouchableOpacity style={styles.proceedBtn} onPress={() => setTransferVisible(false)}>
-              <Text style={styles.proceedTxt}>Proceed</Text>
+              <ThemedText style={styles.proceedTxt}>Proceed</ThemedText>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -411,7 +411,7 @@ export default function ReferralsScreen() {
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { fontStyle: "italic" }]}>Commission</Text>
+              <ThemedText style={[styles.sheetTitle, { fontStyle: "italic" }]}>Commission</ThemedText>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setCommissionVisible(false)}>
                 <Ionicons name="close" size={18} color={COLOR.text} />
               </TouchableOpacity>
@@ -431,7 +431,7 @@ export default function ReferralsScreen() {
                   onPress={() => setCommissionSel(opt.key)}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.radioLabel}>{opt.label}</Text>
+                  <ThemedText style={styles.radioLabel}>{opt.label}</ThemedText>
                   <View style={[styles.radioOuter, selected && styles.radioOuterActive]}>
                     {selected ? <View style={styles.radioInner} /> : null}
                   </View>
@@ -443,7 +443,7 @@ export default function ReferralsScreen() {
               style={[styles.proceedBtn, { marginTop: 16 }]}
               onPress={() => setCommissionVisible(false)}
             >
-              <Text style={styles.proceedTxt}>Apply</Text>
+              <ThemedText style={styles.proceedTxt}>Apply</ThemedText>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -461,7 +461,7 @@ export default function ReferralsScreen() {
             >
               <Ionicons name="chevron-back" size={22} color={COLOR.text} />
             </TouchableOpacity>
-            <Text style={styles.withdrawTitle} pointerEvents="none">Withdraw</Text>
+            <ThemedText style={styles.withdrawTitle} pointerEvents="none">Withdraw</ThemedText>
             <View style={{ width: 40, height: 40 }} />
           </View>
 
@@ -480,13 +480,13 @@ export default function ReferralsScreen() {
               <View style={[styles.checkbox, saveDetails && styles.checkboxChecked]}>
                 {saveDetails ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
               </View>
-              <Text style={{ color: COLOR.text }}>Save account details</Text>
+              <ThemedText style={{ color: COLOR.text }}>Save account details</ThemedText>
             </TouchableOpacity>
 
             <View style={{ flex: 1 }} />
 
             <TouchableOpacity style={styles.withdrawBtn} onPress={() => setWithdrawVisible(false)}>
-              <Text style={styles.withdrawBtnTxt}>Process Withdrawal</Text>
+              <ThemedText style={styles.withdrawBtnTxt}>Process Withdrawal</ThemedText>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -501,10 +501,10 @@ const StepRow = ({ index, text }) => {
     <View style={styles.stepRow}>
       <View style={styles.timelineCol}>
         <View style={styles.stepCircle}>
-          <Text style={styles.stepIndex}>{index}</Text>
+          <ThemedText style={styles.stepIndex}>{index}</ThemedText>
         </View>
       </View>
-      <Text style={styles.stepText}>{text}</Text>
+      <ThemedText style={styles.stepText}>{text}</ThemedText>
     </View>
   );
 };
@@ -513,7 +513,7 @@ const Input = (props) => <TextInput {...props} placeholderTextColor={COLOR.sub} 
 
 const FilterPill = ({ label, onPress }) => (
   <TouchableOpacity style={styles.filterPill} onPress={onPress} activeOpacity={0.8}>
-    <Text style={styles.filterPillTxt}>{label}</Text>
+    <ThemedText style={styles.filterPillTxt}>{label}</ThemedText>
     <Ionicons name="chevron-down" size={14} color={COLOR.text} />
   </TouchableOpacity>
 );

@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ThemedText from '../../../components/ThemedText';
 
 const ServiceChatScreen = () => {
   const { params } = useRoute();
@@ -77,8 +78,8 @@ const ServiceChatScreen = () => {
             <View style={styles.headerCenter}>
               <Image source={store.profileImage} style={styles.avatar} />
               <View>
-                <Text style={styles.storeName}>{store.name}</Text>
-                <Text style={styles.lastSeen}>Last seen 2 mins ago</Text>
+                <ThemedText style={styles.storeName}>{store.name}</ThemedText>
+                <ThemedText style={styles.lastSeen}>Last seen 2 mins ago</ThemedText>
               </View>
             </View>
             <View style={{ flexDirection: 'row', gap: 8, marginLeft: 70 }}>
@@ -93,8 +94,8 @@ const ServiceChatScreen = () => {
           <View style={styles.serviceBox}>
             <Image source={store.image} style={styles.serviceImage} />
             <View style={styles.serviceText}>
-              <Text style={styles.serviceTitle}>{store.service}</Text>
-              <Text style={styles.servicePrice}>{store.price}</Text>
+              <ThemedText style={styles.serviceTitle}>{store.service}</ThemedText>
+              <ThemedText style={styles.servicePrice}>{store.price}</ThemedText>
             </View>
           </View>
 
@@ -111,22 +112,22 @@ const ServiceChatScreen = () => {
                   item.sender === 'me' ? styles.rightBubble : styles.leftBubble,
                 ]}
               >
-                <Text
+                <ThemedText
                   style={[
                     styles.messageText,
                     { color: item.sender === 'me' ? '#fff' : '#000' },
                   ]}
                 >
                   {item.text}
-                </Text>
-                <Text
+                </ThemedText>
+                <ThemedText
                   style={[
                     styles.timeText,
                     { color: item.sender === 'me' ? '#fff' : '#000' },
                   ]}
                 >
                   {item.time}
-                </Text>
+                </ThemedText>
 
               </View>
             )}

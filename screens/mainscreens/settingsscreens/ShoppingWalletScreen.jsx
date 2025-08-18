@@ -1,8 +1,8 @@
 // screens/ShoppingWalletScreen.jsx
+// screens/ShoppingWalletScreen.jsx
 import React, { useMemo, useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   FlatList,
@@ -16,6 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import ThemedText from "../../../components/ThemedText";
 
 /* ---------------- THEME ---------------- */
 const COLOR = {
@@ -73,11 +74,11 @@ const StatusLabel = ({ status }) => {
     failed: { text: "Failed", color: COLOR.failed },
   };
   const it = map[status] || map.successful;
-  return <Text style={{ color: it.color, marginTop: 6 }}>{it.text}</Text>;
+  return <ThemedText style={{ color: it.color, marginTop: 6 }}>{it.text}</ThemedText>;
 };
 
 const Amount = ({ value, color = COLOR.success }) => (
-  <Text style={{ color, fontWeight: "800" }}>{`₦${value.toLocaleString()}`}</Text>
+  <ThemedText style={{ color, fontWeight: "800" }}>{`₦${value.toLocaleString()}`}</ThemedText>
 );
 
 const TxIcon = ({ type }) => (
@@ -95,13 +96,13 @@ const RowCard = ({ item, tab }) => {
       <TxIcon type={tab} />
 
       <View style={{ flex: 1 }}>
-        <Text style={{ color: COLOR.text, fontWeight: "700" }}>{item.title}</Text>
+        <ThemedText style={{ color: COLOR.text, fontWeight: "700" }}>{item.title}</ThemedText>
         <StatusLabel status={item.status} />
       </View>
 
       <View style={{ alignItems: "flex-end" }}>
         <Amount value={item.amount} color={amountColor} />
-        <Text style={styles.when}>{item.when}</Text>
+        <ThemedText style={styles.when}>{item.when}</ThemedText>
       </View>
     </View>
   );
@@ -142,9 +143,9 @@ export default function ShoppingWalletScreen() {
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle} pointerEvents="none">
+          <ThemedText style={styles.headerTitle} pointerEvents="none">
             Shopping Wallet
-          </Text>
+          </ThemedText>
 
           <View style={{ width: 40, height: 40 }} />
         </View>
@@ -164,22 +165,22 @@ export default function ShoppingWalletScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.gradientCard}
             >
-              <Text style={styles.balanceLabel}>Shopping Wallet</Text>
-              <Text style={styles.balanceValue}>N35,000</Text>
+              <ThemedText style={styles.balanceLabel}>Shopping Wallet</ThemedText>
+              <ThemedText style={styles.balanceValue}>N35,000</ThemedText>
 
               <View style={styles.balanceBtnRow}>
                 <TouchableOpacity style={[styles.balanceBtn, { marginRight: 16 }]}>
-                  <Text style={styles.balanceBtnTxt}>Deposit</Text>
+                  <ThemedText style={styles.balanceBtnTxt}>Deposit</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.balanceBtn} onPress={() => setWithdrawVisible(true)}>
-                  <Text style={styles.balanceBtnTxt}>Withdraw</Text>
+                  <ThemedText style={styles.balanceBtnTxt}>Withdraw</ThemedText>
                 </TouchableOpacity>
               </View>
             </LinearGradient>
 
             {/* Transaction header + filter */}
             <View style={styles.txHeaderRow}>
-              <Text style={styles.txHeader}>Transaction History</Text>
+              <ThemedText style={styles.txHeader}>Transaction History</ThemedText>
 
               <View style={styles.filterWrap}>
                 <TouchableOpacity
@@ -206,7 +207,7 @@ export default function ShoppingWalletScreen() {
                           setFilterOpen(false);
                         }}
                       >
-                        <Text style={{ color: COLOR.text }}>{opt.label}</Text>
+                        <ThemedText style={{ color: COLOR.text }}>{opt.label}</ThemedText>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -239,9 +240,9 @@ export default function ShoppingWalletScreen() {
             >
               <Ionicons name="chevron-back" size={22} color={COLOR.text} />
             </TouchableOpacity>
-            <Text style={styles.withdrawTitle} pointerEvents="none">
+            <ThemedText style={styles.withdrawTitle} pointerEvents="none">
               Withdraw
-            </Text>
+            </ThemedText>
             <View style={{ width: 40, height: 40 }} />
           </View>
 
@@ -257,12 +258,12 @@ export default function ShoppingWalletScreen() {
                 <View style={[styles.checkbox, saveDetails && styles.checkboxChecked]}>
                   {saveDetails ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
                 </View>
-                <Text style={{ color: COLOR.text }}>Save account details</Text>
+                <ThemedText style={{ color: COLOR.text }}>Save account details</ThemedText>
               </TouchableOpacity>
 
               <View style={{ flex: 1 }} />
               <TouchableOpacity style={styles.withdrawBtn} onPress={() => setWithdrawVisible(false)}>
-                <Text style={styles.withdrawBtnTxt}>Process Withdrawal</Text>
+                <ThemedText style={styles.withdrawBtnTxt}>Process Withdrawal</ThemedText>
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -275,9 +276,10 @@ export default function ShoppingWalletScreen() {
 /* --------- tiny components --------- */
 const TabBtn = ({ label, active, onPress }) => (
   <TouchableOpacity onPress={onPress} style={[styles.tabBtn, active ? styles.tabActive : styles.tabInactive]}>
-    <Text style={[styles.tabTxt, active ? styles.tabTxtActive : styles.tabTxtInactive]}>{label}</Text>
+    <ThemedText style={[styles.tabTxt, active ? styles.tabTxtActive : styles.tabTxtInactive]}>{label}</ThemedText>
   </TouchableOpacity>
 );
+
 
 const Input = (props) => <TextInput {...props} placeholderTextColor={COLOR.sub} style={styles.input} />;
 

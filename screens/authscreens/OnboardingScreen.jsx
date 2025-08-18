@@ -49,9 +49,9 @@ const OnboardingScreen = () => {
 
       {/* Bottom card overlay */}
       <View style={styles.overlayCard}>
-        <ThemedText font='manrope' style={styles.welcomeText}>Welcome to</ThemedText>
-        <ThemedText font='oleo' weight='bold' style={styles.brandName}>COLALA</ThemedText>
-        <Text style={styles.subText}>Why Choose Colala ?</Text>
+        <ThemedText font='oleo' style={styles.welcomeText}>Welcome to</ThemedText>
+        <ThemedText font='oleo'  style={styles.brandName}>COLALA</ThemedText>
+        <ThemedText style={styles.subText}>Why Choose Colala ?</ThemedText>
 
         <ScrollView
           horizontal
@@ -61,13 +61,13 @@ const OnboardingScreen = () => {
           {features.map((item) => (
             <View key={item.id} style={styles.featureCard}>
               <Image source={item.image} style={styles.featureImage} />
-              <Text style={styles.featureText}>{item.text}</Text>
+              <ThemedText style={styles.featureText}>{item.text}</ThemedText>
             </View>
           ))}
         </ScrollView>
 
         <TouchableOpacity onPress={()=>navigation.navigate('Login')}  style={styles.proceedBtn}>
-          <Text style={styles.proceedText}>Proceed</Text>
+          <ThemedText style={styles.proceedText}>Proceed</ThemedText>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -103,10 +103,10 @@ const styles = StyleSheet.create({
     marginBottom: -5,
   },
   brandName: {
-    fontSize: 80,
+    fontSize: 90,
     color: '#E53E3E',
     fontWeight: 'bold',
-    fontFamily: 'serif',
+    // fontFamily: 'serif',
     marginBottom: -1,
   },
   subText: {

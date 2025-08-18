@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import ThemedText from '../../components/ThemedText'; // 👈 import ThemedText
 
 const ForgotPasswordScreen = () => {
   const navigation = useNavigation();
@@ -25,12 +25,14 @@ const ForgotPasswordScreen = () => {
       <Image source={require('../../assets/forgotmain.png')} style={styles.backgroundImage} />
 
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="chevron-back" size={26} color="#fff" fontWeight= "400" />
+        <Ionicons name="chevron-back" size={26} color="#fff" fontWeight="400" />
       </TouchableOpacity>
 
       <View style={styles.card}>
-        <Text style={styles.title}>Reset Password</Text>
-        <Text style={styles.subtitle}>Reset your password via your registered email</Text>
+        <ThemedText style={styles.title}>Reset Password</ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Reset your password via your registered email
+        </ThemedText>
 
         <View style={styles.inputContainer}>
           <Ionicons name="mail-outline" size={20} color="gray" style={styles.inputIcon} />
@@ -44,7 +46,7 @@ const ForgotPasswordScreen = () => {
         </View>
 
         <TouchableOpacity style={styles.button} onPress={handleProceed}>
-          <Text style={styles.buttonText}>Proceed</Text>
+          <ThemedText style={styles.buttonText}>Proceed</ThemedText>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -57,25 +59,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#B91919',
-    
   },
   backgroundImage: {
     position: 'absolute',
-    width: 410 ,
+    width: 410,
     height: '70%',
-   //resizeMode: 'cover',
-    
-
   },
   backButton: {
     marginTop: 55,
     marginLeft: 30,
     zIndex: 2,
-    backgroundColor:"#ff4444",
-    width:30,
-    paddingVertical:1,
-    alignContent:'center',
-    borderRadius:60,
+    backgroundColor: '#ff4444',
+    width: 30,
+    paddingVertical: 1,
+    alignContent: 'center',
+    borderRadius: 60,
   },
   card: {
     marginTop: '130%',
@@ -84,14 +82,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     elevation: 10,
-    paddingTop:30,
-    height:300
+    paddingTop: 30,
+    height: 300,
   },
   title: {
     fontSize: 24,
     fontWeight: '600',
     marginBottom: 8,
-    color:"#E53E3E",
+    color: '#E53E3E',
     textAlign: 'center',
   },
   subtitle: {
@@ -108,7 +106,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     paddingHorizontal: 10,
     backgroundColor: '#fff',
-    elevation:1
+    elevation: 1,
   },
   inputIcon: {
     marginRight: 5,

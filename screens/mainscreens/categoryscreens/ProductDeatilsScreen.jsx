@@ -13,6 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
+import ThemedText from "../../../components/ThemedText";
 
 const ProductDetailsScreen = () => {
   const route = useRoute();
@@ -152,18 +153,18 @@ const ProductDetailsScreen = () => {
 
   const DescriptionCard = () => (
     <View style={styles.descWrap}>
-      <Text style={styles.descLabel}>Product Name</Text>
-      <Text style={styles.descValue}>{product?.title}</Text>
+      <ThemedText style={styles.descLabel}>Product Name</ThemedText>
+      <ThemedText style={styles.descValue}>{product?.title}</ThemedText>
       <View style={styles.lightDivider} />
 
-      <Text style={styles.descLabel}>Description</Text>
-      <Text style={[styles.descValue, { lineHeight: 20 }]}>
+      <ThemedText style={styles.descLabel}>Description</ThemedText>
+      <ThemedText style={[styles.descValue, { lineHeight: 20 }]}>
         {product?.description ||
           "Very clean iphone 12 pro max , out of the box , factory unlocked"}
-      </Text>
+      </ThemedText>
       <View style={styles.lightDivider} />
 
-      <Text style={styles.descLabel}>Other Details</Text>
+      <ThemedText style={styles.descLabel}>Other Details</ThemedText>
 
       {[
         ["Brand", specs.brand],
@@ -178,8 +179,8 @@ const ProductDetailsScreen = () => {
         ["Camera", specs.camera],
       ].map(([k, v]) => (
         <View style={styles.specRow} key={k}>
-          <Text style={styles.specKey}>{k}</Text>
-          <Text style={styles.specVal}>{v}</Text>
+          <ThemedText style={styles.specKey}>{k}</ThemedText>
+          <ThemedText style={styles.specVal}>{v}</ThemedText>
         </View>
       ))}
     </View>
@@ -192,8 +193,8 @@ const ProductDetailsScreen = () => {
         <StarRow value={avg || 4} size={28} />
       </View>
       <View style={styles.summaryRow}>
-        <Text style={styles.summaryLeft}>{Math.round(avg) || 4} Stars</Text>
-        <Text style={styles.summaryRight}>{reviews.length} Reviews</Text>
+        <ThemedText style={styles.summaryLeft}>{Math.round(avg) || 4} Stars</ThemedText>
+        <ThemedText style={styles.summaryRight}>{reviews.length} Reviews</ThemedText>
       </View>
 
       {/* Reviews list */}
@@ -204,15 +205,15 @@ const ProductDetailsScreen = () => {
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Image source={rv.user.avatar} style={styles.avatar} />
               <View>
-                <Text style={styles.reviewerName}>{rv.user.name}</Text>
+                <ThemedText style={styles.reviewerName}>{rv.user.name}</ThemedText>
                 <StarRow value={rv.rating} size={12} />
               </View>
             </View>
-            <Text style={styles.reviewDate}>{rv.date}</Text>
+            <ThemedText style={styles.reviewDate}>{rv.date}</ThemedText>
           </View>
 
           {/* Body */}
-          <Text style={styles.reviewText}>{rv.text}</Text>
+          <ThemedText style={styles.reviewText}>{rv.text}</ThemedText>
 
           {/* Images (optional) */}
           {!!rv.images?.length && (
@@ -250,9 +251,9 @@ const ProductDetailsScreen = () => {
             <View key={rep.id} style={styles.sellerReply}>
               <Image source={rep.avatar} style={styles.sellerAvatar} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.sellerName}>{rep.name}</Text>
-                <Text style={styles.sellerDate}>{rep.date}</Text>
-                <Text style={styles.sellerText}>{rep.text}</Text>
+                <ThemedText style={styles.sellerName}>{rep.name}</ThemedText>
+                <ThemedText style={styles.sellerDate}>{rep.date}</ThemedText>
+                <ThemedText style={styles.sellerText}>{rep.text}</ThemedText>
               </View>
             </View>
           ))}
@@ -270,7 +271,7 @@ const ProductDetailsScreen = () => {
         <TouchableOpacity style={styles.headerIcon} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Product Details</Text>
+        <ThemedText style={styles.headerTitle}>Product Details</ThemedText>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity style={[styles.headerIcon, { marginRight: 10 }]}>
             <Ionicons name="ellipsis-vertical" size={20} color="#000" />
@@ -306,9 +307,9 @@ const ProductDetailsScreen = () => {
                 style={[styles.tabButton, selectedTab === tab && styles.tabActive]}
                 onPress={() => setSelectedTab(tab)}
               >
-                <Text style={[styles.tabText, selectedTab === tab && styles.tabTextActive]}>
+                <ThemedText style={[styles.tabText, selectedTab === tab && styles.tabTextActive]}>
                   {tab}
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             ))}
           </View>
@@ -324,33 +325,33 @@ const ProductDetailsScreen = () => {
             {/* OVERVIEW */}
             <View style={styles.productInfo}>
               <View style={styles.nameRow}>
-                <Text style={styles.productName}>{product.title}</Text>
+                <ThemedText style={styles.productName}>{product.title}</ThemedText>
                 <View style={styles.ratingRow}>
                   <Ionicons name="star" size={20} color="red" />
-                  <Text style={styles.rating}>{product.rating}</Text>
+                  <ThemedText style={styles.rating}>{product.rating}</ThemedText>
                 </View>
               </View>
 
               <View style={styles.priceRow}>
-                <Text style={styles.price}>{product.price}</Text>
+                <ThemedText style={styles.price}>{product.price}</ThemedText>
                 {!!product.originalPrice && (
-                  <Text style={styles.originalPrice}>{product.originalPrice}</Text>
+                  <ThemedText style={styles.originalPrice}>{product.originalPrice}</ThemedText>
                 )}
               </View>
               <View style={styles.divider} />
 
-              <Text style={styles.sectionTitle}>Description</Text>
-              <Text style={styles.description}>
+              <ThemedText style={styles.sectionTitle}>Description</ThemedText>
+              <ThemedText style={styles.description}>
                 {product.description || "No description available"}
-              </Text>
+              </ThemedText>
               <View style={styles.divider} />
             </View>
 
             {/* SUBTOTAL & CART */}
             <View style={styles.subtotalRow}>
               <View>
-                <Text style={styles.subtotalLabel}>Subtotal</Text>
-                <Text style={styles.subtotal}>{product.price}</Text>
+                <ThemedText style={styles.subtotalLabel}>Subtotal</ThemedText>
+                <ThemedText style={styles.subtotal}>{product.price}</ThemedText>
               </View>
               <TouchableOpacity style={styles.cartIcon}>
                 <Image
@@ -363,14 +364,14 @@ const ProductDetailsScreen = () => {
                   style={[styles.qtyButton, { backgroundColor: "#E53E3E", paddingHorizontal: 14 }]}
                   onPress={decrement}
                 >
-                  <Text style={[styles.qtyText, { color: "#fff" }]}>-</Text>
+                  <ThemedText style={[styles.qtyText, { color: "#fff" }]}>-</ThemedText>
                 </TouchableOpacity>
-                <Text style={styles.qtyNumber}>{quantity}</Text>
+                <ThemedText style={styles.qtyNumber}>{quantity}</ThemedText>
                 <TouchableOpacity
                   style={[styles.qtyButton, { backgroundColor: "#E53E3E" }]}
                   onPress={increment}
                 >
-                  <Text style={[styles.qtyText, { color: "#fff" }]}>+</Text>
+                  <ThemedText style={[styles.qtyText, { color: "#fff" }]}>+</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -388,21 +389,21 @@ const ProductDetailsScreen = () => {
                 <Ionicons name="chatbubble-outline" size={20} color="#000" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.revealBtn} onPress={() => setShowPhone((s) => !s)}>
-                <Text style={{ color: "#fff", fontSize: 12 }}>
+                <ThemedText style={{ color: "#fff", fontSize: 12 }}>
                   {showPhone ? storePhoneNumber : "Reveal Phone Number"}
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             </View>
 
             {/* CHECKOUT BUTTON */}
             <TouchableOpacity style={styles.checkoutBtn}>
-              <Text style={styles.checkoutText}>Checkout</Text>
+              <ThemedText style={styles.checkoutText}>Checkout</ThemedText>
             </TouchableOpacity>
 
             {/* STORE DETAILS (unchanged) */}
             {/* STORE DETAILS (your existing block) */}
             <View style={{ paddingHorizontal: 16, marginBottom: 30 }}>
-              <Text style={{ fontWeight: "500", fontSize: 15, marginBottom: 10 }}>Store Details</Text>
+              <ThemedText style={{ fontWeight: "500", fontSize: 15, marginBottom: 10 }}>Store Details</ThemedText>
 
               <View style={{ backgroundColor: "#fff", borderRadius: 16, overflow: "hidden", elevation: 2 }}>
                 <Image
@@ -423,12 +424,12 @@ const ProductDetailsScreen = () => {
                     }}
                   />
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: "600", fontSize: 15, marginTop: 30 }}>
+                    <ThemedText style={{ fontWeight: "600", fontSize: 15, marginTop: 30 }}>
                       {product.store?.name}
-                    </Text>
+                    </ThemedText>
                     <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
                       {product.store?.categories?.map((cat, i) => (
-                        <Text
+                        <ThemedText
                           key={i}
                           style={{
                             fontSize: 11,
@@ -443,21 +444,21 @@ const ProductDetailsScreen = () => {
                           }}
                         >
                           {cat}
-                        </Text>
+                        </ThemedText>
                       ))}
                     </View>
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center", marginTop: 20 }}>
                     <Ionicons name="star" color="red" size={16} />
-                    <Text style={{ fontSize: 14, marginLeft: 4 }}>{product.store?.rating}</Text>
+                    <ThemedText style={{ fontSize: 14, marginLeft: 4 }}>{product.store?.rating}</ThemedText>
                   </View>
                 </View>
 
                 <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8, paddingHorizontal: 12 }}>
                   <Ionicons name="location-outline" size={16} color="#888" />
-                  <Text style={{ marginLeft: 4, fontSize: 13, color: "#555" }}>
+                  <ThemedText style={{ marginLeft: 4, fontSize: 13, color: "#555" }}>
                     {product.store?.location}
-                  </Text>
+                  </ThemedText>
                 </View>
 
                 <View
@@ -500,8 +501,8 @@ const ProductDetailsScreen = () => {
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                       <Image source={require("../../../assets/shop.png")} style={styles.statIcon} />
                       <View>
-                        <Text style={{ fontSize: 10, color: "#888" }}>Qty Sold</Text>
-                        <Text style={{ fontSize: 14, fontWeight: "500" }}>{product.store?.sold}</Text>
+                        <ThemedText style={{ fontSize: 10, color: "#888" }}>Qty Sold</ThemedText>
+                        <ThemedText style={{ fontSize: 14, fontWeight: "500" }}>{product.store?.sold}</ThemedText>
                       </View>
                     </View>
                   </View>
@@ -512,8 +513,8 @@ const ProductDetailsScreen = () => {
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
                       <Image source={require("../../../assets/profile-2user.png")} style={styles.statIcon} />
                       <View>
-                        <Text style={{ fontSize: 10, color: "#888" }}>Followers</Text>
-                        <Text style={{ fontSize: 14, fontWeight: "500" }}>{product.store?.followers}</Text>
+                        <ThemedText style={{ fontSize: 10, color: "#888" }}>Followers</ThemedText>
+                        <ThemedText style={{ fontSize: 14, fontWeight: "500" }}>{product.store?.followers}</ThemedText>
                       </View>
                     </View>
                   </View>
@@ -528,7 +529,7 @@ const ProductDetailsScreen = () => {
                       borderRadius: 10,
                     }}
                   >
-                    <Text style={{ color: "white", fontSize: 12, fontWeight: "500" }}>Go to Shop</Text>
+                    <ThemedText style={{ color: "white", fontSize: 12, fontWeight: "500" }}>Go to Shop</ThemedText>
                   </TouchableOpacity>
                 </View>
               </View>

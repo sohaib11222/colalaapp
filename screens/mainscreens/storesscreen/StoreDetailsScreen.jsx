@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useRef } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Image,
   TouchableOpacity,
@@ -16,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import ThemedText from "../../../components/ThemedText"; // ⬅️ adjust path if needed
 
 const { width } = Dimensions.get("window");
 const COLOR = {
@@ -300,14 +300,14 @@ export default function StoreDetailsScreen() {
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Image source={toSrc(item.avatar)} style={styles.reviewAvatar} />
             <View>
-              <Text style={styles.reviewName}>{item.user}</Text>
+              <ThemedText style={styles.reviewName}>{item.user}</ThemedText>
               <Stars value={item.rating} size={12} />
             </View>
           </View>
-          <Text style={styles.reviewTime}>{item.time}</Text>
+          <ThemedText style={styles.reviewTime}>{item.time}</ThemedText>
         </View>
 
-        <Text style={styles.reviewText}>{item.text}</Text>
+        <ThemedText style={styles.reviewText}>{item.text}</ThemedText>
 
         {/* reply input row */}
         <View style={styles.replyRow}>
@@ -334,8 +334,8 @@ export default function StoreDetailsScreen() {
           <View key={r.id} style={styles.nestedReply}>
             <Image source={toSrc(r.avatar)} style={styles.nestedAvatar} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.nestedName}>{r.user}</Text>
-              <Text style={styles.nestedText}>{r.text}</Text>
+              <ThemedText style={styles.nestedName}>{r.user}</ThemedText>
+              <ThemedText style={styles.nestedText}>{r.text}</ThemedText>
             </View>
           </View>
         ))}
@@ -354,7 +354,7 @@ export default function StoreDetailsScreen() {
         )}
         {item?.sponsored && (
           <View style={styles.sponsoredBadge}>
-            <Text style={styles.sponsoredText}>Sponsored</Text>
+            <ThemedText style={styles.sponsoredText}>Sponsored</ThemedText>
           </View>
         )}
       </View>
@@ -366,23 +366,23 @@ export default function StoreDetailsScreen() {
           ) : (
             <View style={[styles.storeAvatar, { backgroundColor: "#ddd" }]} />
           )}
-          <Text style={styles.storeName}>{item?.store || store?.name || "Store"}</Text>
+          <ThemedText style={styles.storeName}>{item?.store || store?.name || "Store"}</ThemedText>
         </View>
         <View style={styles.ratingRow}>
           <Ionicons name="star" color="#E53E3E" size={12} />
-          <Text style={styles.ratingTxt}>{item?.rating ?? store?.rating ?? "4.5"}</Text>
+          <ThemedText style={styles.ratingTxt}>{item?.rating ?? store?.rating ?? "4.5"}</ThemedText>
         </View>
       </View>
 
       <View style={styles.infoContainer}>
-        <Text numberOfLines={2} style={styles.productTitle}>
+        <ThemedText numberOfLines={2} style={styles.productTitle}>
           {item?.title || item?.name || "Product"}
-        </Text>
+        </ThemedText>
 
         <View style={styles.priceRow}>
-          <Text style={styles.price}>{item?.price || "₦2,000,000"}</Text>
+          <ThemedText style={styles.price}>{item?.price || "₦2,000,000"}</ThemedText>
           {!!item?.originalPrice && (
-            <Text style={styles.originalPrice}>{item.originalPrice}</Text>
+            <ThemedText style={styles.originalPrice}>{item.originalPrice}</ThemedText>
           )}
         </View>
 
@@ -395,7 +395,7 @@ export default function StoreDetailsScreen() {
         <View style={styles.rowBetween}>
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={13} color="#444" style={{ marginRight: 2 }} />
-            <Text style={styles.location}>{item?.location || "Lagos, Nigeria"}</Text>
+            <ThemedText style={styles.location}>{item?.location || "Lagos, Nigeria"}</ThemedText>
           </View>
           <TouchableOpacity>
             <Image
@@ -442,10 +442,10 @@ export default function StoreDetailsScreen() {
         <View style={styles.postTop}>
           <Image source={toSrc(item.avatar)} style={styles.feedAvatar} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.feedStoreName}>{item.store}</Text>
-            <Text style={styles.metaText}>
+            <ThemedText style={styles.feedStoreName}>{item.store}</ThemedText>
+            <ThemedText style={styles.metaText}>
               {item.location} · {item.timeAgo}
-            </Text>
+            </ThemedText>
           </View>
           <TouchableOpacity onPress={() => openOptions(item)}>
             <Ionicons name="ellipsis-vertical" size={18} color={COLOR.sub} />
@@ -487,7 +487,7 @@ export default function StoreDetailsScreen() {
         {/* Caption pill */}
         {item.caption ? (
           <View style={styles.captionPill}>
-            <Text style={styles.captionText}>{item.caption}</Text>
+            <ThemedText style={styles.captionText}>{item.caption}</ThemedText>
           </View>
         ) : null}
 
@@ -500,23 +500,23 @@ export default function StoreDetailsScreen() {
                 size={25}
                 color={liked ? COLOR.primary : COLOR.text}
               />
-              <Text style={styles.actionCount}>{likeCount}</Text>
+              <ThemedText style={styles.actionCount}>{likeCount}</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionBtn} onPress={() => openComments(item)}>
               <Ionicons name="chatbubble-outline" size={25} color={COLOR.text} />
-              <Text style={styles.actionCount}>{item.comments || 0}</Text>
+              <ThemedText style={styles.actionCount}>{item.comments || 0}</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionBtn}>
               <Ionicons name="arrow-redo-outline" size={25} color={COLOR.text} />
-              <Text style={styles.actionCount}>{item.shares || 0}</Text>
+              <ThemedText style={styles.actionCount}>{item.shares || 0}</ThemedText>
             </TouchableOpacity>
           </View>
 
           <View style={styles.actionsRight}>
             <TouchableOpacity style={styles.visitBtn}>
-              <Text style={styles.visitBtnText}>Visit Store</Text>
+              <ThemedText style={styles.visitBtnText}>Visit Store</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity style={{ marginLeft: 10 }}>
               <Image
@@ -616,19 +616,19 @@ export default function StoreDetailsScreen() {
         <Image source={toSrc(reply.avatar)} style={styles.commentAvatar} />
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={styles.commentName}>{reply.user}</Text>
-            <Text style={styles.commentTime}>  {reply.time}</Text>
+            <ThemedText style={styles.commentName}>{reply.user}</ThemedText>
+            <ThemedText style={styles.commentTime}>  {reply.time}</ThemedText>
           </View>
-          <Text style={styles.commentBody}>
+          <ThemedText style={styles.commentBody}>
             {reply.mentionOf ? (
               <>
-                <Text style={styles.mentionText}>@{reply.mentionOf} </Text>
+                <ThemedText style={styles.mentionText}>@{reply.mentionOf} </ThemedText>
                 {reply.body}
               </>
             ) : (
               reply.body
             )}
-          </Text>
+          </ThemedText>
         </View>
       </View>
     );
@@ -644,7 +644,7 @@ export default function StoreDetailsScreen() {
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Comments</Text>
+              <ThemedText style={styles.sheetTitle}>Comments</ThemedText>
               <TouchableOpacity
                 style={{
                   borderColor: "#000",
@@ -666,14 +666,14 @@ export default function StoreDetailsScreen() {
                     <Image source={toSrc(c.avatar)} style={styles.commentAvatar} />
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <Text style={styles.commentName}>{c.user}</Text>
-                        <Text style={styles.commentTime}>  {c.time}</Text>
+                        <ThemedText style={styles.commentName}>{c.user}</ThemedText>
+                        <ThemedText style={styles.commentTime}>  {c.time}</ThemedText>
                       </View>
-                      <Text style={styles.commentBody}>{c.body}</Text>
+                      <ThemedText style={styles.commentBody}>{c.body}</ThemedText>
 
                       <View style={styles.commentMetaRow}>
                         <TouchableOpacity onPress={() => startReply(c)}>
-                          <Text style={styles.replyText}>Reply</Text>
+                          <ThemedText style={styles.replyText}>Reply</ThemedText>
                         </TouchableOpacity>
                         <View style={{ flexDirection: "row", alignItems: "center" }}>
                           <Ionicons
@@ -681,7 +681,7 @@ export default function StoreDetailsScreen() {
                             size={14}
                             color={COLOR.text}
                           />
-                          <Text style={styles.commentLikeCount}>  {c.likes}</Text>
+                          <ThemedText style={styles.commentLikeCount}>  {c.likes}</ThemedText>
                         </View>
                       </View>
                     </View>
@@ -700,7 +700,7 @@ export default function StoreDetailsScreen() {
 
             {replyTo ? (
               <View style={styles.replyingChip}>
-                <Text style={styles.replyingText}>Replying to {replyTo.username}</Text>
+                <ThemedText style={styles.replyingText}>Replying to {replyTo.username}</ThemedText>
                 <TouchableOpacity onPress={clearReply} style={{ padding: 6 }}>
                   <Ionicons name="close-circle" size={18} color={COLOR.sub} />
                 </TouchableOpacity>
@@ -751,7 +751,7 @@ export default function StoreDetailsScreen() {
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Leave a review</Text>
+              <ThemedText style={styles.sheetTitle}>Leave a review</ThemedText>
               <TouchableOpacity
                 style={{ borderColor: "#000", borderWidth: 1.2, borderRadius: 20, padding: 2 }}
                 onPress={onClose}
@@ -767,7 +767,7 @@ export default function StoreDetailsScreen() {
               </View>
             </View>
 
-            <Text style={styles.revLabel}>Type review</Text>
+            <ThemedText style={styles.revLabel}>Type review</ThemedText>
             <TextInput
               value={text}
               onChangeText={setText}
@@ -791,7 +791,7 @@ export default function StoreDetailsScreen() {
               style={styles.sendReviewBtn}
               onPress={() => onSubmit?.({ rating, text })}
             >
-              <Text style={styles.sendReviewTxt}>Send Review</Text>
+              <ThemedText style={styles.sendReviewTxt}>Send Review</ThemedText>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -807,7 +807,7 @@ export default function StoreDetailsScreen() {
       >
         <View style={styles.optionLeft}>
           {icon}
-          <Text style={[styles.optionLabel, danger && { color: COLOR.primary }]}>{label}</Text>
+          <ThemedText style={[styles.optionLabel, danger && { color: COLOR.primary }]}>{label}</ThemedText>
         </View>
         <Ionicons name="chevron-forward" size={18} color={danger ? COLOR.primary : COLOR.sub} />
       </TouchableOpacity>
@@ -820,7 +820,7 @@ export default function StoreDetailsScreen() {
           <View style={[styles.sheet, { backgroundColor: "#F9F9F9" }]}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Options</Text>
+              <ThemedText style={styles.sheetTitle}>Options</ThemedText>
               <TouchableOpacity
                 style={{
                   borderColor: "#000",
@@ -903,9 +903,9 @@ export default function StoreDetailsScreen() {
         <View style={styles.statusRow}>
           <View style={styles.statusPill}>
             <Ionicons name="ellipse" size={8} color="#fff" />
-            <Text style={styles.statusTxt}>Open Now · 07:00AM - 08:00PM</Text>
+            <ThemedText style={styles.statusTxt}>Open Now · 07:00AM - 08:00PM</ThemedText>
             <TouchableOpacity style={styles.followBtn}>
-              <Text style={styles.followTxt}>Follow</Text>
+              <ThemedText style={styles.followTxt}>Follow</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -913,9 +913,9 @@ export default function StoreDetailsScreen() {
         <View style={styles.headerContent}>
           <View style={styles.rowBetween}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
-              <Text style={[styles.storeName, { fontSize: 18, fontWeight: 500, color: "#000" }]}>
+              <ThemedText style={[styles.storeName, { fontSize: 18, fontWeight: 500, color: "#000" }]}>
                 {store?.name || "Store"}
-              </Text>
+              </ThemedText>
               {/* <Ionicons name="shield-checkmark" size={16} color={COLOR.primary} /> */}
             </View>
           </View>
@@ -924,27 +924,27 @@ export default function StoreDetailsScreen() {
           {/* Contact + meta */}
           <View style={styles.metaRow}>
             <Ionicons name="mail-outline" size={16} color={COLOR.sub} />
-            <Text style={styles.metaTxt}>sashastores@gmail.com</Text>
+            <ThemedText style={styles.metaTxt}>sashastores@gmail.com</ThemedText>
           </View>
           <View style={styles.metaRow}>
             <Ionicons name="call-outline" size={16} color={COLOR.sub} />
-            <Text style={styles.metaTxt}>070123456789</Text>
+            <ThemedText style={styles.metaTxt}>070123456789</ThemedText>
           </View>
           <View style={styles.metaRow}>
             <Ionicons name="location-outline" size={16} color={COLOR.sub} />
-            <Text style={styles.metaTxt}>Lagos, Nigeria </Text>
-            <Text style={[styles.metaTxt, { color: COLOR.primary, textDecorationLine: "underline" }]}>
+            <ThemedText style={styles.metaTxt}>Lagos, Nigeria </ThemedText>
+            <ThemedText style={[styles.metaTxt, { color: COLOR.primary, textDecorationLine: "underline" }]}>
               View Store Addresses
-            </Text>
+            </ThemedText>
           </View>
 
           {!!store?.tags && Array.isArray(store.tags) && store.tags.length > 0 && (
             <View style={styles.tagsRow}>
               <Ionicons name="call-outline" size={16} color={COLOR.sub} />
-              <Text style={styles.metaTxt}>Category</Text>
+              <ThemedText style={styles.metaTxt}>Category</ThemedText>
               {store.tags.map((t, i) => (
                 <View key={`${t}-${i}`} style={[styles.tag, i === 0 ? styles.tagBlue : styles.tagRed]}>
-                  <Text style={[styles.tagTxt, i === 0 ? styles.tagTxtBlue : styles.tagTxtRed]}>{t}</Text>
+                  <ThemedText style={[styles.tagTxt, i === 0 ? styles.tagTxtBlue : styles.tagTxtRed]}>{t}</ThemedText>
                 </View>
               ))}
             </View>
@@ -959,8 +959,8 @@ export default function StoreDetailsScreen() {
                 <Image source={STATS_ICONS.sold} style={styles.statIconImg} />
               </View>
               <View>
-                <Text style={styles.statLabel}>Qty Sold</Text>
-                <Text style={styles.statValue}>100</Text>
+                <ThemedText style={styles.statLabel}>Qty Sold</ThemedText>
+                <ThemedText style={styles.statValue}>100</ThemedText>
               </View>
             </View>
 
@@ -971,8 +971,8 @@ export default function StoreDetailsScreen() {
                 <Image source={STATS_ICONS.users} style={styles.statIconImg} />
               </View>
               <View>
-                <Text style={styles.statLabel}>Followers</Text>
-                <Text style={styles.statValue}>500</Text>
+                <ThemedText style={styles.statLabel}>Followers</ThemedText>
+                <ThemedText style={styles.statValue}>500</ThemedText>
               </View>
             </View>
 
@@ -983,15 +983,15 @@ export default function StoreDetailsScreen() {
                 <Image source={STATS_ICONS.star} style={styles.statIconImg} />
               </View>
               <View>
-                <Text style={styles.statLabel}>Ratings</Text>
-                <Text style={styles.statValue}>4.7</Text>
+                <ThemedText style={styles.statLabel}>Ratings</ThemedText>
+                <ThemedText style={styles.statValue}>4.7</ThemedText>
               </View>
             </View>
           </View>
 
           <View style={styles.statsBottom}>
             <Ionicons name="megaphone-outline" size={16} color="#fff" />
-            <Text style={styles.announceTxt}>New arrivals coming tomorrow</Text>
+            <ThemedText style={styles.announceTxt}>New arrivals coming tomorrow</ThemedText>
           </View>
         </View>
 
@@ -1036,7 +1036,7 @@ export default function StoreDetailsScreen() {
         <View style={styles.buttonStack}>
           <TouchableOpacity style={[styles.bigBtn, styles.bigBtnRed]}>
             <Ionicons name="call-outline" size={18} color="#fff" style={styles.bigBtnIcon} />
-            <Text style={styles.bigBtnTxt}>Call</Text>
+            <ThemedText style={styles.bigBtnTxt}>Call</ThemedText>
           </TouchableOpacity>
 
           {/* Chat button (below the promo) */}
@@ -1056,7 +1056,7 @@ export default function StoreDetailsScreen() {
             }
           >
             <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" style={styles.bigBtnIcon} />
-            <Text style={styles.bigBtnTxt}>Chat</Text>
+            <ThemedText style={styles.bigBtnTxt}>Chat</ThemedText>
           </TouchableOpacity>
 
 
@@ -1065,7 +1065,7 @@ export default function StoreDetailsScreen() {
             onPress={() => setLeaveReviewVisible(true)}
           >
             <Ionicons name="star-outline" size={18} color="#fff" style={styles.bigBtnIcon} />
-            <Text style={styles.bigBtnTxt}>Leave a store review</Text>
+            <ThemedText style={styles.bigBtnTxt}>Leave a store review</ThemedText>
           </TouchableOpacity>
         </View>
 
@@ -1079,7 +1079,7 @@ export default function StoreDetailsScreen() {
               onPress={() => setTab(t)}
               style={[styles.tabItem, tab === t && styles.tabActive]}
             >
-              <Text style={[styles.tabTxt, tab === t && styles.tabTxtActive]}>{t}</Text>
+              <ThemedText style={[styles.tabTxt, tab === t && styles.tabTxtActive]}>{t}</ThemedText>
             </TouchableOpacity>
           ))}
         </View>
@@ -1140,7 +1140,7 @@ export default function StoreDetailsScreen() {
                       onPress={() => setReviewScope(key)}
                       style={styles.revTabBtn}
                     >
-                      <Text style={[styles.revTabTxt, active && styles.revTabTxtActive]}>{label}</Text>
+                      <ThemedText style={[styles.revTabTxt, active && styles.revTabTxtActive]}>{label}</ThemedText>
                       {active && <View style={styles.revTabUnderline} />}
                     </TouchableOpacity>
                   );
@@ -1151,10 +1151,10 @@ export default function StoreDetailsScreen() {
               <View style={styles.ratingBlock}>
                 <Stars value={avgRating} size={28} />
                 <View style={styles.ratingMetaRow}>
-                  <Text style={styles.ratingLeft}>
+                  <ThemedText style={styles.ratingLeft}>
                     {Math.round(avgRating) || 0} Stars
-                  </Text>
-                  <Text style={styles.ratingRight}>{reviewCount} Reviews</Text>
+                  </ThemedText>
+                  <ThemedText style={styles.ratingRight}>{reviewCount} Reviews</ThemedText>
                 </View>
               </View>
             </View>
@@ -1166,7 +1166,7 @@ export default function StoreDetailsScreen() {
               ))}
               {!activeReviews.length && (
                 <View style={styles.noReviewsBox}>
-                  <Text style={{ color: COLOR.sub }}>No reviews yet.</Text>
+                  <ThemedText style={{ color: COLOR.sub }}>No reviews yet.</ThemedText>
                 </View>
               )}
             </View>

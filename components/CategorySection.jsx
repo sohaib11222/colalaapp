@@ -2,6 +2,7 @@
 
 import { useNavigation } from 'expo-router';
 import React from 'react';
+import ThemedText from './ThemedText';
 import {
     View,
     Text,
@@ -51,11 +52,11 @@ const CategorySection = ({ onCategoryPress }) => {
         <View style={styles.container}>
             {/* Header Row */}
             <View style={styles.headerRow}>
-                <Text style={styles.title}>Categories</Text>
+                <ThemedText style={styles.title}>Categories</ThemedText>
                 <TouchableOpacity onPress={() => navigation.navigate('CategoryNavigator', {
                     screen: 'Category',
                 })}>
-                <Text style={styles.viewAll}>View All</Text>
+                <ThemedText style={styles.viewAll}>View All</ThemedText>
             </TouchableOpacity>
         </View>
 
@@ -84,7 +85,7 @@ const CategorySection = ({ onCategoryPress }) => {
                 <View style={[styles.iconWrapper, { backgroundColor: item.bgColor }]}>
                     <Image source={item.icon} style={styles.iconImage} resizeMode="contain" />
                 </View>
-                <Text style={styles.categoryText}>{item.name}</Text>
+                <ThemedText style={styles.categoryText}>{item.name}</ThemedText>
             </TouchableOpacity>
         )}
     />

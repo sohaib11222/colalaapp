@@ -1,849 +1,850 @@
 // screens/ShippingDetailsScreen.jsx
 import React, { useMemo, useState } from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    Image,
-    ScrollView,
-    SafeAreaView,
-    Platform,
-    Modal,
-    TextInput,
-    KeyboardAvoidingView,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  SafeAreaView,
+  Platform,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
+import ThemedText from "../../components/ThemedText";
 
 /* ---------- THEME ---------- */
 const COLOR = {
-    primary: "#E53E3E",
-    bg: "#F5F6F8",
-    card: "#FFFFFF",
-    text: "#101318",
-    sub: "#6C727A",
-    line: "#ECEDEF",
-    chip: "#F1F2F5",
+  primary: "#E53E3E",
+  bg: "#F5F6F8",
+  card: "#FFFFFF",
+  text: "#101318",
+  sub: "#6C727A",
+  line: "#ECEDEF",
+  chip: "#F1F2F5",
 };
 
 const currency = (n) => `₦${Number(n).toLocaleString()}`;
 
 /* ---------- SCREEN ---------- */
 export default function ShippingDetailsScreen() {
-    const navigation = useNavigation();
+  const navigation = useNavigation();
 
-    const [stores, setStores] = useState([
+  const [stores, setStores] = useState([
+    {
+      id: "s1",
+      name: "Sasha Stores",
+      expanded: false,
+      coupon: "",
+      points: "",
+      selectedAddressId: "a1",
+      addresses: [
+        { id: "a1", phone: "070312345678", address: "No 7 , abcd street , ikeja , Lagos" },
+        { id: "a2", phone: "070312345789", address: "No 7 , abcd street , ikeja , Lagos" },
+      ],
+      items: [
         {
-            id: "s1",
-            name: "Sasha Stores",
-            expanded: false,
-            coupon: "",
-            points: "",
-            selectedAddressId: "a1",
-            addresses: [
-                { id: "a1", phone: "070312345678", address: "No 7 , abcd street , ikeja , Lagos" },
-                { id: "a2", phone: "070312345789", address: "No 7 , abcd street , ikeja , Lagos" },
-            ],
-            items: [
-                {
-                    id: "i1",
-                    title: "Iphone 16 pro max - Black",
-                    price: 2500000,
-                    qty: 1,
-                    image: require("../../assets/Frame 314.png"),
-                },
-                {
-                    id: "i2",
-                    title: "Iphone 14 pro max - Green",
-                    price: 2500000,
-                    qty: 1,
-                    image: require("../../assets/Frame 314.png"),
-                },
-            ],
+          id: "i1",
+          title: "Iphone 16 pro max - Black",
+          price: 2500000,
+          qty: 1,
+          image: require("../../assets/Frame 314.png"),
         },
         {
-            id: "s2",
-            name: "Vee Stores",
-            expanded: false,
-            coupon: "",
-            points: "",
-            selectedAddressId: "a1",
-            addresses: [
-                { id: "a1", phone: "070312345678", address: "No 7 , abcd street , ikeja , Lagos" },
-                { id: "a2", phone: "070312345789", address: "No 7 , abcd street , ikeja , Lagos" },
-            ],
-            items: [
-                {
-                    id: "i3",
-                    title: "Iphone 16 pro max - Black",
-                    price: 2500000,
-                    qty: 1,
-                    image: require("../../assets/Frame 314.png"),
-                },
-                {
-                    id: "i4",
-                    title: "Iphone 14 pro max - Green",
-                    price: 2500000,
-                    qty: 1,
-                    image: require("../../assets/Frame 314.png"),
-                },
-            ],
+          id: "i2",
+          title: "Iphone 14 pro max - Green",
+          price: 2500000,
+          qty: 1,
+          image: require("../../assets/Frame 314.png"),
         },
-    ]);
+      ],
+    },
+    {
+      id: "s2",
+      name: "Vee Stores",
+      expanded: false,
+      coupon: "",
+      points: "",
+      selectedAddressId: "a1",
+      addresses: [
+        { id: "a1", phone: "070312345678", address: "No 7 , abcd street , ikeja , Lagos" },
+        { id: "a2", phone: "070312345789", address: "No 7 , abcd street , ikeja , Lagos" },
+      ],
+      items: [
+        {
+          id: "i3",
+          title: "Iphone 16 pro max - Black",
+          price: 2500000,
+          qty: 1,
+          image: require("../../assets/Frame 314.png"),
+        },
+        {
+          id: "i4",
+          title: "Iphone 14 pro max - Green",
+          price: 2500000,
+          qty: 1,
+          image: require("../../assets/Frame 314.png"),
+        },
+      ],
+    },
+  ]);
 
-    // Payment modal + chosen method
-    const [payOpen, setPayOpen] = useState(false);
-    const [payMethod, setPayMethod] = useState(""); // 'flutterwave' | 'wallet'
+  // Payment modal + chosen method
+  const [payOpen, setPayOpen] = useState(false);
+  const [payMethod, setPayMethod] = useState(""); // 'flutterwave' | 'wallet'
 
-    /* ---------- helpers ---------- */
-    const updateQty = (sid, iid, d) => {
-        setStores((prev) =>
-            prev.map((s) =>
-                s.id !== sid
-                    ? s
-                    : {
-                        ...s,
-                        items: s.items.map((it) =>
-                            it.id !== iid ? it : { ...it, qty: Math.max(1, it.qty + d) }
-                        ),
-                    }
-            )
-        );
-    };
+  /* ---------- helpers ---------- */
+  const updateQty = (sid, iid, d) => {
+    setStores((prev) =>
+      prev.map((s) =>
+        s.id !== sid
+          ? s
+          : {
+              ...s,
+              items: s.items.map((it) =>
+                it.id !== iid ? it : { ...it, qty: Math.max(1, it.qty + d) }
+              ),
+            }
+      )
+    );
+  };
 
-    const perStore = useMemo(() => {
-        const map = {};
-        for (const s of stores) {
-            const itemsCount = s.items.reduce((a, b) => a + b.qty, 0);
-            const itemsCost = s.items.reduce((a, b) => a + b.price * b.qty, 0);
-            const couponDiscount = s.coupon.trim() ? 5000 : 0;
-            const pointsDiscount = Math.max(0, Math.floor(Number(s.points || 0))) * 1; // ₦1/point
-            const deliveryFee = 10000;
-            const totalToPay =
-                itemsCost - couponDiscount - pointsDiscount + deliveryFee;
+  const perStore = useMemo(() => {
+    const map = {};
+    for (const s of stores) {
+      const itemsCount = s.items.reduce((a, b) => a + b.qty, 0);
+      const itemsCost = s.items.reduce((a, b) => a + b.price * b.qty, 0);
+      const couponDiscount = s.coupon.trim() ? 5000 : 0;
+      const pointsDiscount = Math.max(0, Math.floor(Number(s.points || 0))) * 1; // ₦1/point
+      const deliveryFee = 10000;
+      const totalToPay =
+        itemsCost - couponDiscount - pointsDiscount + deliveryFee;
 
-            map[s.id] = {
-                itemsCount,
-                itemsCost,
-                couponDiscount,
-                pointsDiscount,
-                deliveryFee,
-                totalToPay,
-            };
-        }
-        return map;
-    }, [stores]);
+      map[s.id] = {
+        itemsCount,
+        itemsCost,
+        couponDiscount,
+        pointsDiscount,
+        deliveryFee,
+        totalToPay,
+      };
+    }
+    return map;
+  }, [stores]);
 
-    const overall = useMemo(() => {
-        let totalItems = 0;
-        let total = 0;
-        for (const s of stores) {
-            totalItems += perStore[s.id].itemsCount;
-            total += perStore[s.id].totalToPay;
-        }
-        return { totalItems, total };
-    }, [stores, perStore]);
+  const overall = useMemo(() => {
+    let totalItems = 0;
+    let total = 0;
+    for (const s of stores) {
+      totalItems += perStore[s.id].itemsCount;
+      total += perStore[s.id].totalToPay;
+    }
+    return { totalItems, total };
+  }, [stores, perStore]);
 
-    const proceedDisabled = !payMethod;
+  const proceedDisabled = !payMethod;
 
-    return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
-            {/* Header */}
-            <View style={styles.header}>
-                <View style={styles.headerRow}>
-                    <TouchableOpacity
-                        onPress={() =>
-                            navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
-                        }
-                        style={styles.iconBtn}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                        <Ionicons name="chevron-back" size={22} color={COLOR.text} />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle} pointerEvents="none">Shipping Details</Text>
-                    <View style={{ width: 40, height: 40 }} />
-                </View>
-            </View>
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+            }
+            style={styles.iconBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={22} color={COLOR.text} />
+          </TouchableOpacity>
+          <ThemedText style={styles.headerTitle} pointerEvents="none">Shipping Details</ThemedText>
+          <View style={{ width: 40, height: 40 }} />
+        </View>
+      </View>
 
-            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-                {stores.map((store) => {
-                    const calc = perStore[store.id];
-                    return (
-                        <View key={store.id} style={styles.storeBlock}>
-                            {/* Header bar */}
-                            <View style={styles.storeHeader}>
-                                <Text style={styles.storeName}>{store.name}</Text>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
+        {stores.map((store) => {
+          const calc = perStore[store.id];
+          return (
+            <View key={store.id} style={styles.storeBlock}>
+              {/* Header bar */}
+              <View style={styles.storeHeader}>
+                <ThemedText style={styles.storeName}>{store.name}</ThemedText>
 
-                                <TouchableOpacity style={styles.chatBtn}>
-                                    <Text style={styles.chatBtnTxt}>Start Chat</Text>
-                                </TouchableOpacity>
-
-                                {/* Expand toggle */}
-                                <TouchableOpacity
-                                    onPress={() =>
-                                        setStores((p) =>
-                                            p.map((s) =>
-                                                s.id === store.id ? { ...s, expanded: !s.expanded } : s
-                                            )
-                                        )
-                                    }
-                                    style={styles.roundIcon}
-                                >
-                                    <Ionicons
-                                        name={store.expanded ? "chevron-up" : "chevron-down"}
-                                        size={18}
-                                        color="#fff"
-                                    />
-                                </TouchableOpacity>
-
-                                {/* Close (visual) */}
-                                <View style={[styles.roundIcon, { marginLeft: 6 }]}>
-                                    <Ionicons name="close" size={16} color="#fff" />
-                                </View>
-                            </View>
-
-                            {/* White card overlapping header */}
-                            <View style={styles.itemsCard}>
-                                {store.items.map((it, idx) => (
-                                    <View
-                                        key={it.id}
-                                        style={[
-                                            styles.itemRow,
-                                            idx > 0 && { borderTopWidth: 1, borderTopColor: COLOR.line },
-                                        ]}
-                                    >
-                                        <Image source={it.image} style={styles.itemImg} />
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.itemTitle} numberOfLines={2}>{it.title}</Text>
-                                            <Text style={styles.price}>{currency(it.price)}</Text>
-
-                                            <View style={styles.qtyRow}>
-                                                <QtyBtn onPress={() => updateQty(store.id, it.id, -1)} />
-                                                <Text style={styles.qtyVal}>{it.qty}</Text>
-                                                <QtyBtn onPress={() => updateQty(store.id, it.id, +1)} plus />
-
-                                                <View style={{ flex: 1 }} />
-                                                <TouchableOpacity style={styles.iconChip}>
-                                                    <Ionicons name="create-outline" size={18} color={COLOR.text} />
-                                                </TouchableOpacity>
-                                                <TouchableOpacity style={styles.iconChip}>
-                                                    <Ionicons name="trash-outline" size={18} color={COLOR.primary} />
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-                                    </View>
-                                ))}
-
-                                {/* Expand row */}
-                                {!store.expanded && (
-                                    <TouchableOpacity
-                                        onPress={() =>
-                                            setStores((p) =>
-                                                p.map((s) =>
-                                                    s.id === store.id ? { ...s, expanded: true } : s
-                                                )
-                                            )
-                                        }
-                                        style={styles.expandRow}
-                                    >
-                                        <Text style={{ color: "#E53E3E" }}>Expand</Text>
-                                        {/* <Ionicons name="chevron-down" size={16} color={COLOR.sub} /> */}
-                                    </TouchableOpacity>
-                                )}
-
-                                {/* Expanded details (now padded left/right) */}
-                                {store.expanded && (
-                                    <View style={styles.innerPad}>
-                                        {/* Coupon */}
-                                        <Text style={styles.sectionHint}>
-                                            Do you have a coupon code, input here
-                                        </Text>
-                                        <View style={styles.rowField}>
-                                            <TextInput
-                                                value={store.coupon}
-                                                onChangeText={(t) =>
-                                                    setStores((p) =>
-                                                        p.map((s) =>
-                                                            s.id === store.id ? { ...s, coupon: t } : s
-                                                        )
-                                                    )
-                                                }
-                                                placeholder="Input coupon code"
-                                                placeholderTextColor={COLOR.sub}
-                                                style={styles.rowInput}
-                                            />
-                                            <TouchableOpacity style={styles.applyBtn}>
-                                                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
-                                                    Apply Code
-                                                </Text>
-                                            </TouchableOpacity>
-                                        </View>
-
-                                        {/* Points */}
-                                        <View style={{ marginTop: 10 }}>
-                                            <View style={styles.rowField}>
-                                                <TextInput
-                                                    value={store.points}
-                                                    onChangeText={(t) =>
-                                                        setStores((p) =>
-                                                            p.map((s) =>
-                                                                s.id === store.id ? { ...s, points: t.replace(/\D/g, "") } : s
-                                                            )
-                                                        )
-                                                    }
-                                                    placeholder="Add points"
-                                                    placeholderTextColor={COLOR.sub}
-                                                    keyboardType="number-pad"
-                                                    style={styles.rowInput}
-                                                />
-                                                <Text style={{ color: COLOR.primary, fontWeight: "700", marginLeft: 8 }}>
-                                                    Bal : 200 Points
-                                                </Text>
-                                            </View>
-                                            <View style={styles.notePill}>
-                                                <Text style={{ color: COLOR.primary, fontSize: 12 }}>
-                                                    Kindly not that 1 point is equivalent to ₦1
-                                                </Text>
-                                            </View>
-                                        </View>
-
-                                        {/* Delivery Address */}
-                                        <View style={{ marginTop: 8 }}>
-                                            <View style={styles.addressHead}>
-                                                <Text style={styles.addrHeader}>Delivery Address</Text>
-                                                <TouchableOpacity>
-                                                    <Text style={{ color: COLOR.primary, fontWeight: "600" }}>
-                                                        Delivery fee/Location
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            </View>
-
-                                            {store.addresses.map((ad) => {
-                                                const selected = ad.id === store.selectedAddressId;
-                                                return (
-                                                    <TouchableOpacity
-                                                        key={ad.id}
-                                                        style={[
-                                                            styles.addressCard,
-                                                            selected && { borderColor: COLOR.primary },
-                                                        ]}
-                                                        onPress={() =>
-                                                            setStores((p) =>
-                                                                p.map((s) =>
-                                                                    s.id === store.id
-                                                                        ? { ...s, selectedAddressId: ad.id }
-                                                                        : s
-                                                                )
-                                                            )
-                                                        }
-                                                        activeOpacity={0.8}
-                                                    >
-                                                        <View style={styles.radio}>
-                                                            {selected ? <View style={styles.radioDot} /> : null}
-                                                        </View>
-                                                        <View style={{ flex: 1 }}>
-                                                            <Text style={styles.addrLabel}>Phone number</Text>
-                                                            <Text style={styles.addrValue}>{ad.phone}</Text>
-                                                            <Text style={[styles.addrLabel, { marginTop: 6 }]}>
-                                                                Address
-                                                            </Text>
-                                                            <Text style={styles.addrValue}>{ad.address}</Text>
-                                                        </View>
-                                                    </TouchableOpacity>
-                                                );
-                                            })}
-                                        </View>
-
-                                        {/* Breakdown */}
-                                        <BreakdownRow left="No it items" right={`${calc.itemsCount}`} last={false} />
-                                        <BreakdownRow left="Items Cost" right={currency(calc.itemsCost)} last={false} />
-                                        <BreakdownRow left="Coupon Discount" right={`-${currency(calc.couponDiscount)}`} last={false} />
-                                        <BreakdownRow left="Points Discount" right={`-${currency(calc.pointsDiscount)}`} last={false} />
-                                        <BreakdownRow left="Delivery fee" right={currency(calc.deliveryFee)} last={false} />
-                                        <BreakdownRow left="Total to pay" right={currency(calc.totalToPay)} strong last />
-                                    </View>
-                                )}
-                            </View>
-                        </View>
-                    );
-                })}
-
-                {/* Payment picker */}
-                <Text style={[styles.sectionHint, { marginTop: 6, marginBottom: 6 }]}>
-                    Select Payment Method
-                </Text>
-                <TouchableOpacity style={styles.selectRow} onPress={() => setPayOpen(true)}>
-                    <Text style={{ color: payMethod ? COLOR.text : COLOR.sub }}>
-                        {payMethod
-                            ? payMethod === "wallet"
-                                ? "Shopping Wallet"
-                                : "Flutterwave"
-                            : "Choose Payment Method"}
-                    </Text>
-                    <Ionicons name="chevron-down" size={16} color={COLOR.text} />
+                <TouchableOpacity style={styles.chatBtn}>
+                  <ThemedText style={styles.chatBtnTxt}>Start Chat</ThemedText>
                 </TouchableOpacity>
 
-                {/* SHOW WALLET BALANCE under selector when wallet chosen */}
-                {payMethod === "wallet" && (
-                    <LinearGradient
-                        colors={["#E90F0F", "#BD0F7B"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.walletInline}
-                    >
-                        <Text style={styles.walletSmall}>Shopping Wallet Balance</Text>
-                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                            <Text style={styles.walletAmount}>N3,000,000</Text>
-                            <TouchableOpacity style={styles.topupBtn}>
-                                <Text style={{ color: COLOR.primary, fontWeight: "700" }}>Top Up</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </LinearGradient>
+                {/* Expand toggle */}
+                <TouchableOpacity
+                  onPress={() =>
+                    setStores((p) =>
+                      p.map((s) =>
+                        s.id === store.id ? { ...s, expanded: !s.expanded } : s
+                      )
+                    )
+                  }
+                  style={styles.roundIcon}
+                >
+                  <Ionicons
+                    name={store.expanded ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color="#fff"
+                  />
+                </TouchableOpacity>
+
+                {/* Close (visual) */}
+                <View style={[styles.roundIcon, { marginLeft: 6 }]}>
+                  <Ionicons name="close" size={16} color="#fff" />
+                </View>
+              </View>
+
+              {/* White card overlapping header */}
+              <View style={styles.itemsCard}>
+                {store.items.map((it, idx) => (
+                  <View
+                    key={it.id}
+                    style={[
+                      styles.itemRow,
+                      idx > 0 && { borderTopWidth: 1, borderTopColor: COLOR.line },
+                    ]}
+                  >
+                    <Image source={it.image} style={styles.itemImg} />
+                    <View style={{ flex: 1 }}>
+                      <ThemedText style={styles.itemTitle} numberOfLines={2}>{it.title}</ThemedText>
+                      <ThemedText style={styles.price}>{currency(it.price)}</ThemedText>
+
+                      <View style={styles.qtyRow}>
+                        <QtyBtn onPress={() => updateQty(store.id, it.id, -1)} />
+                        <ThemedText style={styles.qtyVal}>{it.qty}</ThemedText>
+                        <QtyBtn onPress={() => updateQty(store.id, it.id, +1)} plus />
+
+                        <View style={{ flex: 1 }} />
+                        <TouchableOpacity style={styles.iconChip}>
+                          <Ionicons name="create-outline" size={18} color={COLOR.text} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.iconChip}>
+                          <Ionicons name="trash-outline" size={18} color={COLOR.primary} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+
+                {/* Expand row */}
+                {!store.expanded && (
+                  <TouchableOpacity
+                    onPress={() =>
+                      setStores((p) =>
+                        p.map((s) =>
+                          s.id === store.id ? { ...s, expanded: true } : s
+                        )
+                      )
+                    }
+                    style={styles.expandRow}
+                  >
+                    <ThemedText style={{ color: "#E53E3E" }}>Expand</ThemedText>
+                    {/* <Ionicons name="chevron-down" size={16} color={COLOR.sub} /> */}
+                  </TouchableOpacity>
                 )}
 
-                {/* Two grey boxes (Total Items / Total) like your mock */}
-                <View style={styles.overallBox}>
-                    <Text style={{ color: COLOR.text }}>Total Items</Text>
-                    <Text style={{ color: COLOR.text, fontWeight: "700" }}>{overall.totalItems}</Text>
-                </View>
-                <View style={styles.overallBox}>
-                    <Text style={{ color: COLOR.text }}>Total</Text>
-                    <Text style={{ color: COLOR.primary, fontWeight: "800" }}>{currency(overall.total)}</Text>
-                </View>
-
-                {/* Proceed */}
-                <TouchableOpacity
-                    style={[styles.proceedBtn, proceedDisabled && { opacity: 0.5 }]}
-                    disabled={proceedDisabled}
-                    onPress={() => {
-                        navigation.navigate("ShippingSummary", {
-                            stores,                 // the same array you used on the details screen
-                            payMethod,          // e.g. "Shopping Wallet" or "Flutterwave"
-                        });
-                    }}
-                >
-                    <Text style={styles.proceedTxt}>Proceed to Payment</Text>
-                </TouchableOpacity>
-            </ScrollView>
-
-            {/* ===== Payment modal ===== */}
-            <Modal
-                visible={payOpen}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setPayOpen(false)}
-            >
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : undefined}
-                    style={styles.sheetOverlay}
-                >
-                    <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setPayOpen(false)} />
-                    <View style={styles.sheet}>
-                        <View style={styles.sheetHandle} />
-                        <View style={styles.sheetTop}>
-                            <Text style={styles.sheetTitle}>Payment Option</Text>
-                            <TouchableOpacity onPress={() => setPayOpen(false)} style={styles.sheetClose}>
-                                <Ionicons name="close" size={18} color={COLOR.text} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <RadioRow
-                            label="Flutterwave"
-                            icon="logo-electron"
-                            selected={payMethod === "flutterwave"}
-                            onPress={() => { setPayMethod("flutterwave"); setPayOpen(false); }}
-                        />
-
-                        <RadioRow
-                            label="Shopping Wallet"
-                            icon="card-outline"
-                            selected={payMethod === "wallet"}
-                            onPress={() => { setPayMethod("wallet"); setPayOpen(false); }}
-                        />
-
-                        {payMethod === "wallet" && (
-                            <LinearGradient
-                                colors={["#E90F0F", "#BD0F7B"]}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.walletSheetCard}
-                            >
-                                <Text style={styles.walletSmall}>Shopping Wallet Balance</Text>
-                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                                    <Text style={styles.walletAmount}>N3,000,000</Text>
-                                    <TouchableOpacity style={styles.topupBtn}>
-                                        <Text style={{ color: COLOR.primary, fontWeight: "700" }}>Top Up</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </LinearGradient>
-                        )}
+                {/* Expanded details (now padded left/right) */}
+                {store.expanded && (
+                  <View style={styles.innerPad}>
+                    {/* Coupon */}
+                    <ThemedText style={styles.sectionHint}>
+                      Do you have a coupon code, input here
+                    </ThemedText>
+                    <View style={styles.rowField}>
+                      <TextInput
+                        value={store.coupon}
+                        onChangeText={(t) =>
+                          setStores((p) =>
+                            p.map((s) =>
+                              s.id === store.id ? { ...s, coupon: t } : s
+                            )
+                          )
+                        }
+                        placeholder="Input coupon code"
+                        placeholderTextColor={COLOR.sub}
+                        style={styles.rowInput}
+                      />
+                      <TouchableOpacity style={styles.applyBtn}>
+                        <ThemedText style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
+                          Apply Code
+                        </ThemedText>
+                      </TouchableOpacity>
                     </View>
-                </KeyboardAvoidingView>
-            </Modal>
-        </SafeAreaView>
-    );
+
+                    {/* Points */}
+                    <View style={{ marginTop: 10 }}>
+                      <View style={styles.rowField}>
+                        <TextInput
+                          value={store.points}
+                          onChangeText={(t) =>
+                            setStores((p) =>
+                              p.map((s) =>
+                                s.id === store.id ? { ...s, points: t.replace(/\D/g, "") } : s
+                              )
+                            )
+                          }
+                          placeholder="Add points"
+                          placeholderTextColor={COLOR.sub}
+                          keyboardType="number-pad"
+                          style={styles.rowInput}
+                        />
+                        <ThemedText style={{ color: COLOR.primary, fontWeight: "700", marginLeft: 8 }}>
+                          Bal : 200 Points
+                        </ThemedText>
+                      </View>
+                      <View style={styles.notePill}>
+                        <ThemedText style={{ color: COLOR.primary, fontSize: 12 }}>
+                          Kindly not that 1 point is equivalent to ₦1
+                        </ThemedText>
+                      </View>
+                    </View>
+
+                    {/* Delivery Address */}
+                    <View style={{ marginTop: 8 }}>
+                      <View style={styles.addressHead}>
+                        <ThemedText style={styles.addrHeader}>Delivery Address</ThemedText>
+                        <TouchableOpacity>
+                          <ThemedText style={{ color: COLOR.primary, fontWeight: "600" }}>
+                            Delivery fee/Location
+                          </ThemedText>
+                        </TouchableOpacity>
+                      </View>
+
+                      {store.addresses.map((ad) => {
+                        const selected = ad.id === store.selectedAddressId;
+                        return (
+                          <TouchableOpacity
+                            key={ad.id}
+                            style={[
+                              styles.addressCard,
+                              selected && { borderColor: COLOR.primary },
+                            ]}
+                            onPress={() =>
+                              setStores((p) =>
+                                p.map((s) =>
+                                  s.id === store.id
+                                    ? { ...s, selectedAddressId: ad.id }
+                                    : s
+                                )
+                              )
+                            }
+                            activeOpacity={0.8}
+                          >
+                            <View style={styles.radio}>
+                              {selected ? <View style={styles.radioDot} /> : null}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <ThemedText style={styles.addrLabel}>Phone number</ThemedText>
+                              <ThemedText style={styles.addrValue}>{ad.phone}</ThemedText>
+                              <ThemedText style={[styles.addrLabel, { marginTop: 6 }]}>
+                                Address
+                              </ThemedText>
+                              <ThemedText style={styles.addrValue}>{ad.address}</ThemedText>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {/* Breakdown */}
+                    <BreakdownRow left="No it items" right={`${calc.itemsCount}`} last={false} />
+                    <BreakdownRow left="Items Cost" right={currency(calc.itemsCost)} last={false} />
+                    <BreakdownRow left="Coupon Discount" right={`-${currency(calc.couponDiscount)}`} last={false} />
+                    <BreakdownRow left="Points Discount" right={`-${currency(calc.pointsDiscount)}`} last={false} />
+                    <BreakdownRow left="Delivery fee" right={currency(calc.deliveryFee)} last={false} />
+                    <BreakdownRow left="Total to pay" right={currency(calc.totalToPay)} strong last />
+                  </View>
+                )}
+              </View>
+            </View>
+          );
+        })}
+
+        {/* Payment picker */}
+        <ThemedText style={[styles.sectionHint, { marginTop: 6, marginBottom: 6 }]}>
+          Select Payment Method
+        </ThemedText>
+        <TouchableOpacity style={styles.selectRow} onPress={() => setPayOpen(true)}>
+          <ThemedText style={{ color: payMethod ? COLOR.text : COLOR.sub }}>
+            {payMethod
+              ? payMethod === "wallet"
+                ? "Shopping Wallet"
+                : "Flutterwave"
+              : "Choose Payment Method"}
+          </ThemedText>
+          <Ionicons name="chevron-down" size={16} color={COLOR.text} />
+        </TouchableOpacity>
+
+        {/* SHOW WALLET BALANCE under selector when wallet chosen */}
+        {payMethod === "wallet" && (
+          <LinearGradient
+            colors={["#E90F0F", "#BD0F7B"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.walletInline}
+          >
+            <ThemedText style={styles.walletSmall}>Shopping Wallet Balance</ThemedText>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <ThemedText style={styles.walletAmount}>N3,000,000</ThemedText>
+              <TouchableOpacity style={styles.topupBtn}>
+                <ThemedText style={{ color: COLOR.primary, fontWeight: "700" }}>Top Up</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        )}
+
+        {/* Two grey boxes (Total Items / Total) like your mock */}
+        <View style={styles.overallBox}>
+          <ThemedText style={{ color: COLOR.text }}>Total Items</ThemedText>
+          <ThemedText style={{ color: COLOR.text, fontWeight: "700" }}>{overall.totalItems}</ThemedText>
+        </View>
+        <View style={styles.overallBox}>
+          <ThemedText style={{ color: COLOR.text }}>Total</ThemedText>
+          <ThemedText style={{ color: COLOR.primary, fontWeight: "800" }}>{currency(overall.total)}</ThemedText>
+        </View>
+
+        {/* Proceed */}
+        <TouchableOpacity
+          style={[styles.proceedBtn, proceedDisabled && { opacity: 0.5 }]}
+          disabled={proceedDisabled}
+          onPress={() => {
+            navigation.navigate("ShippingSummary", {
+              stores,                 // the same array you used on the details screen
+              payMethod,          // e.g. "Shopping Wallet" or "Flutterwave"
+            });
+          }}
+        >
+          <ThemedText style={styles.proceedTxt}>Proceed to Payment</ThemedText>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* ===== Payment modal ===== */}
+      <Modal
+        visible={payOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPayOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.sheetOverlay}
+        >
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setPayOpen(false)} />
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetTop}>
+              <ThemedText style={styles.sheetTitle}>Payment Option</ThemedText>
+              <TouchableOpacity onPress={() => setPayOpen(false)} style={styles.sheetClose}>
+                <Ionicons name="close" size={18} color={COLOR.text} />
+              </TouchableOpacity>
+            </View>
+
+            <RadioRow
+              label="Flutterwave"
+              icon="logo-electron"
+              selected={payMethod === "flutterwave"}
+              onPress={() => { setPayMethod("flutterwave"); setPayOpen(false); }}
+            />
+
+            <RadioRow
+              label="Shopping Wallet"
+              icon="card-outline"
+              selected={payMethod === "wallet"}
+              onPress={() => { setPayMethod("wallet"); setPayOpen(false); }}
+            />
+
+            {payMethod === "wallet" && (
+              <LinearGradient
+                colors={["#E90F0F", "#BD0F7B"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.walletSheetCard}
+              >
+                <ThemedText style={styles.walletSmall}>Shopping Wallet Balance</ThemedText>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <ThemedText style={styles.walletAmount}>N3,000,000</ThemedText>
+                  <TouchableOpacity style={styles.topupBtn}>
+                    <ThemedText style={{ color: COLOR.primary, fontWeight: "700" }}>Top Up</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </SafeAreaView>
+  );
 }
 
 /* ---------- tiny components ---------- */
 const QtyBtn = ({ onPress, plus = false }) => (
-    <TouchableOpacity onPress={onPress} style={styles.qtyBtn}>
-        <Ionicons name={plus ? "add" : "remove"} size={16} color="#fff" />
-    </TouchableOpacity>
+  <TouchableOpacity onPress={onPress} style={styles.qtyBtn}>
+    <Ionicons name={plus ? "add" : "remove"} size={16} color="#fff" />
+  </TouchableOpacity>
 );
 
 const BreakdownRow = ({ left, right, strong = false, last = false }) => (
-    <View style={[styles.breakRow, last && { marginBottom: 6 }]}>
-        <Text style={[styles.breakLeft, strong && { fontWeight: "700" }]}>{left}</Text>
-        <Text style={[styles.breakRight, strong && { color: COLOR.primary, fontWeight: "800" }]}>{right}</Text>
-    </View>
+  <View style={[styles.breakRow, last && { marginBottom: 6 }]}>
+    <ThemedText style={[styles.breakLeft, strong && { fontWeight: "700" }]}>{left}</ThemedText>
+    <ThemedText style={[styles.breakRight, strong && { color: COLOR.primary, fontWeight: "800" }]}>{right}</ThemedText>
+  </View>
 );
 
 const RadioRow = ({ label, selected, onPress, icon }) => (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.radioRow}>
-        <View style={styles.radioIconWrap}>
-            <Ionicons name={icon} size={18} color={COLOR.primary} />
-        </View>
-        <Text style={{ color: COLOR.text, flex: 1 }}>{label}</Text>
-        <View style={[styles.radioOuter, selected && { borderColor: COLOR.primary }]}>
-            {selected ? <View style={styles.radioInner} /> : null}
-        </View>
-    </TouchableOpacity>
+  <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.radioRow}>
+    <View style={styles.radioIconWrap}>
+      <Ionicons name={icon} size={18} color={COLOR.primary} />
+    </View>
+    <ThemedText style={{ color: COLOR.text, flex: 1 }}>{label}</ThemedText>
+    <View style={[styles.radioOuter, selected && { borderColor: COLOR.primary }]}>
+      {selected ? <View style={styles.radioInner} /> : null}
+    </View>
+  </TouchableOpacity>
 );
 
 /* ---------- styles ---------- */
 function shadow(e = 10) {
-    return Platform.select({
-        android: { elevation: e },
-        ios: {
-            shadowColor: "#000",
-            shadowOpacity: 0.12,
-            shadowRadius: e / 2,
-            shadowOffset: { width: 0, height: e / 3 },
-        },
-    });
+  return Platform.select({
+    android: { elevation: e },
+    ios: {
+      shadowColor: "#000",
+      shadowOpacity: 0.12,
+      shadowRadius: e / 2,
+      shadowOffset: { width: 0, height: e / 3 },
+    },
+  });
 }
 
 const styles = StyleSheet.create({
-    header: {
-        backgroundColor: "#fff",
-        paddingTop: 30,
-        paddingBottom: 10,
-        paddingHorizontal: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: COLOR.line,
-    },
-    headerRow: {
-        height: 44,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        position: "relative",
-    },
-    iconBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: "#fff",
-        borderWidth: 1,
-        borderColor: COLOR.line,
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex:5
-    },
-    headerTitle: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        textAlign: "center",
-        color: COLOR.text,
-        fontSize: 18,
-        fontWeight: "400",
-    },
+  header: {
+    backgroundColor: "#fff",
+    paddingTop: 30,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerRow: {
+    height: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    position: "relative",
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex:5
+  },
+  headerTitle: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    color: COLOR.text,
+    fontSize: 18,
+    fontWeight: "400",
+  },
 
-    /* Store block */
-    storeBlock: { marginBottom: 14 },
-    storeHeader: {
-        backgroundColor: COLOR.primary,
-        borderTopLeftRadius: 14,
-        borderTopRightRadius: 14,
-        paddingHorizontal: 12,
-        paddingVertical: 14,
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    storeName: { color: "#fff", fontWeight: "700", fontSize: 15, flex: 1 },
-    chatBtn: {
-        backgroundColor: "#fff",
-        paddingHorizontal: 15,
-        height: 27,
-        borderRadius: 10,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    chatBtnTxt: { color: COLOR.primary, fontWeight: "600", fontSize: 12 },
-    roundIcon: {
-        width: 26,
-        height: 26,
-        borderRadius: 13,
-        borderWidth: 1.3,
-        borderColor: "#fff",
-        alignItems: "center",
-        justifyContent: "center",
-        marginLeft: 10,
-    },
+  /* Store block */
+  storeBlock: { marginBottom: 14 },
+  storeHeader: {
+    backgroundColor: COLOR.primary,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  storeName: { color: "#fff", fontWeight: "700", fontSize: 15, flex: 1 },
+  chatBtn: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 15,
+    height: 27,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chatBtnTxt: { color: COLOR.primary, fontWeight: "600", fontSize: 12 },
+  roundIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1.3,
+    borderColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 10,
+  },
 
-    itemsCard: {
-        marginTop: -4,
-        backgroundColor: "#fff",
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 12,
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderWidth: 1,
-        borderColor: COLOR.line,
-        overflow: "hidden",
-        ...shadow(8),
-    },
+  itemsCard: {
+    marginTop: -4,
+    backgroundColor: "#fff",
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    overflow: "hidden",
+    ...shadow(8),
+  },
 
-    itemRow: {
-        flexDirection: "row",
-        paddingHorizontal: 12,
-        paddingTop: 12,
-        paddingBottom: 10,
-        alignItems: "center",
-    },
-    itemImg: { width: 116, height: 88, borderRadius: 12, marginRight: 12, backgroundColor: "#eee" },
-    itemTitle: { color: COLOR.text, fontWeight: "600" },
-    price: { color: COLOR.primary, fontWeight: "800", marginTop: 6 },
+  itemRow: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 10,
+    alignItems: "center",
+  },
+  itemImg: { width: 116, height: 88, borderRadius: 12, marginRight: 12, backgroundColor: "#eee" },
+  itemTitle: { color: COLOR.text, fontWeight: "600" },
+  price: { color: COLOR.primary, fontWeight: "800", marginTop: 6 },
 
-    qtyRow: { flexDirection: "row", alignItems: "center", marginTop: 10 },
-    qtyBtn: {
-        width: 30,
-        height: 30,
-        borderRadius: 8,
-        backgroundColor: COLOR.primary,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    qtyVal: { marginHorizontal: 12, color: COLOR.text, fontWeight: "700" },
-    iconChip: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: COLOR.line,
-        alignItems: "center",
-        justifyContent: "center",
-        marginLeft: 10,
-    },
+  qtyRow: { flexDirection: "row", alignItems: "center", marginTop: 10 },
+  qtyBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: COLOR.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  qtyVal: { marginHorizontal: 12, color: COLOR.text, fontWeight: "700" },
+  iconChip: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 10,
+  },
 
-    expandRow: {
-        height: 30,
-        borderWidth: 1,
-        borderColor: "#CDCDCD",
-        alignItems: "center",
-        justifyContent: "center",
-        marginHorizontal: 8,
-        marginVertical: 10,
-        borderRadius: 15,
-        flexDirection: "row",
-        gap: 6,
-    },
+  expandRow: {
+    height: 30,
+    borderWidth: 1,
+    borderColor: "#CDCDCD",
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 8,
+    marginVertical: 10,
+    borderRadius: 15,
+    flexDirection: "row",
+    gap: 6,
+  },
 
-    innerPad: { paddingHorizontal: 12, paddingBottom: 12 },
+  innerPad: { paddingHorizontal: 12, paddingBottom: 12 },
 
-    sectionHint: { color: COLOR.sub, marginTop: 12, marginBottom: 6 },
+  sectionHint: { color: COLOR.sub, marginTop: 12, marginBottom: 6 },
 
-    rowField: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#fff",
-        borderWidth: 1,
-        borderColor: COLOR.line,
-        borderRadius: 12,
-        paddingHorizontal: 10,
-        height: 52,
-        marginTop: 6,
-    },
-    rowInput: { flex: 1, color: COLOR.text, height: "100%" },
-    applyBtn: {
-        backgroundColor: COLOR.primary,
-        paddingHorizontal: 8,
-        height: 30,
-        borderRadius: 10,
-        alignItems: "center",
-        justifyContent: "center",
-        marginLeft: 8,
-    },
-    notePill: {
-        backgroundColor: "#FFEAEA",
-        borderRadius: 10,
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        marginTop: 8,
-    },
+  rowField: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    height: 52,
+    marginTop: 6,
+  },
+  rowInput: { flex: 1, color: COLOR.text, height: "100%" },
+  applyBtn: {
+    backgroundColor: COLOR.primary,
+    paddingHorizontal: 8,
+    height: 30,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  notePill: {
+    backgroundColor: "#FFEAEA",
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginTop: 8,
+  },
 
-    addressHead: {
-        marginTop: 10,
-        marginBottom: 6,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
-    addrHeader: { color: COLOR.text, fontWeight: "600" },
-    addressCard: {
-        backgroundColor: "#fff",
-        borderWidth: 1,
-        borderColor: COLOR.line,
-        borderRadius: 12,
-        padding: 12,
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 10,
-        marginBottom: 10,
-    },
-    radio: {
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        borderWidth: 1,
-        borderColor: COLOR.primary,
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: 3,
-    },
-    radioDot: { width: 10, height: 10, borderRadius: 6, backgroundColor: COLOR.primary },
-    addrLabel: { color: COLOR.sub, fontSize: 12 },
-    addrValue: { color: COLOR.text, marginTop: 2 },
+  addressHead: {
+    marginTop: 10,
+    marginBottom: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  addrHeader: { color: COLOR.text, fontWeight: "600" },
+  addressCard: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginBottom: 10,
+  },
+  radio: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: COLOR.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 3,
+  },
+  radioDot: { width: 10, height: 10, borderRadius: 6, backgroundColor: COLOR.primary },
+  addrLabel: { color: COLOR.sub, fontSize: 12 },
+  addrValue: { color: COLOR.text, marginTop: 2 },
 
-    breakRow: {
-        height: 48,
-        backgroundColor: COLOR.chip,
-        borderWidth: 1,
-        borderColor: COLOR.line,
-        borderRadius: 12,
-        marginTop: 10,
-        paddingHorizontal: 14,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
-    breakLeft: { color: COLOR.text },
-    breakRight: { color: COLOR.text },
+  breakRow: {
+    height: 48,
+    backgroundColor: COLOR.chip,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    borderRadius: 12,
+    marginTop: 10,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  breakLeft: { color: COLOR.text },
+  breakRight: { color: COLOR.text },
 
-    /* Payment selector + inline wallet card */
-    selectRow: {
-        height: 56,
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor: COLOR.line,
-        backgroundColor: "#fff",
-        paddingHorizontal: 14,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
+  /* Payment selector + inline wallet card */
+  selectRow: {
+    height: 56,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    backgroundColor: "#fff",
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
 
-    walletInline: {
-        marginTop: 10,
-        borderRadius: 16,
-        padding: 14,
-        ...shadow(10),
-    },
-    walletSmall: { color: "#fff", opacity: 0.9, marginBottom: 6 },
-    walletAmount: { color: "#fff", fontSize: 24, fontWeight: "800" },
-    topupBtn: {
-        backgroundColor: "#fff",
-        paddingHorizontal: 14,
-        height: 32,
-        borderRadius: 16,
-        alignItems: "center",
-        justifyContent: "center",
-    },
+  walletInline: {
+    marginTop: 10,
+    borderRadius: 16,
+    padding: 14,
+    ...shadow(10),
+  },
+  walletSmall: { color: "#fff", opacity: 0.9, marginBottom: 6 },
+  walletAmount: { color: "#fff", fontSize: 24, fontWeight: "800" },
+  topupBtn: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 14,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-    /* grey boxes like mock */
-    overallBox: {
-        backgroundColor: COLOR.chip,
-        borderWidth: 1,
-        borderColor: COLOR.line,
-        borderRadius: 16,
-        height: 54,
-        paddingHorizontal: 16,
-        marginTop: 10,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
+  /* grey boxes like mock */
+  overallBox: {
+    backgroundColor: COLOR.chip,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    borderRadius: 16,
+    height: 54,
+    paddingHorizontal: 16,
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
 
-    /* Proceed CTA */
-    proceedBtn: {
-        height: 56,
-        borderRadius: 18,
-        backgroundColor: COLOR.primary,
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: 12,
-    },
-    proceedTxt: { color: "#fff", fontWeight: "700" },
+  /* Proceed CTA */
+  proceedBtn: {
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: COLOR.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+  },
+  proceedTxt: { color: "#fff", fontWeight: "700" },
 
-    /* Payment bottom sheet */
-    sheetOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
-    sheet: {
-        backgroundColor: "#fff",
-        paddingHorizontal: 16,
-        paddingTop: 8,
-        paddingBottom: 16,
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-    },
-    sheetHandle: {
-        alignSelf: "center",
-        width: 100,
-        height: 6,
-        borderRadius: 999,
-        backgroundColor: "#D8DCE2",
-    },
-    sheetTop: { alignItems: "center", justifyContent: "center", paddingVertical: 8 },
-    sheetTitle: { fontSize: 18, fontWeight: "700", color: COLOR.text },
-    sheetClose: { position: "absolute", right: 0, top: 6, padding: 4, borderWidth: 1.4, borderRadius: 20 },
+  /* Payment bottom sheet */
+  sheetOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
+  sheet: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    width: 100,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: "#D8DCE2",
+  },
+  sheetTop: { alignItems: "center", justifyContent: "center", paddingVertical: 8 },
+  sheetTitle: { fontSize: 18, fontWeight: "700", color: COLOR.text },
+  sheetClose: { position: "absolute", right: 0, top: 6, padding: 4, borderWidth: 1.4, borderRadius: 20 },
 
-    radioRow: {
-        height: 56,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: COLOR.line,
-        backgroundColor: "#fff",
-        paddingHorizontal: 12,
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: 10,
-    },
-    radioIconWrap: {
-        width: 30,
-        height: 30,
-        borderRadius: 8,
-        backgroundColor: "#FFF4F4",
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: 10,
-    },
-    radioOuter: {
-        width: 20,
-        height: 20,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: COLOR.line,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    radioInner: { width: 12, height: 12, borderRadius: 7, backgroundColor: COLOR.primary },
+  radioRow: {
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  radioIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: "#FFF4F4",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLOR.line,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioInner: { width: 12, height: 12, borderRadius: 7, backgroundColor: COLOR.primary },
 
-    walletSheetCard: {
-        marginTop: 12,
-        borderRadius: 16,
-        padding: 14,
-        ...shadow(10),
-    },
+  walletSheetCard: {
+    marginTop: 12,
+    borderRadius: 16,
+    padding: 14,
+    ...shadow(10),
+  },
 });

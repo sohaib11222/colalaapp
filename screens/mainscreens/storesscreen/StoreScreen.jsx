@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from "react";
 import {
   View,
-  Text,
+  // Text, // (kept import unchanged if you prefer; safe to remove)
   StyleSheet,
   Image,
   FlatList,
@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import ThemedText from "../../../components/ThemedText"; // <-- adjust path if needed
 
 const { width } = Dimensions.get("window");
 
@@ -150,13 +151,13 @@ export default function StoresScreen() {
       {/* content */}
       <View style={[styles.content, { paddingTop: AVATAR_SIZE / 2 + 6 }]}>
         <View style={styles.rowBetween}>
-          <Text numberOfLines={1} style={styles.storeName}>
+          <ThemedText numberOfLines={1} style={styles.storeName}>
             {item.name}
-          </Text>
+          </ThemedText>
 
           <View style={styles.rating}>
             <Ionicons name="star" size={12} color={COLOR.primary} />
-            <Text style={styles.ratingText}>{item.rating}</Text>
+            <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
           </View>
         </View>
 
@@ -166,11 +167,11 @@ export default function StoresScreen() {
               key={tag}
               style={[styles.tagBase, idx === 0 ? styles.tagBlue : styles.tagRed]}
             >
-              <Text
+              <ThemedText
                 style={[styles.tagTextBase, idx === 0 ? styles.tagTextBlue : styles.tagTextRed]}
               >
                 {tag}
-              </Text>
+              </ThemedText>
             </View>
           ))}
         </View>
@@ -185,7 +186,7 @@ export default function StoresScreen() {
             })
           }
         >
-          <Text style={styles.ctaText}>Go to Shop</Text>
+          <ThemedText style={styles.ctaText}>Go to Shop</ThemedText>
         </TouchableOpacity>
       </View>
     </View>
@@ -199,7 +200,7 @@ export default function StoresScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color="#E53E3E" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Stores</Text>
+          <ThemedText font="oleo" style={styles.headerTitle}>Stores</ThemedText>
           <View style={styles.headerIcons}>
             <Ionicons name="cart-outline" size={22} color="#E53E3E" style={styles.icon} />
             <Ionicons name="notifications-outline" size={22} color="#E53E3E" style={styles.icon} />
@@ -247,9 +248,9 @@ export default function StoresScreen() {
 /* -------------------- Small Components -------------------- */
 const FilterPill = ({ label, onPress }) => (
   <TouchableOpacity style={styles.filter} onPress={onPress} activeOpacity={0.8}>
-    <Text numberOfLines={1} style={styles.filterText}>
+    <ThemedText numberOfLines={1} style={styles.filterText}>
       {label}
-    </Text>
+    </ThemedText>
     <Ionicons name="chevron-down" size={14} color={COLOR.text} />
   </TouchableOpacity>
 );
@@ -286,7 +287,7 @@ const styles = StyleSheet.create({
     right: 0,
     // textAlign: 'center',
     color: '#fff',
-    fontSize: 20,
+    fontSize: 24,
     marginLeft: 12,
     fontWeight: '400',
   },

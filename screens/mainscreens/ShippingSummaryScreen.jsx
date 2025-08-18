@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import ThemedText from "../../components/ThemedText";
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
@@ -134,9 +135,9 @@ export default function ShippingSummaryScreen() {
           >
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle} pointerEvents="none">
+          <ThemedText style={styles.headerTitle} pointerEvents="none">
             Shipping Summary
-          </Text>
+          </ThemedText>
           <View style={{ width: 40, height: 40 }} />
         </View>
       </View>
@@ -149,10 +150,10 @@ export default function ShippingSummaryScreen() {
           <View key={store.id} style={{ marginBottom: 14 }}>
             {/* Red header */}
             <View style={styles.storeHeader}>
-              <Text style={styles.storeName}>{store.name}</Text>
+              <ThemedText style={styles.storeName}>{store.name}</ThemedText>
 
               <TouchableOpacity style={styles.chatBtn}>
-                <Text style={styles.chatBtnTxt}>Start Chat</Text>
+                <ThemedText style={styles.chatBtnTxt}>Start Chat</ThemedText>
               </TouchableOpacity>
 
               <View style={{ flexDirection: "row", gap: 8, marginLeft: 8 }}>
@@ -174,20 +175,20 @@ export default function ShippingSummaryScreen() {
                 >
                   <Image source={IMG} style={styles.compactImg} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.compactTitle} numberOfLines={2}>
+                    <ThemedText style={styles.compactTitle} numberOfLines={2}>
                       {it.title}
-                    </Text>
-                    <Text style={styles.price}>{currency(it.price)}</Text>
-                    <Text style={styles.qtyMini}>Qty : {it.qty}</Text>
+                    </ThemedText>
+                    <ThemedText style={styles.price}>{currency(it.price)}</ThemedText>
+                    <ThemedText style={styles.qtyMini}>Qty : {it.qty}</ThemedText>
                   </View>
                 </View>
               ))}
 
               {/* Coupon input */}
               <View style={{ marginTop: 12 }}>
-                <Text style={styles.smallLabel}>
+                <ThemedText style={styles.smallLabel}>
                   Do you have a coupon code, input here
-                </Text>
+                </ThemedText>
                 <View style={styles.rowInput}>
                   <TextInput
                     placeholder="Input coupon code"
@@ -197,7 +198,7 @@ export default function ShippingSummaryScreen() {
                     style={{ flex: 1, color: COLOR.text }}
                   />
                   <TouchableOpacity style={styles.applyBtn}>
-                    <Text style={{ color: "#fff", fontWeight: "600" }}>Apply Code</Text>
+                    <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Apply Code</ThemedText>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -205,8 +206,10 @@ export default function ShippingSummaryScreen() {
               {/* Points */}
               <View style={{ marginTop: 12 }}>
                 <View style={styles.pointsHeader}>
-                  <Text style={styles.smallLabel}>Discount Points</Text>
-                  <Text style={[styles.smallLabel, { color: COLOR.primary }]}>Bal : 200 Points</Text>
+                  <ThemedText style={styles.smallLabel}>Discount Points</ThemedText>
+                  <ThemedText style={[styles.smallLabel, { color: COLOR.primary }]}>
+                    Bal : 200 Points
+                  </ThemedText>
                 </View>
                 <View style={styles.rowInput}>
                   <TextInput
@@ -219,44 +222,52 @@ export default function ShippingSummaryScreen() {
                   />
                 </View>
                 <View style={styles.noticeBadge}>
-                  <Text style={{ color: COLOR.primary, fontSize: 12 }}>
+                  <ThemedText style={{ color: COLOR.primary, fontSize: 12 }}>
                     Kindly not that 1 point is equivalent to ₦1
-                  </Text>
+                  </ThemedText>
                 </View>
               </View>
 
               {/* Delivery address */}
               <View style={{ marginTop: 12 }}>
                 <View style={styles.pointsHeader}>
-                  <Text style={styles.smallLabel}>Delivery Address</Text>
-                  <Text style={[styles.smallLabel, { color: COLOR.primary }]}>
+                  <ThemedText style={styles.smallLabel}>Delivery Address</ThemedText>
+                  <ThemedText style={[styles.smallLabel, { color: COLOR.primary }]}>
                     Delivery fee/Location
-                  </Text>
+                  </ThemedText>
                 </View>
                 {/* Address card 1 (selected) */}
                 <View style={[styles.addrCard, { borderColor: COLOR.primary }]}>
                   <View style={styles.radioDot} />
                   <View style={{ marginLeft: 10, flex: 1 }}>
-                    <Text style={styles.addrLabel}>Phone number</Text>
-                    <Text style={styles.addrValue}>
+                    <ThemedText style={styles.addrLabel}>Phone number</ThemedText>
+                    <ThemedText style={styles.addrValue}>
                       {inputs[store.id]?.address?.phone || "—"}
-                    </Text>
+                    </ThemedText>
 
-                    <Text style={[styles.addrLabel, { marginTop: 6 }]}>Address</Text>
-                    <Text style={styles.addrValue}>
+                    <ThemedText style={[styles.addrLabel, { marginTop: 6 }]}>
+                      Address
+                    </ThemedText>
+                    <ThemedText style={styles.addrValue}>
                       {inputs[store.id]?.address?.line || "—"}
-                    </Text>
+                    </ThemedText>
                   </View>
                 </View>
 
                 {/* Address card 2 (unselected demo) */}
                 <View style={styles.addrCard}>
-                  <View style={[styles.radioDot, { backgroundColor: "transparent", borderWidth: 1 }]} />
+                  <View
+                    style={[styles.radioDot, { backgroundColor: "transparent", borderWidth: 1 }]}
+                  />
                   <View style={{ marginLeft: 10, flex: 1 }}>
-                    <Text style={styles.addrLabel}>Phone number</Text>
-                    <Text style={styles.addrValue}>0703123456789</Text>
-                    <Text style={[styles.addrLabel, { marginTop: 6 }]}>Address</Text>
-                    <Text style={styles.addrValue}>No 7 , abcd street , ikeja , Lagos</Text>
+                    <ThemedText style={styles.addrLabel}>Phone number</ThemedText>
+                    <ThemedText style={styles.addrValue}>0703123456789</ThemedText>
+                    <ThemedText style={[styles.addrLabel, { marginTop: 6 }]}>
+                      Address
+                    </ThemedText>
+                    <ThemedText style={styles.addrValue}>
+                      No 7 , abcd street , ikeja , Lagos
+                    </ThemedText>
                   </View>
                 </View>
               </View>
@@ -270,8 +281,16 @@ export default function ShippingSummaryScreen() {
                 first
               />
               <LinedRow left="Items Cost" right={currency(perStore[store.id].itemsCost)} boxed />
-              <LinedRow left="Coupon Discount" right={`-${currency(perStore[store.id].couponDiscount).slice(1)}`} boxed />
-              <LinedRow left="Points Discount" right={`-${currency(perStore[store.id].pointsDiscount).slice(1)}`} boxed />
+              <LinedRow
+                left="Coupon Discount"
+                right={`-${currency(perStore[store.id].couponDiscount).slice(1)}`}
+                boxed
+              />
+              <LinedRow
+                left="Points Discount"
+                right={`-${currency(perStore[store.id].pointsDiscount).slice(1)}`}
+                boxed
+              />
               <LinedRow left="Delivery fee" right={currency(perStore[store.id].deliveryFee)} boxed />
               <LinedRow
                 left="Total to pay"
@@ -297,7 +316,7 @@ export default function ShippingSummaryScreen() {
             // next step in your flow (e.g., final payment gateway)
           }}
         >
-          <Text style={styles.proceedTxt}>Proceed to payment</Text>
+          <ThemedText style={styles.proceedTxt}>Proceed to payment</ThemedText>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -320,8 +339,8 @@ const LinedRow = ({ left, right, boxed, first, last, boldRight, strong, red }) =
       last && { borderBottomLeftRadius: 12, borderBottomRightRadius: 12, marginBottom: 4 },
     ]}
   >
-    <Text style={[styles.lineLeft, strong && { fontWeight: "600" }]}>{left}</Text>
-    <Text
+    <ThemedText style={[styles.lineLeft, strong && { fontWeight: "600" }]}>{left}</ThemedText>
+    <ThemedText
       style={[
         styles.lineRight,
         boldRight && { fontWeight: "700" },
@@ -330,7 +349,7 @@ const LinedRow = ({ left, right, boxed, first, last, boldRight, strong, red }) =
       ]}
     >
       {right}
-    </Text>
+    </ThemedText>
   </View>
 );
 
@@ -342,8 +361,8 @@ const FooterRow = ({ label, value, first, last, red, strong }) => (
       last && { borderBottomLeftRadius: 14, borderBottomRightRadius: 14, marginBottom: 8 },
     ]}
   >
-    <Text style={{ color: COLOR.text }}>{label}</Text>
-    <Text
+    <ThemedText style={{ color: COLOR.text }}>{label}</ThemedText>
+    <ThemedText
       style={[
         { color: COLOR.text, fontWeight: "700" },
         red && { color: COLOR.primary, fontWeight: "800" },
@@ -351,7 +370,7 @@ const FooterRow = ({ label, value, first, last, red, strong }) => (
       ]}
     >
       {value}
-    </Text>
+    </ThemedText>
   </View>
 );
 

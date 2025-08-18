@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Image, FlatList,
+  View, StyleSheet, Image, FlatList,
   TextInput, TouchableOpacity, KeyboardAvoidingView,
   Platform, Keyboard, SafeAreaView as RNSafeAreaView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import ThemedText from '../../../components/ThemedText'; // ⬅️ adjust path if needed
 
 const COLOR = {
   primary: '#E53E3E',
@@ -68,8 +69,8 @@ export default function StoreChatScreen() {
           <View style={styles.headerCenter}>
             <Image source={avatarSrc} style={styles.avatar} />
             <View>
-              <Text style={styles.storeName}>{store?.name || 'Sasha Stores'}</Text>
-              <Text style={styles.lastSeen}>Last seen 2 mins ago</Text>
+              <ThemedText style={styles.storeName}>{store?.name || 'Sasha Stores'}</ThemedText>
+              <ThemedText style={styles.lastSeen}>Last seen 2 mins ago</ThemedText>
             </View>
           </View>
 
@@ -93,8 +94,8 @@ export default function StoreChatScreen() {
             const mine = item.sender === 'me';
             return (
               <View style={[styles.bubble, mine ? styles.bubbleRight : styles.bubbleLeft]}>
-                <Text style={[styles.msg, { color: mine ? '#fff' : '#000' }]}>{item.text}</Text>
-                <Text style={[styles.time, { color: mine ? '#fff' : '#000' }]}>{item.time}</Text>
+                <ThemedText style={[styles.msg, { color: mine ? '#fff' : '#000' }]}>{item.text}</ThemedText>
+                <ThemedText style={[styles.time, { color: mine ? '#fff' : '#000' }]}>{item.time}</ThemedText>
               </View>
             );
           }}

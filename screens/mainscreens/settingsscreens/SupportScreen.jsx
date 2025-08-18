@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
+import ThemedText from "../../../components/ThemedText";
 
 /* ---- Theme ---- */
 const COLOR = {
@@ -34,7 +35,7 @@ export default function SupportScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
-        <StatusBar style="light" />
+      <StatusBar style="light" />
       {/* Header (red, rounded bottom, with search inside) */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
@@ -47,9 +48,9 @@ export default function SupportScreen() {
             <Ionicons name="chevron-back" size={20} color={COLOR.text} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle} numberOfLines={1} pointerEvents="none">
+          <ThemedText font="oleo"  style={styles.headerTitle} numberOfLines={1} pointerEvents="none">
             Support
-          </Text>
+          </ThemedText>
 
           <TouchableOpacity style={styles.circleBtn}>
             <Ionicons name="notifications-outline" size={18} color={COLOR.text} />
@@ -85,9 +86,9 @@ export default function SupportScreen() {
         contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16, paddingTop: 6 }}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyText}>
+            <ThemedText style={styles.emptyText}>
               Your support chat list is empty, contact support{"\n"}by clicking the plus icon
-            </Text>
+            </ThemedText>
           </View>
         }
         renderItem={() => null}
@@ -114,9 +115,9 @@ const TabPill = ({ label, active, onPress }) => (
     style={[styles.tabPill, active ? styles.tabActive : styles.tabInactive]}
     activeOpacity={0.9}
   >
-    <Text style={[styles.tabText, active ? styles.tabTextActive : styles.tabTextInactive]}>
+    <ThemedText style={[styles.tabText, active ? styles.tabTextActive : styles.tabTextInactive]}>
       {label}
-    </Text>
+    </ThemedText>
   </TouchableOpacity>
 );
 
@@ -152,10 +153,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: "#fff",
-    fontSize: 18,
-    marginLeft:-220,
+    fontSize: 24,
+    marginLeft: -220,
     fontWeight: "700",
-    fontStyle: "italic",
+    // fontStyle: "italic",
   },
   circleBtn: {
     width: 36,
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     ...shadow(3),
-    marginTop:20
+    marginTop: 20,
   },
   searchInput: { flex: 1, color: COLOR.text, fontSize: 14 },
   searchIconBtn: {

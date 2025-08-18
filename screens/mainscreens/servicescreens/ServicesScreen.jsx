@@ -1,7 +1,6 @@
 import React from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     TouchableOpacity,
     Image,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import ThemedText from '../../../components/ThemedText'; // 👈 import ThemedText
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 3;
@@ -56,7 +56,7 @@ const ServicesScreen = () => {
                     <TouchableOpacity style={{ backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 10, zIndex:5 }} onPress={() => navigation.goBack()}>
                         <Ionicons name="chevron-back" size={22} color="#E53E3E" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Services</Text>
+                    <ThemedText font='oleo' style={styles.headerTitle}>Services</ThemedText>
                     <View style={styles.headerIcons}>
                         <TouchableOpacity style={[styles.iconButton, { backgroundColor: "#fff", padding: 6, borderRadius: 25 }]}>
                             <Ionicons name="cart-outline" size={22} color="#E53E3E" />
@@ -81,7 +81,7 @@ const ServicesScreen = () => {
             {/* ⚪️ Card Body Overlapping Header */}
             <View style={styles.bodyCard}>
                 <TouchableOpacity style={styles.viewAllButton}>
-                    <Text style={styles.viewAllText}>View All Services</Text>
+                    <ThemedText style={styles.viewAllText}>View All Services</ThemedText>
                 </TouchableOpacity>
 
                 <FlatList
@@ -98,8 +98,8 @@ const ServicesScreen = () => {
                         >
                             <Image source={item.image} style={styles.cardImage} />
                             <View style={styles.cardInfo}>
-                                <Text style={styles.cardTitle}>{item.title}</Text>
-                                <Text style={styles.cardListings}>{item.listings} Listings</Text>
+                                <ThemedText style={styles.cardTitle}>{item.title}</ThemedText>
+                                <ThemedText style={styles.cardListings}>{item.listings} Listings</ThemedText>
                             </View>
                         </TouchableOpacity>
 
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
         right: 0,
         textAlign: 'center',
         color: '#fff',
-        fontSize: 20,
+        fontSize: 24,
         marginLeft: -180,
         fontWeight: '400',
     },

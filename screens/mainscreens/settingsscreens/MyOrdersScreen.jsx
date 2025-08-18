@@ -2,7 +2,6 @@ import React from "react";
 import {
   SafeAreaView,
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   FlatList,
@@ -10,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import ThemedText from "../../../components/ThemedText";
 
 /* ---------- THEME ---------- */
 const COLOR = {
@@ -51,9 +51,9 @@ export default function MyOrdersScreen() {
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle} pointerEvents="none">
+          <ThemedText style={styles.headerTitle} pointerEvents="none">
             Order Details
-          </Text>
+          </ThemedText>
 
           <View style={{ width: 40, height: 40 }} />
         </View>
@@ -86,14 +86,14 @@ export default function MyOrdersScreen() {
 
             {/* Middle text */}
             <View style={{ flex: 1 }}>
-              <Text style={styles.orderId} numberOfLines={1}>
+              <ThemedText style={styles.orderId} numberOfLines={1}>
                 {item.id}
-              </Text>
-              <Text style={styles.storesTxt}>{item.stores} stores</Text>
+              </ThemedText>
+              <ThemedText style={styles.storesTxt}>{item.stores} stores</ThemedText>
             </View>
 
             {/* Right amount */}
-            <Text style={styles.amount}>{currency(item.total)}</Text>
+            <ThemedText style={styles.amount}>{currency(item.total)}</ThemedText>
           </TouchableOpacity>
         )}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}

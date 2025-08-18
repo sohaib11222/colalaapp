@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import ThemedText from '../../components/ThemedText'; // 👈 import ThemedText
 
 const NewPasswordScreen = () => {
   const navigation = useNavigation();
@@ -33,8 +33,8 @@ const NewPasswordScreen = () => {
       </TouchableOpacity>
 
       <View style={styles.card}>
-        <Text style={styles.title}>Reset Password</Text>
-        <Text style={styles.subtitle}>Reset your password via your registered email</Text>
+        <ThemedText style={styles.title}>Reset Password</ThemedText>
+        <ThemedText style={styles.subtitle}>Reset your password via your registered email</ThemedText>
 
         {/* New Password Field */}
         <View style={styles.inputContainer}>
@@ -77,7 +77,7 @@ const NewPasswordScreen = () => {
         </View>
 
         <TouchableOpacity style={styles.button} onPress={handleProceed}>
-          <Text style={styles.buttonText}>Proceed</Text>
+          <ThemedText style={styles.buttonText}>Proceed</ThemedText>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

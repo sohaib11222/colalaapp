@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   FlatList,
@@ -11,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import ThemedText from "../../components/ThemedText"; // ← adjust path if needed
 
 /* ---- THEME ---- */
 const COLOR = {
@@ -99,24 +99,24 @@ export default function NotificationsScreen() {
 
       <View style={{ flex: 1 }}>
         <View style={styles.row}>
-          <Text style={styles.title} numberOfLines={1}>
+          <ThemedText style={styles.title} numberOfLines={1}>
             {item.title}
-          </Text>
-          <Text style={styles.time} numberOfLines={1}>
+          </ThemedText>
+          <ThemedText style={styles.time} numberOfLines={1}>
             {item.time}
-          </Text>
+          </ThemedText>
         </View>
 
         {/* Body preview (with inline link style if provided) */}
         {item.linkText ? (
-          <Text style={styles.body}>
+          <ThemedText style={styles.body}>
             {item.body.replace(item.linkText, "")}
-            <Text style={{ color: COLOR.primary }}>{item.linkText}</Text>
-          </Text>
+            <ThemedText style={{ color: COLOR.primary }}>{item.linkText}</ThemedText>
+          </ThemedText>
         ) : (
-          <Text style={styles.body} numberOfLines={2}>
+          <ThemedText style={styles.body} numberOfLines={2}>
             {item.body}
-          </Text>
+          </ThemedText>
         )}
       </View>
     </TouchableOpacity>
@@ -137,9 +137,9 @@ export default function NotificationsScreen() {
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle} pointerEvents="none">
+          <ThemedText style={styles.headerTitle} pointerEvents="none">
             Notifications
-          </Text>
+          </ThemedText>
 
           <View style={{ width: 40, height: 40 }} />{/* spacer */}
         </View>

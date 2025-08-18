@@ -2,7 +2,6 @@
 import React, { useMemo, useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Image,
   FlatList,
@@ -14,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import ThemedText from "../../../components/ThemedText";
 
 const { width } = Dimensions.get("window");
 
@@ -150,13 +150,13 @@ export default function FollowedStoresScreen() {
       {/* content */}
       <View style={[styles.content, { paddingTop: AVATAR_SIZE / 2 + 6 }]}>
         <View style={styles.rowBetween}>
-          <Text numberOfLines={1} style={styles.storeName}>
+          <ThemedText numberOfLines={1} style={styles.storeName}>
             {item.name}
-          </Text>
+          </ThemedText>
 
           <View style={styles.rating}>
             <Ionicons name="star" size={12} color={COLOR.primary} />
-            <Text style={styles.ratingText}>{item.rating}</Text>
+            <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
           </View>
         </View>
 
@@ -166,11 +166,11 @@ export default function FollowedStoresScreen() {
               key={tag}
               style={[styles.tagBase, idx === 0 ? styles.tagBlue : styles.tagRed]}
             >
-              <Text
+              <ThemedText
                 style={[styles.tagTextBase, idx === 0 ? styles.tagTextBlue : styles.tagTextRed]}
               >
                 {tag}
-              </Text>
+              </ThemedText>
             </View>
           ))}
         </View>
@@ -184,7 +184,7 @@ export default function FollowedStoresScreen() {
             })
           }
         >
-          <Text style={styles.ctaText}>Go to Shop</Text>
+          <ThemedText style={styles.ctaText}>Go to Shop</ThemedText>
         </TouchableOpacity>
       </View>
     </View>
@@ -205,9 +205,9 @@ export default function FollowedStoresScreen() {
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle} pointerEvents="none">
+          <ThemedText style={styles.headerTitle} pointerEvents="none">
             Search
-          </Text>
+          </ThemedText>
 
           <TouchableOpacity style={styles.iconBtn}>
             <Ionicons name="cart-outline" size={20} color={COLOR.text} />
@@ -236,7 +236,7 @@ export default function FollowedStoresScreen() {
       </View>
 
       {/* Results label */}
-      <Text style={styles.resultCount}>Search Results ({visibleData.length})</Text>
+      <ThemedText style={styles.resultCount}>Search Results ({visibleData.length})</ThemedText>
 
       {/* Grid */}
       <FlatList
@@ -255,8 +255,8 @@ export default function FollowedStoresScreen() {
         style={{ backgroundColor: COLOR.bg }}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyTitle}>No followed stores</Text>
-            <Text style={styles.emptySub}>Search or explore to follow stores.</Text>
+            <ThemedText style={styles.emptyTitle}>No followed stores</ThemedText>
+            <ThemedText style={styles.emptySub}>Search or explore to follow stores.</ThemedText>
           </View>
         }
       />
@@ -267,9 +267,9 @@ export default function FollowedStoresScreen() {
 /* -------------------- Small inline component -------------------- */
 const FilterPill = ({ label, onPress }) => (
   <TouchableOpacity style={styles.filter} onPress={onPress} activeOpacity={0.8}>
-    <Text numberOfLines={1} style={styles.filterText}>
+    <ThemedText numberOfLines={1} style={styles.filterText}>
       {label}
-    </Text>
+    </ThemedText>
     <Ionicons name="chevron-down" size={14} color={COLOR.text} />
   </TouchableOpacity>
 );

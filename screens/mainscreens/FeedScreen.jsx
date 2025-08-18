@@ -15,6 +15,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import ThemedText from "../../components/ThemedText";
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
@@ -69,7 +70,7 @@ const POSTS = [
 const FeedHeader = () => (
   <View style={styles.header}>
     <View style={styles.headerTopRow}>
-      <Text style={styles.headerTitle}>Social Feeds</Text>
+      <ThemedText font="oleo" style={styles.headerTitle}>Social Feeds</ThemedText>
       <View style={styles.headerIcons}>
         <TouchableOpacity>
           <Ionicons name="cart-outline" size={22} color="#E53E3E" style={styles.icon} />
@@ -114,10 +115,10 @@ const PostCard = ({ item, onOpenComments, onOpenOptions }) => {
       <View style={styles.postTop}>
         <Image source={{ uri: item.avatar }} style={styles.avatar} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.storeName}>{item.store}</Text>
-          <Text style={styles.metaText}>
+          <ThemedText style={styles.storeName}>{item.store}</ThemedText>
+          <ThemedText style={styles.metaText}>
             {item.location} · {item.timeAgo}
-          </Text>
+          </ThemedText>
         </View>
         <TouchableOpacity onPress={() => onOpenOptions(item)}>
           <Ionicons name="ellipsis-vertical" size={18} color={COLOR.sub} />
@@ -163,7 +164,7 @@ const PostCard = ({ item, onOpenComments, onOpenOptions }) => {
       {/* Caption pill */}
       {item.caption ? (
         <View style={styles.captionPill}>
-          <Text style={styles.captionText}>{item.caption}</Text>
+          <ThemedText style={styles.captionText}>{item.caption}</ThemedText>
         </View>
       ) : null}
 
@@ -179,7 +180,7 @@ const PostCard = ({ item, onOpenComments, onOpenOptions }) => {
               size={25}
               color={liked ? COLOR.primary : COLOR.text}
             />
-            <Text style={styles.actionCount}>{likeCount}</Text>
+            <ThemedText style={styles.actionCount}>{likeCount}</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -187,18 +188,18 @@ const PostCard = ({ item, onOpenComments, onOpenOptions }) => {
             onPress={() => onOpenComments(item)}
           >
             <Ionicons name="chatbubble-outline" size={25} color={COLOR.text} />
-            <Text style={styles.actionCount}>{item.comments}</Text>
+            <ThemedText style={styles.actionCount}>{item.comments}</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionBtn}>
             <Ionicons name="arrow-redo-outline" size={25} color={COLOR.text} />
-            <Text style={styles.actionCount}>{item.shares}</Text>
+            <ThemedText style={styles.actionCount}>{item.shares}</ThemedText>
           </TouchableOpacity>
         </View>
 
         <View style={styles.actionsRight}>
           <TouchableOpacity style={styles.visitBtn}>
-            <Text style={styles.visitBtnText}>Visit Store</Text>
+            <ThemedText style={styles.visitBtnText}>Visit Store</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={{ marginLeft: 10 }}>
             <Image
@@ -321,19 +322,19 @@ const CommentsSheet = ({ visible, onClose, post }) => {
       <Image source={{ uri: reply.avatar }} style={styles.commentAvatar} />
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={styles.commentName}>{reply.user}</Text>
-          <Text style={styles.commentTime}>  {reply.time}</Text>
+          <ThemedText style={styles.commentName}>{reply.user}</ThemedText>
+          <ThemedText style={styles.commentTime}>  {reply.time}</ThemedText>
         </View>
-        <Text style={styles.commentBody}>
+        <ThemedText style={styles.commentBody}>
           {reply.mentionOf ? (
             <>
-              <Text style={styles.mentionText}>@{reply.mentionOf} </Text>
+              <ThemedText style={styles.mentionText}>@{reply.mentionOf} </ThemedText>
               {reply.body}
             </>
           ) : (
             reply.body
           )}
-        </Text>
+        </ThemedText>
       </View>
     </View>
   );
@@ -348,7 +349,7 @@ const CommentsSheet = ({ visible, onClose, post }) => {
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Comments</Text>
+            <ThemedText style={styles.sheetTitle}>Comments</ThemedText>
             <TouchableOpacity
               style={{
                 borderColor: "#000",
@@ -375,14 +376,14 @@ const CommentsSheet = ({ visible, onClose, post }) => {
                   <Image source={{ uri: item.avatar }} style={styles.commentAvatar} />
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
-                      <Text style={styles.commentName}>{item.user}</Text>
-                      <Text style={styles.commentTime}>  {item.time}</Text>
+                      <ThemedText style={styles.commentName}>{item.user}</ThemedText>
+                      <ThemedText style={styles.commentTime}>  {item.time}</ThemedText>
                     </View>
-                    <Text style={styles.commentBody}>{item.body}</Text>
+                    <ThemedText style={styles.commentBody}>{item.body}</ThemedText>
 
                     <View style={styles.commentMetaRow}>
                       <TouchableOpacity onPress={() => startReply(item)}>
-                        <Text style={styles.replyText}>Reply</Text>
+                        <ThemedText style={styles.replyText}>Reply</ThemedText>
                       </TouchableOpacity>
                       <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <Ionicons
@@ -390,7 +391,7 @@ const CommentsSheet = ({ visible, onClose, post }) => {
                           size={14}
                           color={COLOR.text}
                         />
-                        <Text style={styles.commentLikeCount}>  {item.likes}</Text>
+                        <ThemedText style={styles.commentLikeCount}>  {item.likes}</ThemedText>
                       </View>
                     </View>
                   </View>
@@ -411,7 +412,7 @@ const CommentsSheet = ({ visible, onClose, post }) => {
           {/* Replying chip */}
           {replyTo ? (
             <View style={styles.replyingChip}>
-              <Text style={styles.replyingText}>Replying to {replyTo.username}</Text>
+              <ThemedText style={styles.replyingText}>Replying to {replyTo.username}</ThemedText>
               <TouchableOpacity onPress={clearReply} style={{ padding: 6 }}>
                 <Ionicons name="close-circle" size={18} color={COLOR.sub} />
               </TouchableOpacity>
@@ -447,7 +448,7 @@ const OptionsSheet = ({ visible, onClose }) => {
     >
       <View style={styles.optionLeft}>
         {icon}
-        <Text style={[styles.optionLabel, danger && { color: COLOR.danger }]}>{label}</Text>
+        <ThemedText style={[styles.optionLabel, danger && { color: COLOR.danger }]}>{label}</ThemedText>
       </View>
       <Ionicons name="chevron-forward" size={18} color={danger ? COLOR.danger : COLOR.sub} />
     </TouchableOpacity>
@@ -460,7 +461,7 @@ const OptionsSheet = ({ visible, onClose }) => {
         <View style={[styles.sheet, { backgroundColor: "#F9F9F9" }]}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Options</Text>
+            <ThemedText style={styles.sheetTitle}>Options</ThemedText>
             <TouchableOpacity
               style={{
                 borderColor: "#000",
@@ -562,7 +563,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  headerTitle: { color: "#fff", fontSize: 20, fontWeight: "600" },
+  headerTitle: { color: "#fff", fontSize: 24, fontWeight: "600" },
   headerIcons: { flexDirection: "row" },
   icon: { backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 8 },
   searchContainer: {

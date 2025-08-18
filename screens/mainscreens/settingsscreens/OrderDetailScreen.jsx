@@ -2,7 +2,6 @@
 import React, { useMemo, useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Image,
@@ -14,6 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import ThemedText from "../../../components/ThemedText";
 
 /* ---------- THEME ---------- */
 const COLOR = {
@@ -78,10 +78,10 @@ const InfoRow = ({ left, right, strongRight, topBorder }) => (
       topBorder && { borderTopWidth: 1, borderTopColor: COLOR.line, marginTop: 8, paddingTop: 8 },
     ]}
   >
-    <Text style={{ color: COLOR.text }}>{left}</Text>
-    <Text style={[{ color: COLOR.text }, strongRight && { color: COLOR.primary, fontWeight: "800" }]}>
+    <ThemedText style={{ color: COLOR.text }}>{left}</ThemedText>
+    <ThemedText style={[{ color: COLOR.text }, strongRight && { color: COLOR.primary, fontWeight: "800" }]}>
       {right}
-    </Text>
+    </ThemedText>
   </View>
 );
 
@@ -106,9 +106,9 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                 : { backgroundColor: "#fff", borderColor: COLOR.primary },
             ]}
           >
-            <Text style={{ color: filled ? "#fff" : COLOR.primary, fontWeight: "700" }}>
+            <ThemedText style={{ color: filled ? "#fff" : COLOR.primary, fontWeight: "700" }}>
               {index + 1}
-            </Text>
+            </ThemedText>
           </View>
           {index < 2 && <View style={[styles.vLine, { backgroundColor: COLOR.primary }]} />}
         </View>
@@ -118,34 +118,34 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
           <View style={{ flexDirection: "row" }}>
             <Image source={productImg} style={styles.stepImg} />
             <View style={{ flex: 1, paddingLeft: 12 }}>
-              <Text style={styles.stepTitle}>{title}</Text>
-              <Text style={styles.stepSub}>Iphone 16 pro max + iphone i6 pro max…</Text>
-              <Text style={styles.stepPrice}>{currency(2_500_000)}</Text>
-              <Text style={styles.stepTime}>5th Aug 2025 - 07:22 AM</Text>
+              <ThemedText style={styles.stepTitle}>{title}</ThemedText>
+              <ThemedText style={styles.stepSub}>Iphone 16 pro max + iphone i6 pro max…</ThemedText>
+              <ThemedText style={styles.stepPrice}>{currency(2_500_000)}</ThemedText>
+              <ThemedText style={styles.stepTime}>5th Aug 2025 - 07:22 AM</ThemedText>
             </View>
           </View>
 
           {showWarning && (
             <View style={styles.warnRow}>
               <Ionicons name="warning-outline" size={18} color={COLOR.primary} />
-              <Text style={{ color: COLOR.primary, marginLeft: 8 }}>
+              <ThemedText style={{ color: COLOR.primary, marginLeft: 8 }}>
                 Do not provide your code until you have received the product
-              </Text>
+              </ThemedText>
             </View>
           )}
 
           {showActions && (
             <>
               <TouchableOpacity style={styles.revealBtn} onPress={() => setConfirmOpen(true)}>
-                <Text style={{ color: "#fff", fontWeight: "600" }}>Reveal Code</Text>
+                <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Reveal Code</ThemedText>
               </TouchableOpacity>
 
               <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
                 <TouchableOpacity style={[styles.ghostBtn, { flex: 1 }]}>
-                  <Text style={{ color: COLOR.text }}>Return</Text>
+                  <ThemedText style={{ color: COLOR.text }}>Return</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.ghostBtn, { flex: 1 }]}>
-                  <Text style={{ color: COLOR.text }}>Dispute</Text>
+                  <ThemedText style={{ color: COLOR.text }}>Dispute</ThemedText>
                 </TouchableOpacity>
               </View>
             </>
@@ -168,9 +168,9 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
             >
               <Ionicons name="chevron-back" size={22} color={COLOR.text} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle} pointerEvents="none">
+            <ThemedText style={styles.headerTitle} pointerEvents="none">
               {`Order Tracker - ${storeName}`}
-            </Text>
+            </ThemedText>
             <View style={{ width: 40, height: 40 }} />
           </View>
         </View>
@@ -183,10 +183,10 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
               { backgroundColor: "#fff", borderWidth: 1, borderColor: COLOR.line },
             ]}
           >
-            <Text style={{ color: COLOR.text }}>Full Details</Text>
+            <ThemedText style={{ color: COLOR.text }}>Full Details</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.pillBtn, { backgroundColor: COLOR.primary }]}>
-            <Text style={{ color: "#fff", fontWeight: "600" }}>Open Chat</Text>
+            <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Open Chat</ThemedText>
           </TouchableOpacity>
         </View>
 
@@ -211,16 +211,16 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                 color={COLOR.primary}
                 style={{ alignSelf: "center", marginBottom: 8 }}
               />
-              <Text style={{ color: COLOR.text, textAlign: "center", marginBottom: 18 }}>
+              <ThemedText style={{ color: COLOR.text, textAlign: "center", marginBottom: 18 }}>
                 Do you confirm that your product has been delivered
-              </Text>
+              </ThemedText>
 
               <View style={{ flexDirection: "row", gap: 12 }}>
                 <TouchableOpacity
                   style={[styles.ghostBtn, { flex: 1 }]}
                   onPress={() => setConfirmOpen(false)}
                 >
-                  <Text style={{ color: COLOR.text }}>Go Back</Text>
+                  <ThemedText style={{ color: COLOR.text }}>Go Back</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.solidBtn, { flex: 1 }]}
@@ -229,7 +229,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                     setCodeOpen(true);
                   }}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "600" }}>Reveal Code</Text>
+                  <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Reveal Code</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -245,10 +245,10 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
         >
           <View style={styles.centerOverlay}>
             <View style={styles.alertCard}>
-              <Text style={{ color: COLOR.sub, textAlign: "center" }}>
+              <ThemedText style={{ color: COLOR.sub, textAlign: "center" }}>
                 Dear customer your code is
-              </Text>
-              <Text
+              </ThemedText>
+              <ThemedText
                 style={{
                   color: COLOR.text,
                   fontSize: 48,
@@ -258,14 +258,14 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                 }}
               >
                 {code}
-              </Text>
+              </ThemedText>
 
               <View style={{ flexDirection: "row", gap: 12 }}>
                 <TouchableOpacity
                   style={[styles.ghostBtn, { flex: 1 }]}
                   onPress={() => setCodeOpen(false)}
                 >
-                  <Text style={{ color: COLOR.text }}>Go Back</Text>
+                  <ThemedText style={{ color: COLOR.text }}>Go Back</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.solidBtn, { flex: 1 }]}
@@ -274,7 +274,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                     setCodeOpen(false);
                   }}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "600" }}>Copy Code</Text>
+                  <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Copy Code</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -302,10 +302,10 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
     <View style={styles.section}>
       {/* Red header */}
       <View style={styles.storeHeader}>
-        <Text style={styles.storeName}>{store.name}</Text>
+        <ThemedText style={styles.storeName}>{store.name}</ThemedText>
 
         <TouchableOpacity style={styles.chatBtn} activeOpacity={0.9}>
-          <Text style={styles.chatBtnTxt}>Start Chat</Text>
+          <ThemedText style={styles.chatBtnTxt}>Start Chat</ThemedText>
         </TouchableOpacity>
 
         {/* round icons */}
@@ -326,50 +326,50 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
           >
             <Image source={productImg} style={styles.itemImg} />
             <View style={{ flex: 1, paddingRight: 8 }}>
-              <Text style={styles.itemTitle} numberOfLines={2}>
+              <ThemedText style={styles.itemTitle} numberOfLines={2}>
                 {it.title}
-              </Text>
-              <Text style={styles.price}>{currency(it.price)}</Text>
-              <Text style={styles.qtyTxt}>{`Qty : ${it.qty}`}</Text>
+              </ThemedText>
+              <ThemedText style={styles.price}>{currency(it.price)}</ThemedText>
+              <ThemedText style={styles.qtyTxt}>{`Qty : ${it.qty}`}</ThemedText>
             </View>
 
             <TouchableOpacity
               style={styles.trackBtn}
               onPress={() => onTrack(store.name, Math.min(store.status ?? 0, 2))}
             >
-              <Text style={styles.trackTxt}>Track Order</Text>
+              <ThemedText style={styles.trackTxt}>Track Order</ThemedText>
             </TouchableOpacity>
           </View>
         ))}
 
         {/* Open Chat row ALWAYS shown above Expand */}
         <TouchableOpacity activeOpacity={0.85} style={styles.openChatRow}>
-          <Text style={{ color: COLOR.text, opacity: 0.9 }}>Open Chat</Text>
+          <ThemedText style={{ color: COLOR.text, opacity: 0.9 }}>Open Chat</ThemedText>
         </TouchableOpacity>
 
         {/* Expanded details */}
         {expanded && (
           <>
-            <Text style={styles.sectionTitle}>Delivery Address</Text>
+            <ThemedText style={styles.sectionTitle}>Delivery Address</ThemedText>
             <View style={styles.addressCard}>
               <View style={styles.addrRow}>
-                <Text style={styles.addrLabel}>Name</Text>
+                <ThemedText style={styles.addrLabel}>Name</ThemedText>
                 <View style={styles.addrRight}>
-                  <Text style={styles.addrValue}>Adewale Faizah</Text>
+                  <ThemedText style={styles.addrValue}>Adewale Faizah</ThemedText>
                   <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
                 </View>
               </View>
               <View style={[styles.addrRow, { marginTop: 8 }]}>
-                <Text style={styles.addrLabel}>Phone number</Text>
+                <ThemedText style={styles.addrLabel}>Phone number</ThemedText>
                 <View style={styles.addrRight}>
-                  <Text style={styles.addrValue}>0703123456789</Text>
+                  <ThemedText style={styles.addrValue}>0703123456789</ThemedText>
                   <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
                 </View>
               </View>
               <View style={[styles.addrRow, { marginTop: 8, alignItems: "flex-start" }]}>
-                <Text style={styles.addrLabel}>Address</Text>
+                <ThemedText style={styles.addrLabel}>Address</ThemedText>
                 <View style={styles.addrRight}>
-                  <Text style={styles.addrValue}>No 7 , abcd street , ikeja , Lagos</Text>
+                  <ThemedText style={styles.addrValue}>No 7 , abcd street , ikeja , Lagos</ThemedText>
                   <Ionicons name="location-outline" size={14} color={COLOR.sub} />
                 </View>
               </View>
@@ -392,7 +392,7 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
           onPress={() => setExpanded((v) => !v)}
           style={styles.expandBtn}
         >
-          <Text style={{ color: "#E53E3E" }}>{expanded ? "Collapse" : "Expand"}</Text>
+          <ThemedText style={{ color: "#E53E3E" }}>{expanded ? "Collapse" : "Expand"}</ThemedText>
         </TouchableOpacity>
       </View>
     </View>
@@ -420,14 +420,12 @@ export default function SingleOrderDetailsScreen() {
   const [trackStatus, setTrackStatus] = useState(0);
 
   // Which stores to show for selected tab
-// Which stores to show for selected tab
-const visibleStores = useMemo(() => {
-  // Show ALL stores for "Order placed" (0) and "Completed" (3)
-  if (statusIdx === 0 || statusIdx === 3) return order.stores;
-  // Otherwise filter by the selected status
-  return order.stores.filter((s) => (s.status ?? 0) === statusIdx);
-}, [order, statusIdx]);
-
+  const visibleStores = useMemo(() => {
+    // Show ALL stores for "Order placed" (0) and "Completed" (3)
+    if (statusIdx === 0 || statusIdx === 3) return order.stores;
+    // Otherwise filter by the selected status
+    return order.stores.filter((s) => (s.status ?? 0) === statusIdx);
+  }, [order, statusIdx]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
@@ -444,9 +442,9 @@ const visibleStores = useMemo(() => {
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle} pointerEvents="none">
+          <ThemedText style={styles.headerTitle} pointerEvents="none">
             Order Details
-          </Text>
+          </ThemedText>
 
           <View style={{ width: 40, height: 40 }} />
         </View>
@@ -463,9 +461,9 @@ const visibleStores = useMemo(() => {
               onPress={() => setStatusIdx(i)}
               activeOpacity={0.9}
             >
-              <Text style={[styles.tabTxt, active ? { color: "#fff" } : { color: COLOR.text }]}>
+              <ThemedText style={[styles.tabTxt, active ? { color: "#fff" } : { color: COLOR.text }]}>
                 {label}
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           );
         })}

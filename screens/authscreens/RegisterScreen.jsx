@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
+import ThemedText from '../../components/ThemedText';
 
 const { height } = Dimensions.get('window');
 
@@ -69,8 +70,8 @@ const RegisterScreen = () => {
         />
 
         <View style={styles.card}>
-          <Text style={styles.title}>Register</Text>
-          <Text style={styles.subtitle}>Create a free account today</Text>
+          <ThemedText style={styles.title}>Register</ThemedText>
+          <ThemedText style={styles.subtitle}>Create a free account today</ThemedText>
 
           <View style={styles.inputWrapper}>
             <TextInput
@@ -108,17 +109,17 @@ const RegisterScreen = () => {
             style={styles.selectWrapper}
             onPress={() => setShowModal(true)}
           >
-            <Text style={[styles.selectText, { color: selectedCountry ? '#000' : '#999' }]}>
+            <ThemedText style={[styles.selectText, { color: selectedCountry ? '#000' : '#999' }]}>
               {selectedCountry || 'Country'}
-            </Text>
+            </ThemedText>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
           {/* State Field */}
           <TouchableOpacity style={styles.selectWrapper} onPress={() => setShowStateModal(true)}>
-            <Text style={[styles.selectText, { color: selectedState ? '#000' : '#999' }]}>
+            <ThemedText style={[styles.selectText, { color: selectedState ? '#000' : '#999' }]}>
               {selectedState || 'State'}
-            </Text>
+            </ThemedText>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
@@ -140,23 +141,23 @@ const RegisterScreen = () => {
           </View>
 
           <TouchableOpacity style={styles.createAccountButton}>
-            <Text style={styles.createAccountText}>Create Account</Text>
+            <ThemedText style={styles.createAccountText}>Create Account</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity onPress={()=>navigation.navigate('Login')} style={styles.loginButton}>
-            <Text style={styles.loginText}>Login</Text>
+            <ThemedText style={styles.loginText}>Login</ThemedText>
           </TouchableOpacity>
 
-          <Text style={styles.footerText}>
+          <ThemedText style={styles.footerText}>
             By proceeding you agree to Colala’s{' '}
             <TouchableOpacity style={{ marginTop: 7 }} onPress={() => setShowTermsModal(true)}>
-              <Text style={[styles.linkText, { fontSize: 11 }]}>terms of use</Text>
+              <ThemedText style={[styles.linkText, { fontSize: 11 }]}>terms of use</ThemedText>
             </TouchableOpacity>
             {' '}
             and{' '}
             <TouchableOpacity>
-              <Text style={[styles.linkText, { fontSize: 11 }]}>privacy policy</Text>
+              <ThemedText style={[styles.linkText, { fontSize: 11 }]}>privacy policy</ThemedText>
             </TouchableOpacity>
-          </Text>
+          </ThemedText>
         </View>
       </ScrollView>
 
@@ -164,7 +165,7 @@ const RegisterScreen = () => {
       {/* <Modal visible={showModal} animationType="slide">
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', padding: 16 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', fontStyle: 'italic' }}>Country</Text>
+            <ThemedText style={{ fontSize: 18, fontWeight: 'bold', fontStyle: 'italic' }}>Country</ThemedText>
             <TouchableOpacity onPress={() => setShowModal(false)}>
               <Ionicons name="close" size={24} />
             </TouchableOpacity>
@@ -183,18 +184,18 @@ const RegisterScreen = () => {
             onChangeText={setSearchText}
           />
 
-          <Text style={{ marginTop: 20, marginBottom: 10, fontWeight: 'bold' }}>Popular</Text>
+          <ThemedText style={{ marginTop: 20, marginBottom: 10, fontWeight: 'bold' }}>Popular</ThemedText>
           {popularCountries.map((country, index) => (
             <TouchableOpacity
               key={index}
               style={styles.modalItem}
               onPress={() => handleCountrySelect(country)}
             >
-              <Text>{country}</Text>
+              <ThemedText>{country}</ThemedText>
             </TouchableOpacity>
           ))}
 
-          <Text style={{ marginTop: 20, marginBottom: 10, fontWeight: 'bold' }}>All Countries</Text>
+          <ThemedText style={{ marginTop: 20, marginBottom: 10, fontWeight: 'bold' }}>All Countries</ThemedText>
           <FlatList
             data={filteredCountries}
             keyExtractor={(item) => item}
@@ -203,7 +204,7 @@ const RegisterScreen = () => {
                 style={styles.modalItem}
                 onPress={() => handleCountrySelect(item)}
               >
-                <Text>{item}</Text>
+                <ThemedText>{item}</ThemedText>
               </TouchableOpacity>
             )}
           />
@@ -219,7 +220,7 @@ const RegisterScreen = () => {
             <View style={styles.dragIndicator} />
 
             <View style={styles.modalHeader}>
-              <Text style={{ fontSize: 20, fontWeight: '400', fontStyle: 'italic', marginLeft: 160 }}>Country</Text>
+              <ThemedText style={{ fontSize: 20, fontWeight: '400', fontStyle: 'italic', marginLeft: 160 }}>Country</ThemedText>
               <TouchableOpacity style={{ borderColor: "#000", borderWidth: 1.5, borderRadius: 20 }} onPress={() => setShowModal(false)}>
                 <Ionicons name="close" size={18} />
               </TouchableOpacity>
@@ -232,18 +233,18 @@ const RegisterScreen = () => {
               onChangeText={setSearchText}
             />
 
-            <Text style={styles.sectionLabel}>Popular</Text>
+            <ThemedText style={styles.sectionLabel}>Popular</ThemedText>
             {popularCountries.map((country, index) => (
               <TouchableOpacity
                 key={index}
                 style={styles.modalItem}
                 onPress={() => handleCountrySelect(country)}
               >
-                <Text>{country}</Text>
+                <ThemedText>{country}</ThemedText>
               </TouchableOpacity>
             ))}
 
-            <Text style={styles.sectionLabel}>All Countries</Text>
+            <ThemedText style={styles.sectionLabel}>All Countries</ThemedText>
             <FlatList
               data={filteredCountries}
               keyExtractor={(item) => item}
@@ -252,7 +253,7 @@ const RegisterScreen = () => {
                   style={styles.modalItem}
                   onPress={() => handleCountrySelect(item)}
                 >
-                  <Text>{item}</Text>
+                  <ThemedText>{item}</ThemedText>
                 </TouchableOpacity>
               )}
             />
@@ -272,7 +273,7 @@ const RegisterScreen = () => {
             <View style={styles.dragIndicator} />
 
             <View style={styles.modalHeader}>
-              <Text style={{ fontSize: 20, fontWeight: '400', fontStyle: 'italic', marginLeft: 170 }}>State</Text>
+              <ThemedText style={{ fontSize: 20, fontWeight: '400', fontStyle: 'italic', marginLeft: 170 }}>State</ThemedText>
               <TouchableOpacity style={{ borderColor: "#000", borderWidth: 1.5, borderRadius: 20, }} onPress={() => setShowStateModal(false)}>
                 <Ionicons name="close" size={18} />
               </TouchableOpacity>
@@ -285,20 +286,20 @@ const RegisterScreen = () => {
               onChangeText={setStateSearchText}
             />
 
-            <Text style={styles.sectionLabel}>Popular</Text>
+            <ThemedText style={styles.sectionLabel}>Popular</ThemedText>
             {popularStates.map((state, index) => (
               <TouchableOpacity key={index} style={styles.modalItem} onPress={() => handleStateSelect(state)}>
-                <Text>{state}</Text>
+                <ThemedText>{state}</ThemedText>
               </TouchableOpacity>
             ))}
 
-            <Text style={styles.sectionLabel}>All States</Text>
+            <ThemedText style={styles.sectionLabel}>All States</ThemedText>
             <FlatList
               data={filteredStates}
               keyExtractor={(item) => item}
               renderItem={({ item }) => (
                 <TouchableOpacity style={styles.modalItem} onPress={() => handleStateSelect(item)}>
-                  <Text>{item}</Text>
+                  <ThemedText>{item}</ThemedText>
                 </TouchableOpacity>
               )}
             />
@@ -316,27 +317,27 @@ const RegisterScreen = () => {
             <View style={styles.dragIndicator} />
 
             <View style={styles.modalHeader}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', fontStyle: 'italic', marginLeft: 140, marginBottom: 10 }}>Terms of use</Text>
+              <ThemedText style={{ fontSize: 18, fontWeight: 'bold', fontStyle: 'italic', marginLeft: 140, marginBottom: 10 }}>Terms of use</ThemedText>
               <TouchableOpacity  style={{ borderColor: "#000", borderWidth: 1.5, borderRadius: 20, }}  onPress={() => setShowTermsModal(false)}>
                 <Ionicons name="close" size={18} />
               </TouchableOpacity>
             </View>
-            <Text style={{ fontSize: 14, fontWeight: 400, marginBottom: 20 }}>Kindly read the Colala mall terms of use</Text>
+            <ThemedText style={{ fontSize: 14, fontWeight: 400, marginBottom: 20 }}>Kindly read the Colala mall terms of use</ThemedText>
 
             <ScrollView>
               <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 20, marginBottom: 20, elevation: 3 }}>
-                <Text style={{ fontWeight: 'bold', marginBottom: 10 }}>Terms of Use for Colala Mall</Text>
-                <Text style={{ marginBottom: 10 }}>
+                <ThemedText style={{ fontWeight: 'bold', marginBottom: 10 }}>Terms of Use for Colala Mall</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
                   Welcome to colala mall, an eCommerce platform operated by Colala. By downloading, accessing, or using the app...
-                </Text>
-                <Text style={{ fontWeight: 'bold' }}>1. Acceptance of Terms</Text>
-                <Text style={{ marginBottom: 10 }}>
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>1. Acceptance of Terms</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
                   By using this app, you confirm that you are at least 18 years old or have legal parental/guardian consent, and that you have the legal capacity to enter into this agreement.
-                </Text>
-                <Text style={{ fontWeight: 'bold' }}>1. Acceptance of Terms</Text>
-                <Text style={{ marginBottom: 10 }}>
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>1. Acceptance of Terms</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
                   By using this app, you confirm that you are at least 18 years old or have legal parental/guardian consent, and that you have the legal capacity to enter into this agreement.
-                </Text>
+                </ThemedText>
               </View>
               {/* Repeat for other sections */}
             </ScrollView>

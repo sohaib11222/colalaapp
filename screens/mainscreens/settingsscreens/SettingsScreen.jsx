@@ -2,7 +2,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Image,
   ScrollView,
@@ -85,9 +84,6 @@ const SettingsScreen = () => {
       screen: "FAQs",
 
     });
-
-
-
   };
 
   return (
@@ -96,7 +92,7 @@ const SettingsScreen = () => {
       <View style={styles.redTop}>
         {/* Header row */}
         <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <ThemedText font='oleo' style={styles.headerTitle}>Settings</ThemedText>
           <View style={styles.headerIcons}>
             <HeaderIconCircle onPress={() => onPressRow('cart')}>
               <Ionicons name="cart-outline" size={18} color={COLOR.primary} />
@@ -106,11 +102,11 @@ const SettingsScreen = () => {
                 </View>
               )}
             </HeaderIconCircle>
-            <HeaderIconCircle onPress={() => onPress('notifications')}>
+            <HeaderIconCircle onPress={() => onPressRow('notifications')}>
               <Ionicons name="notifications-outline" size={18} color={COLOR.primary} />
               {notifCount > 0 && (
                 <View style={styles.headerBadge}>
-                  <Text style={styles.headerBadgeText}>{notifCount}</Text>
+                  <ThemedText style={styles.headerBadgeText}>{notifCount}</ThemedText>
                 </View>
               )}
             </HeaderIconCircle>
@@ -122,13 +118,13 @@ const SettingsScreen = () => {
           <Image source={{ uri: 'https://i.pravatar.cc/100?img=8' }} style={styles.profileImg} />
           <View style={{ flex: 1 }}>
             <View style={styles.nameRow}>
-              <Text style={styles.name}>Qamardeen Abdul Malik</Text>
+              <ThemedText style={styles.name}>Qamardeen Abdul Malik</ThemedText>
               <View style={styles.verifyPill}>
                 <Ionicons name="shield-checkmark" size={12} color="#FFFFFF" />
               </View>
             </View>
             <View style={styles.locationRow}>
-              <Text style={styles.locationText}>Lagos, Nigeria</Text>
+              <ThemedText style={styles.locationText}>Lagos, Nigeria</ThemedText>
               <Ionicons name="caret-down" size={12} color={COLOR.white} />
             </View>
           </View>
@@ -137,21 +133,21 @@ const SettingsScreen = () => {
         {/* Wallet card (top + bottom bar as one piece) */}
         <View style={styles.walletCard}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.walletLabel}>Main Wallet</Text>
-            <Text style={styles.walletAmount}>₦50,000</Text>
+            <ThemedText style={styles.walletLabel}>Main Wallet</ThemedText>
+            <ThemedText style={styles.walletAmount}>₦50,000</ThemedText>
           </View>
           <TouchableOpacity style={styles.viewWalletBtn} onPress={() => navigation.navigate('SettingsNavigator', {
             screen: "ShoppingWallet",
           })}>
-            <Text style={styles.viewWalletText}>View Wallet</Text>
+            <ThemedText style={styles.viewWalletText}>View Wallet</ThemedText>
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.holdingBar} onPress={() => navigation.navigate('SettingsNavigator', {
           screen: "EscrowWallet",
         })}>
-          <Text style={styles.holdingText}>
-            ₦50,000 locked in holding wallet <Text style={{ color: '#640505', fontSize: 13 }}>· Click to view</Text>
-          </Text>
+          <ThemedText style={styles.holdingText}>
+            ₦50,000 locked in holding wallet <ThemedText style={{ color: '#640505', fontSize: 13 }}>· Click to view</ThemedText>
+          </ThemedText>
         </TouchableOpacity>
       </View>
 
@@ -160,7 +156,7 @@ const SettingsScreen = () => {
         <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate('SettingsNavigator', {
           screen: "EditProfile",
         })}>
-          <Text style={styles.primaryBtnText}>Edit Profile</Text>
+          <ThemedText style={styles.primaryBtnText}>Edit Profile</ThemedText>
         </TouchableOpacity>
 
         {/* Main options - pill cards */}
@@ -177,7 +173,7 @@ const SettingsScreen = () => {
         </View>
 
         {/* Others */}
-        <Text style={styles.sectionTitle}>Others</Text>
+        <ThemedText style={styles.sectionTitle}>Others</ThemedText>
         <View>
           {menuOthers.map((item) => (
             <OptionPillCard
@@ -201,7 +197,7 @@ const SettingsScreen = () => {
 
         {/* Delete Account */}
         <TouchableOpacity style={styles.disabledBtn} onPress={() => onPressRow('deleteAccount')}>
-          <Text style={styles.disabledText}>Delete Account</Text>
+          <ThemedText style={styles.disabledText}>Delete Account</ThemedText>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -226,9 +222,9 @@ const OptionPillCard = ({ label, img, onPress, leftColor = COLOR.primary, textCo
 
       {/* Overlapping white card */}
       <View style={styles.pillBody}>
-        <Text style={[styles.pillLabel, { color: textColor }]} numberOfLines={1}>
+        <ThemedText style={[styles.pillLabel, { color: textColor }]} numberOfLines={1}>
           {label}
-        </Text>
+        </ThemedText>
         <Ionicons name="chevron-forward" size={18} color="#B0B6BE" />
       </View>
     </TouchableOpacity>
@@ -253,7 +249,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? 8 : 2,
     paddingBottom: 6,
   },
-  headerTitle: { flex: 1, color: COLOR.white, fontSize: 20, fontWeight: '400' },
+  headerTitle: { flex: 1, color: COLOR.white, fontSize: 24, fontWeight: '400' },
   headerIcons: { flexDirection: 'row', gap: 12 },
   headerIconCircle: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: COLOR.white,

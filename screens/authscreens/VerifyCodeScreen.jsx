@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import ThemedText from '../../components/ThemedText'; // 👈 import ThemedText
 
 const VerifyCodeScreen = () => {
   const navigation = useNavigation();
@@ -41,8 +41,8 @@ const VerifyCodeScreen = () => {
       </TouchableOpacity>
 
       <View style={styles.card}>
-        <Text style={styles.title}>Reset Password</Text>
-        <Text style={styles.subtitle}>Reset you password via your registered email</Text>
+        <ThemedText style={styles.title}>Reset Password</ThemedText>
+        <ThemedText style={styles.subtitle}>Reset you password via your registered email</ThemedText>
 
         <View style={styles.inputWrapper}>
           <TextInput
@@ -53,14 +53,19 @@ const VerifyCodeScreen = () => {
             onChangeText={setCode}
           />
           <TouchableOpacity onPress={handlePaste} style={styles.pasteButton}>
-            <Text style={styles.pasteText}>Paste</Text>
+            <ThemedText style={styles.pasteText}>Paste</ThemedText>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.timerText}>You can resend code in <Text style={styles.timerCountdown}>00:{timer < 10 ? `0${timer}` : timer}</Text></Text>
+        <ThemedText style={styles.timerText}>
+          You can resend code in{" "}
+          <ThemedText style={styles.timerCountdown}>
+            00:{timer < 10 ? `0${timer}` : timer}
+          </ThemedText>
+        </ThemedText>
 
         <TouchableOpacity style={styles.button} onPress={handleProceed}>
-          <Text style={styles.buttonText}>Proceed</Text>
+          <ThemedText style={styles.buttonText}>Proceed</ThemedText>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

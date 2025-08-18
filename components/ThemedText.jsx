@@ -1,46 +1,70 @@
+// components/ThemedText.jsx
 import React from "react";
 import { Text } from "react-native";
 
+/**
+ * Props:
+ * - font: 'manrope' | 'oleo'   (default 'manrope')
+ * - weight (manrope): 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'extrabold'
+ * - weight (oleo): 'regular' | 'bold'
+ * - variant (optional): 'h1'|'h2'|'h3'|'title'|'subtitle'|'body'|'caption'|'button'
+ * - style, ...Text props
+ */
+
+const MANROPE = {
+  thin: "Manrope-Thin",
+  light: "Manrope-Light",
+  regular: "Manrope-Regular",
+  medium: "Manrope-Medium",
+  semibold: "Manrope-SemiBold",
+  bold: "Manrope-Bold",
+  extrabold: "Manrope-ExtraBold",
+};
+
+const OLEO = {
+  regular: "OleoScript-Regular",
+  bold: "OleoScript-Bold",
+};
+
+// const VARIANT_STYLES = {
+//   h1: { fontSize: 32, lineHeight: 38 },
+//   h2: { fontSize: 28, lineHeight: 34 },
+//   h3: { fontSize: 22, lineHeight: 28 },
+//   title: { fontSize: 18, lineHeight: 24 },
+//   subtitle: { fontSize: 16, lineHeight: 22 },
+//   body: { fontSize: 14, lineHeight: 20 },
+//   caption: { fontSize: 12, lineHeight: 16 },
+//   button: { fontSize: 14, lineHeight: 18 },
+// };
+
 export default function ThemedText({
   children,
-  style,
   font = "manrope",
   weight = "regular",
-  ...props
+  variant = "body",
+  style,
+  ...rest
 }) {
-  let fontFamily = "Manrope-Regular";
+  const family =
+    font === "oleo"
+      ? OLEO[weight] || OLEO.regular
+      : MANROPE[weight] || MANROPE.regular;
 
-  if (font === "oleo" && weight === "bold") {
-    fontFamily = "OleoScript-Bold";
-  } else if (font === "oleo") {
-    fontFamily = "OleoScript-Regular";
-  } else if (font === "manrope") {
-    switch (weight) {
-      case "bold":
-        fontFamily = "Manrope-Bold";
-        break;
-      case "extrabold":
-        fontFamily = "Manrope-ExtraBold";
-        break;
-      case "light":
-        fontFamily = "Manrope-Light";
-        break;
-      case "medium":
-        fontFamily = "Manrope-Medium";
-        break;
-      case "semibold":
-        fontFamily = "Manrope-SemiBold";
-        break;
-      case "thin":
-        fontFamily = "Manrope-Thin";
-        break;
-      default:
-        fontFamily = "Manrope-Regular";
-    }
-  }
+  // merge variant size with provided styles
+  // const variantStyle = VARIANT_STYLES[variant] || null;
 
   return (
-    <Text {...props} style={[{ fontFamily }, style]}>
+    <Text
+      {...rest}
+      style={[
+        { fontFamily: family },
+        // variantStyle,
+        // ignore any incoming fontWeight so the custom family always wins
+        Array.isArray(style)
+          ? style.map((s) => (s && { ...s, fontWeight: undefined }))
+          : style && { ...style, fontWeight: undefined },
+      ]}
+    >
       {children}
     </Text>
   );

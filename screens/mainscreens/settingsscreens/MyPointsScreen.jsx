@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   View,
@@ -13,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
+import ThemedText from "../../../components/ThemedText";
 
 /* ---- THEME ---- */
 const COLOR = {
@@ -41,9 +41,9 @@ const Row = ({ item }) => (
   <View style={styles.row}>
     <View style={{ flexDirection: "row", alignItems: "center" }}>
       <Image source={{ uri: item.avatar }} style={styles.avatar} />
-      <Text style={styles.storeName}>{item.name}</Text>
+      <ThemedText style={styles.storeName}>{item.name}</ThemedText>
     </View>
-    <Text style={styles.points}>{item.pts}</Text>
+    <ThemedText style={styles.points}>{item.pts}</ThemedText>
   </View>
 );
 
@@ -64,7 +64,7 @@ export default function MyPointsScreen() {
           >
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle} pointerEvents="none">My Points</Text>
+          <ThemedText style={styles.headerTitle} pointerEvents="none">My Points</ThemedText>
           <View style={{ width: 40, height: 40 }} />
         </View>
       </View>
@@ -81,11 +81,11 @@ export default function MyPointsScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.totalCard}
             >
-              <Text style={styles.totalLabel}>Total Points Balance</Text>
-              <Text style={styles.totalValue}>{TOTAL_POINTS.toLocaleString()}</Text>
+              <ThemedText style={styles.totalLabel}>Total Points Balance</ThemedText>
+              <ThemedText style={styles.totalValue}>{TOTAL_POINTS.toLocaleString()}</ThemedText>
             </LinearGradient>
 
-            <Text style={styles.pointsTitle}>Points/ Store</Text>
+            <ThemedText style={styles.pointsTitle}>Points/ Store</ThemedText>
           </>
         }
         renderItem={({ item }) => <Row item={item} />}

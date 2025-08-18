@@ -1,4 +1,5 @@
 import React from 'react';
+import ThemedText from './ThemedText';
 import {
     View,
     Text,
@@ -84,9 +85,9 @@ const TopSellingSection = () => {
         <View style={styles.container}>
             <StatusBar style='light' />
             <View style={styles.headerRow}>
-                <Text style={styles.title}>Top Selling</Text>
+                <ThemedText style={styles.title}>Top Selling</ThemedText>
                 <TouchableOpacity>
-                    <Text style={styles.viewAll}>View All</Text>
+                    <ThemedText style={styles.viewAll}>View All</ThemedText>
                 </TouchableOpacity>
             </View>
 
@@ -106,20 +107,20 @@ const TopSellingSection = () => {
                                         source={item.store_image} // 👈 replace with actual store avatar
                                         style={styles.storeAvatar}
                                     />
-                                    <Text style={styles.storeName}>{item.store}</Text>
+                                    <ThemedText style={styles.storeName}>{item.store}</ThemedText>
                                 </View>
                                 <View style={styles.ratingRow}>
                                     <Ionicons name="star" color="red" size={12} />
-                                    <Text style={styles.rating}>{item.rating}</Text>
+                                    <ThemedText style={styles.rating}>{item.rating}</ThemedText>
                                 </View>
                             </View>
                         </View>
                         <View style={styles.infoContainer}>
-                            <Text style={styles.productTitle}>{item.title}</Text>
+                            <ThemedText style={styles.productTitle}>{item.title}</ThemedText>
 
                             <View style={styles.priceRow}>
-                                <Text style={styles.price}>{item.price}</Text>
-                                <Text style={styles.originalPrice}>{item.originalPrice}</Text>
+                                <ThemedText style={styles.price}>{item.price}</ThemedText>
+                                <ThemedText style={styles.originalPrice}>{item.originalPrice}</ThemedText>
                             </View>
 
                             {/* Tag Images */}
@@ -137,7 +138,7 @@ const TopSellingSection = () => {
                             <View style={styles.rowBetween}>
                                 <View style={styles.locationRow}>
                                     <Ionicons name="location-outline" size={13} color="#444" style={{ marginRight: 2 }} />
-                                    <Text style={styles.location}>{item.location}</Text>
+                                    <ThemedText style={styles.location}>{item.location}</ThemedText>
                                 </View>
                                 <TouchableOpacity>
                                     <Image source={require('../assets/Frame 265.png')} style={{ width: 28, height: 28, resizeMode: 'contain' }} />

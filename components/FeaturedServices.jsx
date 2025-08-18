@@ -1,4 +1,5 @@
 import React from 'react';
+import ThemedText from './ThemedText';
 import {
     View,
     Text,
@@ -48,9 +49,9 @@ const FeaturedServices = () => {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.headerRow}>
-                <Text style={styles.title}>Features Services</Text>
+                <ThemedText style={styles.title}>Features Services</ThemedText>
                 <TouchableOpacity>
-                    <Text style={styles.viewAll}>View All</Text>
+                    <ThemedText style={styles.viewAll}>View All</ThemedText>
                 </TouchableOpacity>
             </View>
 
@@ -72,20 +73,20 @@ const FeaturedServices = () => {
                                     source={item.store_image}
                                     style={styles.storeAvatar}
                                 />
-                                <Text style={styles.storeName}>{item.store}</Text>
+                                <ThemedText style={styles.storeName}>{item.store}</ThemedText>
                             </View>
                             <View style={styles.ratingRow}>
                                 <Ionicons name="star" size={12} color="#F44336" />
-                                <Text style={styles.rating}>{item.rating}</Text>
+                                <ThemedText style={styles.rating}>{item.rating}</ThemedText>
                             </View>
                         </View>
 
                         <View style={styles.cardContent}>
-                            <Text style={styles.serviceTitle}>{item.title}</Text>
-                            <Text style={styles.priceRange}>{item.priceRange}</Text>
+                            <ThemedText style={styles.serviceTitle}>{item.title}</ThemedText>
+                            <ThemedText style={styles.priceRange}>{item.priceRange}</ThemedText>
 
                             <TouchableOpacity style={styles.detailsBtn}>
-                                <Text style={styles.detailsBtnText}>Details</Text>
+                                <ThemedText style={styles.detailsBtnText}>Details</ThemedText>
                             </TouchableOpacity>
                         </View>
                     </View>

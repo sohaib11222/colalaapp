@@ -13,6 +13,7 @@ import {
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from 'expo-router';
+import ThemedText from '../../components/ThemedText';
 
 const { height } = Dimensions.get('window');
 
@@ -32,8 +33,8 @@ const LoginScreen = () => {
 
         {/* White Card Container */}
         <View style={styles.card}>
-          <Text style={styles.title}>Login</Text>
-          <Text style={styles.subtitle}>Login to your account</Text>
+          <ThemedText style={styles.title}>Login</ThemedText>
+          <ThemedText style={styles.subtitle}>Login to your account</ThemedText>
 
           {/* Email Field */}
           <View style={styles.inputWrapper}>
@@ -67,21 +68,21 @@ const LoginScreen = () => {
 
           {/* Login Button */}
           <TouchableOpacity onPress={()=>navigation.replace('MainNavigator')} style={styles.loginButton}>
-            <Text style={styles.loginText}>Login</Text>
+            <ThemedText style={styles.loginText}>Login</ThemedText>
           </TouchableOpacity>
 
           {/* Create Account Button */}
           <TouchableOpacity onPress={()=>navigation.navigate('Register')} style={styles.createAccountButton}>
-            <Text style={styles.createAccountText}>Create Account</Text>
+            <ThemedText style={styles.createAccountText}>Create Account</ThemedText>
           </TouchableOpacity>
 
           {/* Links */}
           <View style={styles.rowLinks}>
             <TouchableOpacity>
-              <Text style={styles.linkText}>Continue as guest</Text>
+              <ThemedText style={styles.linkText}>Continue as guest</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity onPress={()=>navigation.navigate('ForgotPass')}>
-              <Text style={styles.linkText}>Forgot Password ?</Text>
+              <ThemedText style={styles.linkText}>Forgot Password ?</ThemedText>
             </TouchableOpacity>
           </View>
 
@@ -92,9 +93,9 @@ const LoginScreen = () => {
             end={{ x: 1, y: 0 }}
             style={styles.bottomGradient}
           >
-            <Text style={styles.sellerText}>
+            <ThemedText style={styles.sellerText}>
               Do you want to sell on Colala Mall as a store
-            </Text>
+            </ThemedText>
             <View style={styles.storeButtons}>
               <TouchableOpacity style={{ marginLeft: -100 }}>
                 <Image

@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput,
+  View, StyleSheet, TouchableOpacity, TextInput,
   FlatList, SafeAreaView, Dimensions, Modal, Pressable, Image, Platform,
   ScrollView, KeyboardAvoidingView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import ThemedText from '../../../components/ThemedText'; // ← adjust path if needed
 
 const COLOR = { primary:'#E53E3E', white:'#fff', text:'#101318', sub:'#6C727A', border:'#ECEDEF', pill:'#F1F2F5', line:'#E9EBEF', danger:'#E74C3C' };
 const { width } = Dimensions.get('window');
@@ -154,8 +155,8 @@ const SavedItemsScreen = ({ navigation }) => {
         <View style={styles.postTop}>
           <Image source={{ uri: item.avatar }} style={styles.avatar} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.storeNamePost}>{item.store}</Text>
-            <Text style={styles.metaText}>{item.location} · {item.timeAgo}</Text>
+            <ThemedText style={styles.storeNamePost}>{item.store}</ThemedText>
+            <ThemedText style={styles.metaText}>{item.location} · {item.timeAgo}</ThemedText>
           </View>
           <TouchableOpacity onPress={() => openOptions(item)}>
             <Ionicons name="ellipsis-vertical" size={18} color={COLOR.sub} />
@@ -186,7 +187,7 @@ const SavedItemsScreen = ({ navigation }) => {
 
         {item.caption ? (
           <View style={styles.captionPill}>
-            <Text style={styles.captionText}>{item.caption}</Text>
+            <ThemedText style={styles.captionText}>{item.caption}</ThemedText>
           </View>
         ) : null}
 
@@ -195,20 +196,20 @@ const SavedItemsScreen = ({ navigation }) => {
           <View style={styles.actionsLeft}>
             <TouchableOpacity style={styles.actionBtn} onPress={()=>setLiked(p=>!p)}>
               <Ionicons name={liked ? 'heart' : 'heart-outline'} size={25} color={liked?COLOR.primary:COLOR.text} />
-              <Text style={styles.actionCount}>{likeCount}</Text>
+              <ThemedText style={styles.actionCount}>{likeCount}</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={()=>openComments(item)}>
               <Ionicons name="chatbubble-outline" size={25} color={COLOR.text} />
-              <Text style={styles.actionCount}>{item.comments}</Text>
+              <ThemedText style={styles.actionCount}>{item.comments}</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn}>
               <Ionicons name="arrow-redo-outline" size={25} color={COLOR.text} />
-              <Text style={styles.actionCount}>{item.shares}</Text>
+              <ThemedText style={styles.actionCount}>{item.shares}</ThemedText>
             </TouchableOpacity>
           </View>
 
           <View style={styles.actionsRight}>
-            <TouchableOpacity style={styles.visitBtn}><Text style={styles.visitBtnText}>Visit Store</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.visitBtn}><ThemedText style={styles.visitBtnText}>Visit Store</ThemedText></TouchableOpacity>
             <TouchableOpacity style={{ marginLeft: 10 }}>
               <Ionicons name="download-outline" size={24} color={COLOR.text} />
             </TouchableOpacity>
@@ -251,11 +252,11 @@ const SavedItemsScreen = ({ navigation }) => {
         <Image source={{ uri: reply.avatar }} style={styles.commentAvatar} />
         <View style={{ flex:1 }}>
           <View style={{ flexDirection:'row', alignItems:'center' }}>
-            <Text style={styles.commentName}>{reply.user}</Text><Text style={styles.commentTime}>  {reply.time}</Text>
+            <ThemedText style={styles.commentName}>{reply.user}</ThemedText><ThemedText style={styles.commentTime}>  {reply.time}</ThemedText>
           </View>
-          <Text style={styles.commentBody}>
-            {reply.mentionOf ? (<><Text style={styles.mentionText}>@{reply.mentionOf} </Text>{reply.body}</>) : reply.body}
-          </Text>
+          <ThemedText style={styles.commentBody}>
+            {reply.mentionOf ? (<><ThemedText style={styles.mentionText}>@{reply.mentionOf} </ThemedText>{reply.body}</>) : reply.body}
+          </ThemedText>
         </View>
       </View>
     );
@@ -267,7 +268,7 @@ const SavedItemsScreen = ({ navigation }) => {
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Comments</Text>
+              <ThemedText style={styles.sheetTitle}>Comments</ThemedText>
               <TouchableOpacity style={{ borderColor:'#000', borderWidth:1.4, borderRadius:20, padding:2, alignItems:'center' }} onPress={onClose}>
                 <Ionicons name="close" size={18} color={COLOR.text} />
               </TouchableOpacity>
@@ -283,14 +284,14 @@ const SavedItemsScreen = ({ navigation }) => {
                     <Image source={{ uri:item.avatar }} style={styles.commentAvatar} />
                     <View style={{ flex:1 }}>
                       <View style={{ flexDirection:'row', alignItems:'center' }}>
-                        <Text style={styles.commentName}>{item.user}</Text><Text style={styles.commentTime}>  {item.time}</Text>
+                        <ThemedText style={styles.commentName}>{item.user}</ThemedText><ThemedText style={styles.commentTime}>  {item.time}</ThemedText>
                       </View>
-                      <Text style={styles.commentBody}>{item.body}</Text>
+                      <ThemedText style={styles.commentBody}>{item.body}</ThemedText>
                       <View style={styles.commentMetaRow}>
-                        <TouchableOpacity onPress={()=>startReply(item)}><Text style={styles.replyText}>Reply</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={()=>startReply(item)}><ThemedText style={styles.replyText}>Reply</ThemedText></TouchableOpacity>
                         <View style={{ flexDirection:'row', alignItems:'center' }}>
                           <Ionicons name="chatbubble-ellipses-outline" size={14} color={COLOR.text} />
-                          <Text style={styles.commentLikeCount}>  {item.likes}</Text>
+                          <ThemedText style={styles.commentLikeCount}>  {item.likes}</ThemedText>
                         </View>
                       </View>
                     </View>
@@ -306,7 +307,7 @@ const SavedItemsScreen = ({ navigation }) => {
 
             {replyTo ? (
               <View style={styles.replyingChip}>
-                <Text style={styles.replyingText}>Replying to {replyTo.username}</Text>
+                <ThemedText style={styles.replyingText}>Replying to {replyTo.username}</ThemedText>
                 <TouchableOpacity onPress={clearReply} style={{ padding:6 }}>
                   <Ionicons name="close-circle" size={18} color={COLOR.sub} />
                 </TouchableOpacity>
@@ -331,7 +332,7 @@ const SavedItemsScreen = ({ navigation }) => {
       <TouchableOpacity style={[styles.optionRow, danger && styles.optionRowDanger]} onPress={onPress}>
         <View style={styles.optionLeft}>
           {icon}
-          <Text style={[styles.optionLabel, danger && { color: COLOR.danger }]}>{label}</Text>
+          <ThemedText style={[styles.optionLabel, danger && { color: COLOR.danger }]}>{label}</ThemedText>
         </View>
         <Ionicons name="chevron-forward" size={18} color={danger ? COLOR.danger : COLOR.sub} />
       </TouchableOpacity>
@@ -343,7 +344,7 @@ const SavedItemsScreen = ({ navigation }) => {
           <View style={[styles.sheet, { backgroundColor:'#F9F9F9' }]}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Options</Text>
+              <ThemedText style={styles.sheetTitle}>Options</ThemedText>
               <TouchableOpacity style={{ borderColor:'#000', borderWidth:1.4, borderRadius:20, padding:2, alignItems:'center' }} onPress={onClose}>
                 <Ionicons name="close" size={18} color={COLOR.text} />
               </TouchableOpacity>
@@ -367,17 +368,17 @@ const SavedItemsScreen = ({ navigation }) => {
           <Image source={item.image} style={styles.serviceImage} />
           <View style={styles.serviceHeader}>
             <Image source={item.profileImage} style={styles.profileImage} />
-            <Text style={styles.serviceStoreName}>{item.name}</Text>
+            <ThemedText style={styles.serviceStoreName}>{item.name}</ThemedText>
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={14} color={COLOR.primary} />
-              <Text style={styles.ratingText}>{item.rating}</Text>
+              <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
             </View>
           </View>
           <View style={styles.serviceBody}>
-            <Text style={styles.serviceTitle}>{item.service}</Text>
-            <Text style={styles.servicePrice}>{item.price}</Text>
+            <ThemedText style={styles.serviceTitle}>{item.service}</ThemedText>
+            <ThemedText style={styles.servicePrice}>{item.price}</ThemedText>
             <TouchableOpacity style={styles.detailsBtn} onPress={() => navigation?.navigate?.('SeviceDeatils', { store: item })} activeOpacity={0.9}>
-              <Text style={styles.detailsText}>Details</Text>
+              <ThemedText style={styles.detailsText}>Details</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -388,22 +389,22 @@ const SavedItemsScreen = ({ navigation }) => {
         <TouchableOpacity activeOpacity={0.9} onPress={() => {}} style={styles.productCard}>
           <View>
             <Image source={item.image} style={styles.productImage} resizeMode="cover" />
-            {item.sponsored ? (<View style={styles.sponsoredBadge}><Text style={styles.sponsoredText}>Sponsored</Text></View>) : null}
+            {item.sponsored ? (<View style={styles.sponsoredBadge}><ThemedText style={styles.sponsoredText}>Sponsored</ThemedText></View>) : null}
           </View>
           <View style={[styles.rowBetween, styles.storeBar]}>
             <View style={styles.storeRow}>
               <Image source={item.store_image} style={styles.storeAvatar} />
-              <Text style={styles.storeName}>{item.store}</Text>
+              <ThemedText style={styles.storeName}>{item.store}</ThemedText>
             </View>
             <View style={styles.ratingRow}>
-              <Ionicons name="star" color="#E53E3E" size={12} /><Text style={styles.rating}>{item.rating}</Text>
+              <Ionicons name="star" color="#E53E3E" size={12} /><ThemedText style={styles.rating}>{item.rating}</ThemedText>
             </View>
           </View>
           <View style={styles.infoContainer}>
-            <Text numberOfLines={2} style={styles.productTitle}>{item.title}</Text>
+            <ThemedText numberOfLines={2} style={styles.productTitle}>{item.title}</ThemedText>
             <View style={styles.priceRow}>
-              <Text style={styles.price}>{item.price}</Text>
-              {!!item.originalPrice && <Text style={styles.originalPrice}>{item.originalPrice}</Text>}
+              <ThemedText style={styles.price}>{item.price}</ThemedText>
+              {!!item.originalPrice && <ThemedText style={styles.originalPrice}>{item.originalPrice}</ThemedText>}
             </View>
             {!!item.tagImages?.length && (
               <View style={styles.tagsRow}>
@@ -413,7 +414,7 @@ const SavedItemsScreen = ({ navigation }) => {
             <View style={styles.rowBetween}>
               <View style={styles.locationRow}>
                 <Ionicons name="location-outline" size={13} color="#444" style={{ marginRight: 2 }} />
-                <Text numberOfLines={1} style={styles.location}>{item.location}</Text>
+                <ThemedText numberOfLines={1} style={styles.location}>{item.location}</ThemedText>
               </View>
               <TouchableOpacity onPress={() => {}}>
                 <Image source={require('../../../assets/Frame 265.png')} style={{ width: 28, height: 28, resizeMode: 'contain' }} />
@@ -433,21 +434,21 @@ const SavedItemsScreen = ({ navigation }) => {
         <Image source={avatarSrc} style={[styles.avatar, { top: COVER_HEIGHT - AVATAR_SIZE / 2 }]} />
         <View style={[styles.storeContent, { paddingTop: AVATAR_SIZE / 2 + 6 }]}>
           <View style={styles.rowBetween}>
-            <Text numberOfLines={1} style={styles.storeTitle}>{item.name}</Text>
+            <ThemedText numberOfLines={1} style={styles.storeTitle}>{item.name}</ThemedText>
             <View style={styles.starRow}>
               <Ionicons name="star" size={12} color={COLOR.primary} />
-              <Text style={styles.ratingText}>{item.rating}</Text>
+              <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
             </View>
           </View>
           <View style={styles.storeTagsRow}>
             {item.tags.map((tag, i)=>(
               <View key={tag} style={[styles.storeTag, i===0 ? styles.tagBlue : styles.tagRed]}>
-                <Text style={[styles.storeTagTxt, i===0 ? styles.tagTxtBlue : styles.tagTxtRed]}>{tag}</Text>
+                <ThemedText style={[styles.storeTagTxt, i===0 ? styles.tagTxtBlue : styles.tagTxtRed]}>{tag}</ThemedText>
               </View>
             ))}
           </View>
           <TouchableOpacity style={styles.cta} activeOpacity={0.9} onPress={() => {}}>
-            <Text style={styles.ctaText}>Go to Shop</Text>
+            <ThemedText style={styles.ctaText}>Go to Shop</ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -470,7 +471,7 @@ const SavedItemsScreen = ({ navigation }) => {
           <View style={styles.sheet}>
             {options.map(opt => (
               <TouchableOpacity key={opt} style={styles.sheetItem} onPress={() => { type === 'location' ? setLocation(opt) : setCategory(opt); setPicker(null); }}>
-                <Text style={[styles.sheetText, (type === 'location' ? location : category) === opt && { color: COLOR.primary, fontWeight: '600' }]}>{opt}</Text>
+                <ThemedText style={[styles.sheetText, (type === 'location' ? location : category) === opt && { color: COLOR.primary, fontWeight: '600' }]}>{opt}</ThemedText>
               </TouchableOpacity>
             ))}
           </View>
@@ -486,7 +487,7 @@ const SavedItemsScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation?.goBack?.()} style={styles.circleBtn}>
           <Ionicons name="chevron-back" size={22} color="#101318" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Saved Items</Text>
+        <ThemedText style={styles.headerTitle}>Saved Items</ThemedText>
         <View style={{ width: 36 }} />
       </View>
 
@@ -494,7 +495,7 @@ const SavedItemsScreen = ({ navigation }) => {
       <View style={styles.tabsRow}>
         {TABS.map(t => (
           <TouchableOpacity key={t} onPress={() => setActiveTab(t)} style={[styles.tabBtn, activeTab === t && styles.tabBtnActive]}>
-            <Text style={[styles.tabText, activeTab === t && styles.tabTextActive]}>{t}</Text>
+            <ThemedText style={[styles.tabText, activeTab === t && styles.tabTextActive]}>{t}</ThemedText>
           </TouchableOpacity>
         ))}
       </View>
@@ -516,12 +517,12 @@ const SavedItemsScreen = ({ navigation }) => {
 
           <View style={styles.filtersRow}>
             <TouchableOpacity style={styles.filterChip} onPress={() => setPicker('location')}>
-              <Text style={styles.filterText}>{location === 'All' ? 'Location' : location}</Text>
+              <ThemedText style={styles.filterText}>{location === 'All' ? 'Location' : location}</ThemedText>
               <Ionicons name="chevron-down" size={16} color="#101318" />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.filterChip} onPress={() => setPicker('category')}>
-              <Text style={styles.filterText}>{category === 'All' ? 'Category' : category}</Text>
+              <ThemedText style={styles.filterText}>{category === 'All' ? 'Category' : category}</ThemedText>
               <Ionicons name="chevron-down" size={16} color="#101318" />
             </TouchableOpacity>
           </View>
@@ -545,7 +546,7 @@ const SavedItemsScreen = ({ navigation }) => {
         ListEmptyComponent={
           <View style={styles.placeholder}>
             <Image source={require('../../../assets/Users.png')} style={{ width: 120, height: 120, opacity: 0.6 }} />
-            <Text style={{ color: COLOR.sub, marginTop: 10 }}>{`No saved ${activeTab.toLowerCase()} yet`}</Text>
+            <ThemedText style={{ color: COLOR.sub, marginTop: 10 }}>{`No saved ${activeTab.toLowerCase()} yet`}</ThemedText>
           </View>
         }
         renderItem={renderItem}

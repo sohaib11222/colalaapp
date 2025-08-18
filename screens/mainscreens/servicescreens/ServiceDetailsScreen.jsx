@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
+import ThemedText from '../../../components/ThemedText';
 
 const ServiceDetailsScreen = () => {
     const { params } = useRoute();
@@ -26,7 +27,7 @@ const ServiceDetailsScreen = () => {
                 <TouchableOpacity style={{ padding: 3, borderColor: "#ccc", borderWidth: 1, borderRadius: 20 }} onPress={() => navigation.goBack()}>
                     <Ionicons name="chevron-back" size={24} color="#000" />
                 </TouchableOpacity>
-                <Text style={styles.topHeaderTitle}>Service Details</Text>
+                <ThemedText style={styles.topHeaderTitle}>Service Details</ThemedText>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity style={{ padding: 5, borderColor: "#ccc", borderWidth: 1, borderRadius: 30 }} >
                         <Ionicons name="ellipsis-vertical" size={22} color="#000" /></TouchableOpacity>
@@ -44,12 +45,12 @@ const ServiceDetailsScreen = () => {
                 {/* Store Info Overlay */}
                 <View style={styles.storeOverlay}>
                     <Image source={store.profileImage} style={styles.avatar} />
-                    <Text style={styles.storeName}>{store.name}</Text>
+                    <ThemedText style={styles.storeName}>{store.name}</ThemedText>
                     <View style={styles.ratingContainer}>
                         <Ionicons name="star" size={14} color="#E53E3E" />
-                        <Text style={[styles.ratingText, {
+                        <ThemedText style={[styles.ratingText, {
                             color: "#fff"
-                        }]}>4.5</Text>
+                        }]}>4.5</ThemedText>
                     </View>
                 </View>
             </View>
@@ -64,25 +65,25 @@ const ServiceDetailsScreen = () => {
 
             <View style={styles.details}>
                 <View style={styles.headerRow}>
-                    <Text style={styles.title}>{store.service}</Text>
+                    <ThemedText style={styles.title}>{store.service}</ThemedText>
                     <View style={styles.ratingRow}>
                         <Ionicons name="star" size={16} color="#E53E3E" />
-                        <Text style={styles.ratingText}>{store.rating}</Text>
+                        <ThemedText style={styles.ratingText}>{store.rating}</ThemedText>
                     </View>
                 </View>
 
 
-                <Text style={styles.price}>{store.price}</Text>
+                <ThemedText style={styles.price}>{store.price}</ThemedText>
                 <View style={styles.divider} />
                 {/* Description */}
-                <Text style={styles.sectionTitle}>Description</Text>
-                <Text style={styles.description}>
+                <ThemedText style={styles.sectionTitle}>Description</ThemedText>
+                <ThemedText style={styles.description}>
                     We sew all kinds of dresses, we are your one stop shop for any form of dresses
-                </Text>
+                </ThemedText>
                 <View style={styles.divider} />
 
                 {/* Price Breakdown */}
-                <Text style={styles.sectionTitle}>Price Breakdown</Text>
+                <ThemedText style={styles.sectionTitle}>Price Breakdown</ThemedText>
                 {priceBreakdown.map((item, index) => {
                     const isFirst = index === 0;
                     const isLast = index === priceBreakdown.length - 1;
@@ -95,8 +96,8 @@ const ServiceDetailsScreen = () => {
                                 isLast && styles.lastPriceRow,
                             ]}
                         >
-                            <Text style={styles.breakdownLabel}>{item}</Text>
-                            <Text style={styles.breakdownPrice}>{store.price}</Text>
+                            <ThemedText style={styles.breakdownLabel}>{item}</ThemedText>
+                            <ThemedText style={styles.breakdownPrice}>{store.price}</ThemedText>
                         </View>
                     );
                 })}
@@ -116,7 +117,7 @@ const ServiceDetailsScreen = () => {
                         style={styles.messageBtn}
                         onPress={() => navigation.navigate('ServiceChat', { store })}
                     >
-                        <Text style={styles.messageText}>Message Store</Text>
+                        <ThemedText style={styles.messageText}>Message Store</ThemedText>
                     </TouchableOpacity>
 
                 </View>

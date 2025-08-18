@@ -2,7 +2,6 @@
 import React, { useMemo, useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Image,
   TouchableOpacity,
@@ -16,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import ThemedText from "../../../components/ThemedText";
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
@@ -140,20 +140,20 @@ const Capsule = ({ left, onRightPress, rightText = "View Store" }) => (
       <View style={{ marginLeft: 8 }}>
         {"rating" in left ? (
           <>
-            <Text style={styles.capsuleTitle}>{left.name}</Text>
-            <Text style={styles.capsuleSub}>{left.rating} Stars</Text>
+            <ThemedText style={styles.capsuleTitle}>{left.name}</ThemedText>
+            <ThemedText style={styles.capsuleSub}>{left.rating} Stars</ThemedText>
           </>
         ) : (
           <>
-            <Text style={styles.capsuleTitle}>{left.title}</Text>
-            <Text style={[styles.capsuleSub, { color: COLOR.primary }]}>{left.price}</Text>
+            <ThemedText style={styles.capsuleTitle}>{left.title}</ThemedText>
+            <ThemedText style={[styles.capsuleSub, { color: COLOR.primary }]}>{left.price}</ThemedText>
           </>
         )}
       </View>
     </View>
 
     <TouchableOpacity onPress={onRightPress} style={{ paddingHorizontal: 4, paddingVertical: 6 }}>
-      <Text style={styles.capsuleLink}>{rightText}</Text>
+      <ThemedText style={styles.capsuleLink}>{rightText}</ThemedText>
     </TouchableOpacity>
   </View>
 );
@@ -179,15 +179,15 @@ const ReviewCard = ({ item, type = "store", onPress, onPressRight }) => {
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Image source={{ uri: item.avatar }} style={styles.avatar} />
           <View>
-            <Text style={styles.name}>{item.user}</Text>
+            <ThemedText style={styles.name}>{item.user}</ThemedText>
             <Stars value={item.rating} />
           </View>
         </View>
-        <Text style={styles.time}>{item.time}</Text>
+        <ThemedText style={styles.time}>{item.time}</ThemedText>
       </View>
 
       {/* Body */}
-      <Text style={styles.body}>{item.body}</Text>
+      <ThemedText style={styles.body}>{item.body}</ThemedText>
 
       {/* Optional gallery */}
       <Gallery images={item.gallery} />
@@ -278,9 +278,9 @@ export default function MyReviewsScreen() {
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle} pointerEvents="none">
+          <ThemedText style={styles.headerTitle} pointerEvents="none">
             MY Reviews
-          </Text>
+          </ThemedText>
 
           {/* Right spacer for symmetry */}
           <View style={{ width: 40, height: 40 }} />
@@ -293,20 +293,20 @@ export default function MyReviewsScreen() {
           onPress={() => setTab("store")}
           style={[styles.tabBtn, tab === "store" ? styles.tabActive : styles.tabInactive]}
         >
-          <Text style={[styles.tabTxt, tab === "store" ? styles.tabTxtActive : styles.tabTxtInactive]}>
+          <ThemedText style={[styles.tabTxt, tab === "store" ? styles.tabTxtActive : styles.tabTxtInactive]}>
             Store Reviews
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => setTab("product")}
           style={[styles.tabBtn, tab === "product" ? styles.tabActive : styles.tabInactive]}
         >
-          <Text
+          <ThemedText
             style={[styles.tabTxt, tab === "product" ? styles.tabTxtActive : styles.tabTxtInactive]}
           >
             Product Reviews
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
       </View>
 
@@ -345,7 +345,7 @@ export default function MyReviewsScreen() {
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, {marginLeft:150}]}>My review</Text>
+              <ThemedText style={[styles.sheetTitle, {marginLeft:150}]}>My review</ThemedText>
               <TouchableOpacity
                 style={styles.closeBtn}
                 onPress={() => setViewVisible(false)}
@@ -366,15 +366,15 @@ export default function MyReviewsScreen() {
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <Image source={{ uri: activeReview.avatar }} style={styles.avatar} />
                     <View>
-                      <Text style={styles.name}>Chris Pine</Text>
+                      <ThemedText style={styles.name}>Chris Pine</ThemedText>
                       <Stars value={activeReview.rating} />
                     </View>
                   </View>
-                  <Text style={styles.time}>{activeReview.time}</Text>
+                  <ThemedText style={styles.time}>{activeReview.time}</ThemedText>
                 </View>
 
                 <Gallery images={activeReview.gallery} />
-                <Text style={styles.body}>{activeReview.body}</Text>
+                <ThemedText style={styles.body}>{activeReview.body}</ThemedText>
               </View>
             )}
 
@@ -384,13 +384,13 @@ export default function MyReviewsScreen() {
                 style={[styles.modalBtn, styles.modalBtnLight]}
                 onPress={openEditFromView}
               >
-                <Text style={[styles.modalBtnText, styles.modalBtnLightTxt]}>Edit Review</Text>
+                <ThemedText style={[styles.modalBtnText, styles.modalBtnLightTxt]}>Edit Review</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnDanger]}
                 onPress={handleDelete}
               >
-                <Text style={styles.modalBtnText}>Delete Review</Text>
+                <ThemedText style={styles.modalBtnText}>Delete Review</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
@@ -407,7 +407,7 @@ export default function MyReviewsScreen() {
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Leave a review</Text>
+              <ThemedText style={styles.sheetTitle}>Leave a review</ThemedText>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setEditVisible(false)}>
                 <Ionicons name="close" size={18} color={COLOR.text} />
               </TouchableOpacity>
@@ -418,7 +418,7 @@ export default function MyReviewsScreen() {
               <StarsEditable value={editRating} onChange={setEditRating} />
             </View>
 
-            <Text style={styles.revLabel}>Type review</Text>
+            <ThemedText style={styles.revLabel}>Type review</ThemedText>
             <TextInput
               value={editText}
               onChangeText={setEditText}
@@ -439,7 +439,7 @@ export default function MyReviewsScreen() {
             </View>
 
             <TouchableOpacity style={styles.sendBtn} onPress={handleSaveEdit}>
-              <Text style={styles.sendBtnTxt}>Send Review</Text>
+              <ThemedText style={styles.sendBtnTxt}>Send Review</ThemedText>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>

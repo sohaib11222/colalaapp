@@ -6,6 +6,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import ThemedText from '../../../components/ThemedText';
 
 // If you want image picking, install then uncomment:
 // import * as ImagePicker from 'expo-image-picker';
@@ -104,16 +105,16 @@ export default function ChatDetailsScreen() {
             const { category, details } = item.payload || {};
             return (
                 <View style={styles.disputeCard}>
-                    <Text style={styles.disputeLabel}>Category</Text>
-                    <Text style={styles.disputeValue}>{category}</Text>
+                    <ThemedText style={styles.disputeLabel}>Category</ThemedText>
+                    <ThemedText style={styles.disputeValue}>{category}</ThemedText>
 
-                    <Text style={[styles.disputeLabel, { marginTop: 10 }]}>Details</Text>
-                    <Text style={styles.disputeValue}>{details}</Text>
+                    <ThemedText style={[styles.disputeLabel, { marginTop: 10 }]}>Details</ThemedText>
+                    <ThemedText style={styles.disputeValue}>{details}</ThemedText>
 
                     <View style={styles.disputeNotice}>
-                        <Text style={styles.disputeNoticeText}>
+                        <ThemedText style={styles.disputeNoticeText}>
                             Kindly be patient, a  customer agent will join you shortly
-                        </Text>
+                        </ThemedText>
                     </View>
                 </View>
             );
@@ -122,8 +123,8 @@ export default function ChatDetailsScreen() {
         const mine = item.sender === 'me';
         return (
             <View style={[styles.bubble, mine ? styles.bubbleRight : styles.bubbleLeft]}>
-                <Text style={[styles.msg, { color: mine ? '#fff' : '#000' }]}>{item.text}</Text>
-                <Text style={[styles.time, { color: mine ? '#fff' : '#000' }]}>{item.time}</Text>
+                <ThemedText style={[styles.msg, { color: mine ? '#fff' : '#000' }]}>{item.text}</ThemedText>
+                <ThemedText style={[styles.time, { color: mine ? '#fff' : '#000' }]}>{item.time}</ThemedText>
             </View>
         );
     };
@@ -140,8 +141,8 @@ export default function ChatDetailsScreen() {
                     <View style={styles.headerCenter}>
                         <Image source={avatarSrc} style={styles.avatar} />
                         <View>
-                            <Text style={styles.storeName}>{store?.name || 'Sasha Stores'}</Text>
-                            <Text style={styles.lastSeen}>Last seen 2 mins ago</Text>
+                            <ThemedText style={styles.storeName}>{store?.name || 'Sasha Stores'}</ThemedText>
+                            <ThemedText style={styles.lastSeen}>Last seen 2 mins ago</ThemedText>
                         </View>
                     </View>
 
@@ -170,7 +171,7 @@ export default function ChatDetailsScreen() {
                             style={styles.popoverItem}
                             onPress={() => { setMenuOpen(false); setShowDispute(true); }}
                         >
-                            <Text style={styles.popoverText}>Create a dispute</Text>
+                            <ThemedText style={styles.popoverText}>Create a dispute</ThemedText>
                         </TouchableOpacity>
                     </View>
                 </Modal>
@@ -213,7 +214,7 @@ export default function ChatDetailsScreen() {
                         <TouchableOpacity onPress={() => setShowDispute(false)} style={styles.hIcon}>
                             <Ionicons name="chevron-back" size={22} color="#000" />
                         </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Support Form</Text>
+                        <ThemedText style={styles.modalTitle}>Support Form</ThemedText>
                         <View style={{ width: 32 }} />
                     </View>
 
@@ -225,9 +226,9 @@ export default function ChatDetailsScreen() {
                             const next = CATEGORIES[(i + 1) % CATEGORIES.length];
                             setIssueCategory(next);
                         }}>
-                            <Text style={[styles.selectText, { color: issueCategory ? '#000' : '#9BA0A6' }]}>
+                            <ThemedText style={[styles.selectText, { color: issueCategory ? '#000' : '#9BA0A6' }]}>
                                 {issueCategory || 'Issue Category'}
-                            </Text>
+                            </ThemedText>
                             <Ionicons name="chevron-forward" size={18} color="#000" />
                         </TouchableOpacity>
 
@@ -259,7 +260,7 @@ export default function ChatDetailsScreen() {
                             disabled={!issueCategory || !issueDetails.trim()}
                             style={[styles.proceedBtn, { opacity: (!issueCategory || !issueDetails.trim()) ? 0.6 : 1 }]}
                         >
-                            <Text style={{ color: '#fff', fontWeight: '400' }}>Proceed</Text>
+                            <ThemedText style={{ color: '#fff', fontWeight: '400' }}>Proceed</ThemedText>
                         </TouchableOpacity>
                     </View>
                 </SafeAreaView>

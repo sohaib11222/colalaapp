@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import ThemedText from "../../../components/ThemedText";
 
 /* ------------ THEME ------------ */
 const COLOR = {
@@ -99,7 +100,7 @@ const BottomSheet = ({ visible, onClose, title, children }) => {
         <View style={styles.sheetContainer}>
           <View style={styles.sheetHeader}>
             <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>{title}</Text>
+            <ThemedText style={styles.sheetTitle}>{title}</ThemedText>
             <TouchableOpacity onPress={onClose} style={styles.sheetClose}>
               <Ionicons name="close" size={18} color={COLOR.text} />
             </TouchableOpacity>
@@ -190,7 +191,7 @@ export default function ServiceStoresScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color={COLOR.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{serviceTitle}</Text>
+          <ThemedText font="oleo" style={styles.headerTitle}>{serviceTitle}</ThemedText>
           <View style={styles.headerIcons}>
             <Ionicons name="cart-outline" size={22} color={COLOR.primary} style={styles.icon} />
             <Ionicons name="notifications-outline" size={22} color={COLOR.primary} style={styles.icon} />
@@ -237,7 +238,7 @@ export default function ServiceStoresScreen() {
                     style={{ marginRight: 6 }}
                   />
                 )}
-                <Text
+                <ThemedText
                   style={[
                     styles.filterText,
                     selected && { color: COLOR.primary, fontWeight: "700" },
@@ -245,7 +246,7 @@ export default function ServiceStoresScreen() {
                   numberOfLines={1}
                 >
                   {selected ? value : label}
-                </Text>
+                </ThemedText>
               </View>
 
               {/* Right icon: chevron when not selected; X to clear when selected */}
@@ -276,20 +277,20 @@ export default function ServiceStoresScreen() {
             <Image source={item.image} style={styles.cardImage} />
             <View style={styles.cardHeader}>
               <Image source={item.profileImage} style={styles.profileImage} />
-              <Text style={styles.storeName}>{item.name}</Text>
+              <ThemedText style={styles.storeName}>{item.name}</ThemedText>
               <View style={styles.ratingContainer}>
                 <Ionicons name="star" size={14} color={COLOR.primary} />
-                <Text style={styles.rating}>{item.rating}</Text>
+                <ThemedText style={styles.rating}>{item.rating}</ThemedText>
               </View>
             </View>
             <View style={styles.cardBody}>
-              <Text style={styles.serviceName}>{item.service}</Text>
-              <Text style={styles.price}>{item.price}</Text>
+              <ThemedText style={styles.serviceName}>{item.service}</ThemedText>
+              <ThemedText style={styles.price}>{item.price}</ThemedText>
               <TouchableOpacity
                 style={styles.detailsBtn}
                 onPress={() => navigation.navigate("SeviceDeatils", { store: item })}
               >
-                <Text style={styles.detailsText}>Details</Text>
+                <ThemedText style={styles.detailsText}>Details</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
@@ -312,7 +313,7 @@ export default function ServiceStoresScreen() {
           />
         </View>
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-          <Text style={styles.groupTitle}>Popular</Text>
+          <ThemedText style={styles.groupTitle}>Popular</ThemedText>
           {POPULAR_STATES.map((s) => (
             <TouchableOpacity
               key={s}
@@ -322,8 +323,8 @@ export default function ServiceStoresScreen() {
                 closeSheet();
               }}
             >
-              <Text style={styles.listMain}>{s}</Text>
-              <Text style={styles.listSub}>5,000 products</Text>
+              <ThemedText style={styles.listMain}>{s}</ThemedText>
+              <ThemedText style={styles.listSub}>5,000 products</ThemedText>
               <Ionicons
                 name="chevron-forward"
                 size={18}
@@ -333,7 +334,7 @@ export default function ServiceStoresScreen() {
             </TouchableOpacity>
           ))}
 
-          <Text style={[styles.groupTitle, { marginTop: 14 }]}>All States</Text>
+          <ThemedText style={[styles.groupTitle, { marginTop: 14 }]}>All States</ThemedText>
           {ALL_STATES.map((s) => (
             <TouchableOpacity
               key={s}
@@ -343,8 +344,8 @@ export default function ServiceStoresScreen() {
                 closeSheet();
               }}
             >
-              <Text style={styles.listMain}>{s}</Text>
-              <Text style={styles.listSub}>5,000 products</Text>
+              <ThemedText style={styles.listMain}>{s}</ThemedText>
+              <ThemedText style={styles.listSub}>5,000 products</ThemedText>
               <Ionicons
                 name="chevron-forward"
                 size={18}
@@ -367,7 +368,7 @@ export default function ServiceStoresScreen() {
           />
         </View>
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-          <Text style={styles.groupTitle}>Popular</Text>
+          <ThemedText style={styles.groupTitle}>Popular</ThemedText>
           {POPULAR_STORES.map((name) => (
             <TouchableOpacity
               key={name}
@@ -382,13 +383,13 @@ export default function ServiceStoresScreen() {
                 style={styles.avatar}
               />
               <View>
-                <Text style={styles.listMain}>{name}</Text>
-                <Text style={styles.listSub}>5,000 products</Text>
+                <ThemedText style={styles.listMain}>{name}</ThemedText>
+                <ThemedText style={styles.listSub}>5,000 products</ThemedText>
               </View>
             </TouchableOpacity>
           ))}
 
-          <Text style={[styles.groupTitle, { marginTop: 14 }]}>All Stores</Text>
+          <ThemedText style={[styles.groupTitle, { marginTop: 14 }]}>All Stores</ThemedText>
           {ALL_STORES.map((name) => (
             <TouchableOpacity
               key={name}
@@ -403,8 +404,8 @@ export default function ServiceStoresScreen() {
                 style={styles.avatar}
               />
               <View>
-                <Text style={styles.listMain}>{name}</Text>
-                <Text style={styles.listSub}>5,000 products</Text>
+                <ThemedText style={styles.listMain}>{name}</ThemedText>
+                <ThemedText style={styles.listSub}>5,000 products</ThemedText>
               </View>
             </TouchableOpacity>
           ))}
@@ -435,7 +436,7 @@ export default function ServiceStoresScreen() {
                 closeSheet();
               }}
             >
-              <Text style={styles.listMain}>{s}</Text>
+              <ThemedText style={styles.listMain}>{s}</ThemedText>
               <Ionicons name="chevron-forward" size={18} color={COLOR.text} />
             </TouchableOpacity>
           ))}
@@ -479,7 +480,7 @@ export default function ServiceStoresScreen() {
                 closeSheet();
               }}
             >
-              <Text style={[styles.listMain, { marginBottom: 0 }]}>{p}</Text>
+              <ThemedText style={[styles.listMain, { marginBottom: 0 }]}>{p}</ThemedText>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -495,7 +496,7 @@ export default function ServiceStoresScreen() {
               closeSheet();
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "600" }}>Apply</Text>
+            <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Apply</ThemedText>
           </TouchableOpacity>
         </View>
       </BottomSheet>
@@ -512,7 +513,7 @@ export default function ServiceStoresScreen() {
                 closeSheet();
               }}
             >
-              <Text style={styles.listMain}>{r}</Text>
+              <ThemedText style={styles.listMain}>{r}</ThemedText>
               <View style={styles.radio} />
             </TouchableOpacity>
           ))}
@@ -531,7 +532,7 @@ export default function ServiceStoresScreen() {
                 closeSheet();
               }}
             >
-              <Text style={styles.listMain}>{r}</Text>
+              <ThemedText style={styles.listMain}>{r}</ThemedText>
               <View style={styles.radio} />
             </TouchableOpacity>
           ))}
@@ -562,7 +563,7 @@ const styles = StyleSheet.create({
     right: 0,
     textAlign: "center",
     color: "#fff",
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "400",
     marginLeft:-120
   },

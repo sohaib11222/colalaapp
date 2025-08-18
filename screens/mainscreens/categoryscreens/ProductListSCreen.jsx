@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import ThemedText from "../../../components/ThemedText";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
@@ -83,16 +84,16 @@ const ProductsListScreen = () => {
                 <View style={[styles.rowBetween, { backgroundColor: "#F2F2F2", width: "100%", padding: 4 }]}>
                     <View style={styles.storeRow}>
                         <Image source={item.store.logo} style={styles.storeAvatar} />
-                        <Text style={styles.storeNameCard}>{item.store.name}</Text>
+                        <ThemedText style={styles.storeNameCard}>{item.store.name}</ThemedText>
                     </View>
                     <View style={styles.ratingRow}>
                         <Ionicons name="star" color="red" size={12} />
-                        <Text style={styles.rating}>{item.store.rating}</Text>
+                        <ThemedText style={styles.rating}>{item.store.rating}</ThemedText>
                     </View>
                 </View>
                 <View style={{ padding: 6 }}>
-                    <Text numberOfLines={1} style={styles.productTitleCard}>{item.title}</Text>
-                    <Text style={styles.price}>₦{item.price}</Text>
+                    <ThemedText numberOfLines={1} style={styles.productTitleCard}>{item.title}</ThemedText>
+                    <ThemedText style={styles.price}>₦{item.price}</ThemedText>
                 </View>
             </View>
         </TouchableOpacity>
@@ -105,19 +106,19 @@ const ProductsListScreen = () => {
                 <View style={[styles.rowBetween, { backgroundColor: "#F2F2F2", width: "100%", padding: 5 }]}>
                     <View style={styles.storeRow}>
                         <Image source={item.store.logo} style={styles.storeAvatar} />
-                        <Text style={styles.storeNameCard}>{item.store.name}</Text>
+                        <ThemedText style={styles.storeNameCard}>{item.store.name}</ThemedText>
                     </View>
                     <View style={styles.ratingRow}>
                         <Ionicons name="star" color="red" size={12} />
-                        <Text style={styles.rating}>{item.store.rating}</Text>
+                        <ThemedText style={styles.rating}>{item.store.rating}</ThemedText>
                     </View>
                 </View>
 
                 <View style={styles.infoContainer}>
-                    <Text style={styles.productTitleCard}>{item.title}</Text>
+                    <ThemedText style={styles.productTitleCard}>{item.title}</ThemedText>
                     <View style={styles.priceRow}>
-                        <Text style={styles.price}>{item.price}</Text>
-                        <Text style={styles.originalPrice}>{item.originalPrice}</Text>
+                        <ThemedText style={styles.price}>{item.price}</ThemedText>
+                        <ThemedText style={styles.originalPrice}>{item.originalPrice}</ThemedText>
                     </View>
 
                     <View style={styles.tagsRow}>
@@ -129,7 +130,7 @@ const ProductsListScreen = () => {
                     <View style={styles.rowBetween}>
                         <View style={styles.locationRow}>
                             <Ionicons name="location-outline" size={13} color="#444" style={{ marginRight: 2 }} />
-                            <Text style={styles.location}>{item.store.location}</Text>
+                            <ThemedText style={styles.location}>{item.store.location}</ThemedText>
                         </View>
                         <TouchableOpacity>
                             <Image source={require("../../../assets/Frame 265.png")} style={{ width: 28, height: 28, resizeMode: "contain" }} />
@@ -144,13 +145,13 @@ const ProductsListScreen = () => {
         <SafeAreaView style={{ flex: 1, backgroundColor: "#f4f4f4" }}>
             {/* HEADER */}
             {/* ... Keep your header code unchanged ... */}
-         <View style={styles.header}>
+            <View style={styles.header}>
                 <View style={styles.headerTopRow}>
-                    <TouchableOpacity>
-                        <Ionicons name="chevron-back" size={22} color="#fff" />
+                    <TouchableOpacity style={{ backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 8, zIndex: 5 }} onPress={() => navigation.goBack()}>
+                        <Ionicons name="chevron-back" size={22} color="#E53E3E" />
                     </TouchableOpacity>
 
-                    <Text style={styles.headerTitle}>{categoryTitle}</Text>
+                    <ThemedText font="oleo" style={styles.headerTitle}>{categoryTitle}</ThemedText>
                     <View style={styles.headerIcons}>
                         <TouchableOpacity style={[styles.iconButton, { backgroundColor: "#fff", padding: 6, borderRadius: 25 }]}>
                             <Ionicons name="cart-outline" size={22} color="#E53E3E" />
@@ -176,7 +177,7 @@ const ProductsListScreen = () => {
             <View style={styles.filterContainer}>
                 {filters.map((label) => (
                     <TouchableOpacity key={label} style={styles.filterButton}>
-                        <Text style={styles.filterText}>{label}</Text>
+                        <ThemedText style={styles.filterText}>{label}</ThemedText>
                         <Ionicons name="chevron-down" size={14} color="#1A1A1A" />
                     </TouchableOpacity>
                 ))}
@@ -184,7 +185,7 @@ const ProductsListScreen = () => {
             <ScrollView>
                 {/* TRENDING PRODUCTS */}
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Trending Products</Text>
+                    <ThemedText style={styles.sectionTitle}>Trending Products</ThemedText>
                 </View>
                 <FlatList
                     horizontal
@@ -197,7 +198,7 @@ const ProductsListScreen = () => {
 
                 {/* NEW ARRIVALS */}
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>New Arrivals</Text>
+                    <ThemedText style={styles.sectionTitle}>New Arrivals</ThemedText>
                 </View>
                 <FlatList
                     horizontal
@@ -210,7 +211,7 @@ const ProductsListScreen = () => {
 
                 {/* ALL PRODUCTS */}
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>All Products</Text>
+                    <ThemedText style={styles.sectionTitle}>All Products</ThemedText>
                 </View>
                 <FlatList
                     data={allProducts}
@@ -229,7 +230,6 @@ const ProductsListScreen = () => {
 export default ProductsListScreen;
 
 // Keep your styles object unchanged for now.
-
 
 const styles = StyleSheet.create({
     header: {
@@ -252,8 +252,8 @@ const styles = StyleSheet.create({
         right: 0,
         textAlign: 'center',
         color: '#fff',
-        fontSize: 20,
-        marginLeft: -180,
+        fontSize: 24,
+        marginLeft: -150,
         fontWeight: '400',
     },
     headerIcons: {
@@ -308,6 +308,7 @@ const styles = StyleSheet.create({
         rowGap: -25,
         columnGap: 5
     },
+    // Note: duplicate key kept as-is to preserve your original file
     filterButton: {
         width: '30%',
         backgroundColor: '#EDEDED',
@@ -319,6 +320,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
+    // Note: duplicate key kept as-is to preserve your original file
     filterText: {
         fontSize: 12,
         color: '#1A1A1A',
