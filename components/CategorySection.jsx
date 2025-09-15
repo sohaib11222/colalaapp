@@ -117,22 +117,23 @@ const styles = StyleSheet.create({
     viewAll: {
         color: 'white',
         fontSize: 13,
+        textDecorationLine:'underline'
     },
     categoryItem: {
         alignItems: 'center',
         marginRight: 14,
     },
     iconWrapper: {
-        width: 63,
-        height: 63,
-        borderRadius: 35,
+        width: 69,
+        height: 69,
+        borderRadius: 45,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 6,
     },
     iconImage: {
-        width: 34,
-        height: 34,
+        width: 40,
+        height: 40,
     },
     categoryText: {
         fontSize: 12,

@@ -93,23 +93,34 @@ const SettingsScreen = () => {
         {/* Header row */}
         <View style={styles.headerRow}>
           <ThemedText font='oleo' style={styles.headerTitle}>Settings</ThemedText>
-          <View style={styles.headerIcons}>
-            <HeaderIconCircle onPress={() => onPressRow('cart')}>
-              <Ionicons name="cart-outline" size={18} color={COLOR.primary} />
-              {cartCount > 0 && (
-                <View style={styles.headerBadge}>
-                  <ThemedText style={styles.headerBadgeText}>{cartCount}</ThemedText>
-                </View>
-              )}
-            </HeaderIconCircle>
-            <HeaderIconCircle onPress={() => onPressRow('notifications')}>
-              <Ionicons name="notifications-outline" size={18} color={COLOR.primary} />
-              {notifCount > 0 && (
-                <View style={styles.headerBadge}>
-                  <ThemedText style={styles.headerBadgeText}>{notifCount}</ThemedText>
-                </View>
-              )}
-            </HeaderIconCircle>
+          <View style={styles.iconRow}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('ServiceNavigator', { screen: 'Cart' })
+              }
+              style={[styles.iconButton, styles.iconPill]}
+              accessibilityRole="button"
+              accessibilityLabel="Open cart"
+            >
+              <Image
+                source={require('../../../assets/cart-icon.png')}
+                style={styles.iconImg}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('ServiceNavigator', { screen: 'Notifications' })
+              }
+              style={[styles.iconButton, styles.iconPill]}
+              accessibilityRole="button"
+              accessibilityLabel="Open notifications"
+            >
+              <Image
+                source={require('../../../assets/bell-icon.png')}
+                style={styles.iconImg}
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -134,7 +145,7 @@ const SettingsScreen = () => {
         <View style={styles.walletCard}>
           <View style={{ flex: 1 }}>
             <ThemedText style={styles.walletLabel}>Main Wallet</ThemedText>
-            <ThemedText style={styles.walletAmount}>₦50,000</ThemedText>
+            <ThemedText style={styles.walletAmount}>N50,000</ThemedText>
           </View>
           <TouchableOpacity style={styles.viewWalletBtn} onPress={() => navigation.navigate('SettingsNavigator', {
             screen: "ShoppingWallet",
@@ -146,7 +157,7 @@ const SettingsScreen = () => {
           screen: "EscrowWallet",
         })}>
           <ThemedText style={styles.holdingText}>
-            ₦50,000 locked in holding wallet <ThemedText style={{ color: '#640505', fontSize: 13 }}>· Click to view</ThemedText>
+            N50,000 locked in holding wallet <ThemedText style={{ color: '#640505', fontSize: 13, textDecorationLine:'underline' }}>· Click to view</ThemedText>
           </ThemedText>
         </TouchableOpacity>
       </View>
@@ -189,7 +200,7 @@ const SettingsScreen = () => {
         {/* Logout */}
         <OptionPillCard
           label="Logout"
-          img={ require('../../../assets/Vector (6).png') }
+          img={require('../../../assets/Vector (6).png')}
           leftColor="#fff"
           onPress={() => onPressRow('logout')}
           textColor={COLOR.danger}
@@ -265,12 +276,12 @@ const styles = StyleSheet.create({
 
   /* Profile */
   profileRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 12 },
-  profileImg: { width: 48, height: 48, borderRadius: 24, marginRight: 12, borderWidth: 2, borderColor: '#ffffff66' },
+  profileImg: { width: 60, height: 60, borderRadius: 35, marginRight: 12, borderWidth: 2, borderColor: '#ffffff66' },
   nameRow: { flexDirection: 'row', alignItems: 'center' },
-  name: { color: COLOR.white, fontSize: 16.5, fontWeight: '800' },
+  name: { color: COLOR.white, fontSize: 14.5, fontWeight: '500' },
   verifyPill: { marginLeft: 8, backgroundColor: '#FACC15', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
   locationRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  locationText: { color: COLOR.white, fontSize: 12, marginRight: 4, opacity: 0.95 },
+  locationText: { color: COLOR.white, fontSize: 10, marginRight: 4, fontWeight: 500 },
 
   /* Wallet card + holding bar */
   walletCard: {
@@ -279,16 +290,16 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     flexDirection: 'row', alignItems: 'center',
   },
-  walletLabel: { color: COLOR.sub, fontSize: 12, marginBottom: 4, opacity: 0.9, paddingBottom: 15 },
-  walletAmount: { color: COLOR.text, fontSize: 26, fontWeight: '900', letterSpacing: 0.2, paddingBottom: 25 },
+  walletLabel: { color: COLOR.sub, fontSize: 9, marginBottom: 4, opacity: 0.9, paddingBottom: 15 },
+  walletAmount: { color: COLOR.text, fontSize: 30, fontWeight: 'bold', letterSpacing: 0.2, paddingBottom: 25 },
   viewWalletBtn: { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: COLOR.primary, borderRadius: 12, marginTop: 45 },
-  viewWalletText: { fontSize: 12, color: COLOR.white, fontWeight: '700' },
+  viewWalletText: { fontSize: 10, color: COLOR.white, fontWeight: '700' },
   holdingBar: {
     backgroundColor: '#FF6B6B', opacity: 0.95,
     borderBottomRightRadius: 20, borderBottomLeftRadius: 20,
     paddingVertical: 10, paddingHorizontal: 12, marginTop: -10, zIndex: 1,
   },
-  holdingText: { color: COLOR.white, fontSize: 12.5, fontWeight: '700' },
+  holdingText: { color: COLOR.white, fontSize: 12.5, fontWeight: 'bold' },
 
   /* Edit profile button */
   primaryBtn: {
@@ -351,7 +362,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 
-  pillLabel: { flex: 1, fontSize: 16, fontWeight: '500' },
+  pillLabel: { flex: 1, fontSize: 14, fontWeight: '500' },
 
   /* Others title */
   sectionTitle: {
@@ -366,6 +377,13 @@ const styles = StyleSheet.create({
     alignItems: 'center', backgroundColor: COLOR.light,
   },
   disabledText: { color: '#A1A8B0', fontWeight: '700' },
+
+  iconRow: { flexDirection: 'row' },
+  iconButton: { marginLeft: 9 },
+  iconPill: { backgroundColor: '#fff', padding: 6, borderRadius: 25 },
+
+  // If your PNGs are already colored, remove tintColor.
+  iconImg: { width: 22, height: 22, resizeMode: 'contain' },
 });
 
 export default SettingsScreen;

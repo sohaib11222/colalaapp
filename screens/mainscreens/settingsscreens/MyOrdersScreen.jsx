@@ -63,7 +63,7 @@ export default function MyOrdersScreen() {
       <FlatList
         data={ORDERS}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
         renderItem={({ item }) => (
           <TouchableOpacity
             activeOpacity={0.85}
@@ -81,7 +81,7 @@ export default function MyOrdersScreen() {
           >
             {/* Left icon bubble */}
             <View style={styles.iconBubble}>
-              <Ionicons name="cart-outline" size={22} color={COLOR.primary} />
+              <Ionicons name="cart-outline" size={25} color={COLOR.primary} />
             </View>
 
             {/* Middle text */}
@@ -162,18 +162,19 @@ const styles = StyleSheet.create({
     borderColor: COLOR.line,
     paddingHorizontal: 12,
     paddingVertical: 14,
-    ...shadow(6),
+    // ...shadow(6),
   },
   iconBubble: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLOR.softRedBg,
+    width: 51,
+    height: 51,
+    borderRadius: 35,
+    backgroundColor: "#B9191933",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
-  orderId: { color: COLOR.text, fontWeight: "600" },
-  storesTxt: { color: COLOR.sub, marginTop: 4, fontSize: 12 },
-  amount: { color: COLOR.primary, fontWeight: "800" },
+  orderId: { color: COLOR.text, fontWeight: "600", fontSize:14 },
+  storesTxt: { color: COLOR.sub, marginTop: 4, fontSize: 10 },
+  amount: { color:"#E53E3E", fontWeight: "800", fontSize:14
+   },
 });

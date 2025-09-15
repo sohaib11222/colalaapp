@@ -33,7 +33,7 @@ const CHATS = [
     name: "Sasha Stores",
     avatar: "https://i.pravatar.cc/100?img=65",
     lastMessage: "How will i get my goods delivered ?",
-    time: "Today | 07:22 AM",
+    time: "Today / 07:22 AM",
     unread: 1,
   },
   {
@@ -41,7 +41,7 @@ const CHATS = [
     name: "Vee Stores",
     avatar: "https://i.pravatar.cc/100?img=47",
     lastMessage: "How will i get my goods delivered ?",
-    time: "Today | 07:22 AM",
+    time: "Today / 07:22 AM",
     unread: 1,
   },
   {
@@ -49,7 +49,7 @@ const CHATS = [
     name: "Adam Stores",
     avatar: "https://i.pravatar.cc/100?img=36",
     lastMessage: "How will i get my goods delivered ?",
-    time: "Today | 07:22 AM",
+    time: "Today / 07:22 AM",
     unread: 0,
   },
   {
@@ -58,7 +58,7 @@ const CHATS = [
     avatar:
       "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=200&auto=format&fit=crop",
     lastMessage: "How will i get my goods delivered ?",
-    time: "Today | 07:22 AM",
+    time: "Today / 07:22 AM",
     unread: 0,
   },
   {
@@ -67,7 +67,7 @@ const CHATS = [
     avatar:
       "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=200&auto=format&fit=crop",
     lastMessage: "How will i get my goods delivered ?",
-    time: "Today | 07:22 AM",
+    time: "Today / 07:22 AM",
     unread: 0,
   },
   {
@@ -76,18 +76,18 @@ const CHATS = [
     avatar:
       "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=200&auto=format&fit=crop",
     lastMessage: "How will i get my goods delivered ?",
-    time: "Today | 07:22 AM",
+    time: "Today / 07:22 AM",
     unread: 0,
   },
-  {
-    id: "7",
-    name: "Dannova Stores",
-    avatar:
-      "https://images.unsplash.com/photo-1521579770471-740fe0cf4be0?q=80&w=200&auto=format&fit=crop",
-    lastMessage: "How will i get my goods delivered ?",
-    time: "Today | 07:22 AM",
-    unread: 0,
-  },
+  // {
+  //   id: "7",
+  //   name: "Dannova Stores",
+  //   avatar:
+  //     "https://images.unsplash.com/photo-1521579770471-740fe0cf4be0?q=80&w=200&auto=format&fit=crop",
+  //   lastMessage: "How will i get my goods delivered ?",
+  //   time: "Today / 07:22 AM",
+  //   unread: 0,
+  // },
 ];
 
 export default function ChatListScreen({ navigation }) {
@@ -109,11 +109,11 @@ export default function ChatListScreen({ navigation }) {
       style={styles.card}
       onPress={() =>
         navigation.navigate('ServiceNavigator', {
-          screen:"ChatDetails",
+          screen: "ChatDetails",
           store: {
             id: item.id,
             name: item.name,
-            profileImage: item.avatar, // or your API avatar field
+            profileImage: item.avatar,
           },
           chat_id: item.id,
         })
@@ -156,12 +156,33 @@ export default function ChatListScreen({ navigation }) {
           <View style={styles.headerRow}>
             <ThemedText font="oleo" style={styles.headerTitle}>Chats</ThemedText>
 
-            <View style={styles.headerIcons}>
-              <TouchableOpacity style={styles.headerBtn}>
-                <Ionicons name="cart-outline" size={18} color="#EF534E" />
+            <View style={styles.iconRow}>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('ServiceNavigator', { screen: 'Cart' })
+                }
+                style={[styles.iconButton, styles.iconPill]}
+                accessibilityRole="button"
+                accessibilityLabel="Open cart"
+              >
+                <Image
+                  source={require('../../../assets/cart-icon.png')}
+                  style={styles.iconImg}
+                />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.headerBtn}>
-                <Ionicons name="notifications-outline" size={18} color="#EF534E" />
+
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('ServiceNavigator', { screen: 'Notifications' })
+                }
+                style={[styles.iconButton, styles.iconPill]}
+                accessibilityRole="button"
+                accessibilityLabel="Open notifications"
+              >
+                <Image
+                  source={require('../../../assets/bell-icon.png')}
+                  style={styles.iconImg}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -177,8 +198,10 @@ export default function ChatListScreen({ navigation }) {
               returnKeyType="search"
             />
             <TouchableOpacity style={styles.camBtn}>
-              <MaterialCommunityIcons name="camera-outline" size={20} color="#101318" />
-            </TouchableOpacity>
+              <Image
+                source={require('../../../assets/camera-icon.png')}
+                style={styles.iconImg}
+              />            </TouchableOpacity>
           </View>
         </LinearGradient>
 
@@ -258,19 +281,25 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     elevation: 0.3,
   },
-  avatar: { width: 46, height: 46, borderRadius: 23, marginRight: 12 },
+  avatar: { width: 53, height: 53, borderRadius: 35, marginRight: 12 },
   name: { fontSize: 14, fontWeight: "700", color: COLOR.text },
-  preview: { fontSize: 12, color: COLOR.sub, marginTop: 2 },
+  preview: { fontSize: 11, color: COLOR.sub, marginTop: 10 },
   rightCol: { alignItems: "flex-end", gap: 6 },
-  time: { fontSize: 10, color: "#9BA0A6" },
+  time: { fontSize: 9, color: "#9BA0A6" },
   badge: {
     minWidth: 18,
     height: 18,
     paddingHorizontal: 5,
-    borderRadius: 9,
+    borderRadius: 15,
     backgroundColor: "#EF534E",
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  badgeText: { color: "#fff", fontSize: 8, fontWeight: "700" },
+  iconRow: { flexDirection: 'row' },
+  iconButton: { marginLeft: 9 },
+  iconPill: { backgroundColor: '#fff', padding: 6, borderRadius: 25 },
+
+  // If your PNGs are already colored, remove tintColor.
+  iconImg: { width: 22, height: 22, resizeMode: 'contain' },
 });

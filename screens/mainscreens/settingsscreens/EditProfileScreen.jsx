@@ -241,7 +241,7 @@ export default function EditProfileScreen() {
           <View style={styles.sheet}>
             <View style={styles.handle} />
             <View style={styles.sheetHeader}>
-              <ThemedText style={styles.sheetTitle}>Reset Password</ThemedText>
+              <ThemedText font="oleo" style={styles.sheetTitle}>Reset Password</ThemedText>
               <TouchableOpacity onPress={closeReset} style={styles.closeBtn}>
                 <Ionicons name="close" size={18} color={COLOR.text} />
               </TouchableOpacity>
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   tab: { flex: 1, height: 44, borderRadius: 7, alignItems: "center", justifyContent: "center" },
   tabActive: { backgroundColor: COLOR.primary },
   tabInactive: { backgroundColor: COLOR.surface, borderWidth: 1, borderColor: COLOR.line },
-  tabTxt: { fontSize: 12, fontWeight: "600" },
+  tabTxt: { fontSize: 10, fontWeight: "600" },
   tabTxtActive: { color: "#fff" },
   tabTxtIn: { color: COLOR.text },
 

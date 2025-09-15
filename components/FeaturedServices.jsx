@@ -76,7 +76,7 @@ const FeaturedServices = () => {
                                 <ThemedText style={styles.storeName}>{item.store}</ThemedText>
                             </View>
                             <View style={styles.ratingRow}>
-                                <Ionicons name="star" size={12} color="#F44336" />
+                                <Ionicons name="star" size={10} color="#FF0000" />
                                 <ThemedText style={styles.rating}>{item.rating}</ThemedText>
                             </View>
                         </View>
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#E53E3E',
         paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius:5,
+        borderRadius: 5,
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
@@ -119,6 +119,8 @@ const styles = StyleSheet.create({
     viewAll: {
         color: 'white',
         fontSize: 13,
+        textDecorationLine: 'underline'
+
     },
     card: {
         width: width * 0.5,
@@ -126,7 +128,7 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         marginRight: 16,
         overflow: 'hidden',
-        elevation:1
+        elevation: 1
     },
     image: {
         width: '100%',
@@ -140,22 +142,22 @@ const styles = StyleSheet.create({
         backgroundColor: "#F2F2F2",
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding:8
+        padding: 8
     },
     storeRow: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     storeAvatar: {
-        width: 20,
-        height: 20,
+        width: 16,
+        height: 16,
         borderRadius: 9,
         marginRight: 6,
     },
     storeName: {
-        fontSize: 12,
+        fontSize: 9,
         color: '#F44336',
-        fontWeight: '500',
+        fontWeight: '400',
     },
     ratingRow: {
         flexDirection: 'row',
@@ -163,19 +165,19 @@ const styles = StyleSheet.create({
     },
     rating: {
         marginLeft: 3,
-        fontSize: 11,
+        fontSize: 8,
         color: '#000',
     },
     serviceTitle: {
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: '600',
         marginTop: 6,
     },
     priceRange: {
-        fontSize: 13,
+        fontSize: 12,
         color: '#F44336',
         marginVertical: 6,
-        fontWeight: '700',
+        fontWeight: 'bold',
     },
     detailsBtn: {
         backgroundColor: '#F44336',
@@ -186,7 +188,7 @@ const styles = StyleSheet.create({
     },
     detailsBtnText: {
         color: 'white',
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: '400',
     },
 });

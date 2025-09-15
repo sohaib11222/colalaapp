@@ -29,7 +29,7 @@ const COLOR = {
   line: "#ECEDEF",
 };
 
-const COVER_H = 210;
+const COVER_H = 145;
 const AVATAR = 56;
 
 // use images instead of vector icons in the stats card
@@ -888,8 +888,10 @@ export default function StoreDetailsScreen() {
                 <Ionicons name="search" size={18} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.circleBtn}>
-                <Ionicons name="share-social-outline" size={18} color="#fff" />
-              </TouchableOpacity>
+                <Image
+                  source={require('../../../assets/Vector (23).png')}
+                  style={styles.iconImg}
+                />              </TouchableOpacity>
             </View>
           </View>
 
@@ -913,7 +915,7 @@ export default function StoreDetailsScreen() {
         <View style={styles.headerContent}>
           <View style={styles.rowBetween}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
-              <ThemedText style={[styles.storeName, { fontSize: 18, fontWeight: 500, color: "#000" }]}>
+              <ThemedText style={[styles.storeName, { fontSize: 16, fontWeight: 500, color: "#000" }]}>
                 {store?.name || "Store"}
               </ThemedText>
               {/* <Ionicons name="shield-checkmark" size={16} color={COLOR.primary} /> */}
@@ -932,7 +934,7 @@ export default function StoreDetailsScreen() {
           </View>
           <View style={styles.metaRow}>
             <Ionicons name="location-outline" size={16} color={COLOR.sub} />
-            <ThemedText style={styles.metaTxt}>Lagos, Nigeria </ThemedText>
+            <ThemedText style={[styles.metaTxt, {marginBottom:5}]}>Lagos, Nigeria </ThemedText>
             <ThemedText style={[styles.metaTxt, { color: COLOR.primary, textDecorationLine: "underline" }]}>
               View Store Addresses
             </ThemedText>
@@ -1035,7 +1037,7 @@ export default function StoreDetailsScreen() {
         {/* Action buttons (below promo) */}
         <View style={styles.buttonStack}>
           <TouchableOpacity style={[styles.bigBtn, styles.bigBtnRed]}>
-            <Ionicons name="call-outline" size={18} color="#fff" style={styles.bigBtnIcon} />
+            {/* <Ionicons name="call-outline" size={18} color="#fff" style={styles.bigBtnIcon} /> */}
             <ThemedText style={styles.bigBtnTxt}>Call</ThemedText>
           </TouchableOpacity>
 
@@ -1055,7 +1057,7 @@ export default function StoreDetailsScreen() {
               })
             }
           >
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" style={styles.bigBtnIcon} />
+            {/* <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" style={styles.bigBtnIcon} /> */}
             <ThemedText style={styles.bigBtnTxt}>Chat</ThemedText>
           </TouchableOpacity>
 
@@ -1064,7 +1066,7 @@ export default function StoreDetailsScreen() {
             style={[styles.bigBtn, styles.bigBtnGreen]}
             onPress={() => setLeaveReviewVisible(true)}
           >
-            <Ionicons name="star-outline" size={18} color="#fff" style={styles.bigBtnIcon} />
+            {/* <Ionicons name="star-outline" size={18} color="#fff" style={styles.bigBtnIcon} /> */}
             <ThemedText style={styles.bigBtnTxt}>Leave a store review</ThemedText>
           </TouchableOpacity>
         </View>
@@ -1244,7 +1246,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 50,
+    marginLeft: 30,
     marginTop: 1
   },
   followTxt: { color: "#fff", fontWeight: "400", fontSize: 12 },
@@ -1261,16 +1263,16 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     color: COLOR.success
   },
-  statusTxt: { color: COLOR.success, fontSize: 12, fontWeight: "700" },
+  statusTxt: { color: "#008000", fontSize: 12, fontWeight: "700" },
 
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
-  metaTxt: { color: COLOR.sub, fontSize: 13 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  metaTxt: { color: "#000", fontSize: 13 },
 
   tagsRow: { flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" },
   tag: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8 },
   tagBlue: { backgroundColor: "#C4C6FF", borderWidth: 1, borderColor: "#3D71FF" },
   tagRed: { backgroundColor: "#FFE7E6", borderColor: "#FFE7E6", borderWidth: 1 },
-  tagTxt: { fontWeight: "700", fontSize: 12 },
+  tagTxt: { fontWeight: "700", fontSize: 10 },
   tagTxtBlue: { color: "#3D71FF" },
   tagTxtRed: { color: COLOR.primary },
 
@@ -1305,8 +1307,8 @@ const styles = StyleSheet.create({
 
   // make social buttons pop the same way
   socialBtn: {
-    width: 48, height: 48, borderRadius: 12,
-    backgroundColor: "#fff", borderWidth: 1, borderColor: "#EEE",
+    width: 48, height: 48, borderRadius: 7,
+    backgroundColor: "#00000040", borderWidth: 1, borderColor: "#EEE",
     alignItems: "center", justifyContent: "center",
     ...shadow(3),
   },
@@ -1336,7 +1338,7 @@ const styles = StyleSheet.create({
     borderColor: "#EEE",
     padding: 10,
     flexDirection: "row",
-    gap: 12,
+    gap: 3,
   },
   socialBtn: {
     width: 48,
@@ -1348,7 +1350,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  socialImg: { width: 26, height: 26, resizeMode: "contain" },
+  socialImg: { width: 30, height: 30, resizeMode: "contain" },
 
   /* Promo image card */
   promoImage: { width: "100%", height: 170, borderRadius: 16 },
@@ -1357,7 +1359,7 @@ const styles = StyleSheet.create({
   tabs: {
     marginTop: 14,
     marginHorizontal: 16,
-    // backgroundColor: "#fff",
+    backgroundColor: "#fff",
     borderRadius: 12,
     flexDirection: "row",
     padding: 6,
@@ -1365,7 +1367,7 @@ const styles = StyleSheet.create({
   },
   tabItem: { flex: 1, height: 36, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   tabActive: { backgroundColor: COLOR.primary },
-  tabTxt: { color: COLOR.text, fontWeight: "700" },
+  tabTxt: { color: COLOR.text, fontWeight: "700", fontSize:11 },
   tabTxtActive: { color: "#fff" },
 
   /* PRODUCTS panel + search */
@@ -1659,7 +1661,7 @@ const styles = StyleSheet.create({
   bigBtnTxt: { color: "#fff", fontWeight: "700" },
   bigBtnRed: { backgroundColor: COLOR.primary },
   bigBtnBlack: { backgroundColor: "#000" },
-  bigBtnGreen: { backgroundColor: "#2ECC71" },
+  bigBtnGreen: { backgroundColor: "#008000" },
   revBox: {
     backgroundColor: "#fff",
     borderRadius: 16,

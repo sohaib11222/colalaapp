@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ThemedText from "../../components/ThemedText";
+import { useNavigation } from '@react-navigation/native';
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
@@ -67,16 +68,37 @@ const POSTS = [
 ];
 
 /* -------------------- HEADER -------------------- */
-const FeedHeader = () => (
+const FeedHeader = ({ navigation }) => (
   <View style={styles.header}>
     <View style={styles.headerTopRow}>
       <ThemedText font="oleo" style={styles.headerTitle}>Social Feeds</ThemedText>
-      <View style={styles.headerIcons}>
-        <TouchableOpacity>
-          <Ionicons name="cart-outline" size={22} color="#E53E3E" style={styles.icon} />
+      <View style={styles.iconRow}>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('ServiceNavigator', { screen: 'Cart' })
+          }
+          style={[styles.iconButton, styles.iconPill]}
+          accessibilityRole="button"
+          accessibilityLabel="Open cart"
+        >
+          <Image
+            source={require('../../assets/cart-icon.png')}
+            style={styles.iconImg}
+          />
         </TouchableOpacity>
-        <TouchableOpacity>
-          <Ionicons name="notifications-outline" size={22} color="#E53E3E" style={styles.icon} />
+
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('ServiceNavigator', { screen: 'Notifications' })
+          }
+          style={[styles.iconButton, styles.iconPill]}
+          accessibilityRole="button"
+          accessibilityLabel="Open notifications"
+        >
+          <Image
+            source={require('../../assets/bell-icon.png')}
+            style={styles.iconImg}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -88,8 +110,10 @@ const FeedHeader = () => (
         placeholderTextColor="#888"
         style={styles.searchInput}
       />
-      <Ionicons name="camera-outline" size={22} color="#444" style={styles.cameraIcon} />
-    </View>
+      <Image
+        source={require('../../assets/camera-icon.png')}
+        style={styles.iconImg}
+      />    </View>
   </View>
 );
 
@@ -117,11 +141,11 @@ const PostCard = ({ item, onOpenComments, onOpenOptions }) => {
         <View style={{ flex: 1 }}>
           <ThemedText style={styles.storeName}>{item.store}</ThemedText>
           <ThemedText style={styles.metaText}>
-            {item.location} · {item.timeAgo}
+            {item.location} • {item.timeAgo}
           </ThemedText>
         </View>
         <TouchableOpacity onPress={() => onOpenOptions(item)}>
-          <Ionicons name="ellipsis-vertical" size={18} color={COLOR.sub} />
+          <Ionicons name="ellipsis-vertical" size={18} />
         </TouchableOpacity>
       </View>
 
@@ -152,10 +176,7 @@ const PostCard = ({ item, onOpenComments, onOpenOptions }) => {
         {images.length > 1 && (
           <View style={styles.dotsRow}>
             {images.map((_, i) => (
-              <View
-                key={`dot-${i}`}
-                style={[styles.dot, i === activeIdx && styles.dotActive]}
-              />
+              <View key={`dot-${i}`} style={[styles.dot, i === activeIdx && styles.dotActive]} />
             ))}
           </View>
         )}
@@ -177,7 +198,7 @@ const PostCard = ({ item, onOpenComments, onOpenOptions }) => {
           >
             <Ionicons
               name={liked ? "heart" : "heart-outline"}
-              size={25}
+              size={23}
               color={liked ? COLOR.primary : COLOR.text}
             />
             <ThemedText style={styles.actionCount}>{likeCount}</ThemedText>
@@ -187,12 +208,12 @@ const PostCard = ({ item, onOpenComments, onOpenOptions }) => {
             style={styles.actionBtn}
             onPress={() => onOpenComments(item)}
           >
-            <Ionicons name="chatbubble-outline" size={25} color={COLOR.text} />
+            <Ionicons name="chatbubble-outline" size={23} color={COLOR.text} />
             <ThemedText style={styles.actionCount}>{item.comments}</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionBtn}>
-            <Ionicons name="arrow-redo-outline" size={25} color={COLOR.text} />
+            <Ionicons name="arrow-redo-outline" size={23} color={COLOR.text} />
             <ThemedText style={styles.actionCount}>{item.shares}</ThemedText>
           </TouchableOpacity>
         </View>
@@ -349,7 +370,7 @@ const CommentsSheet = ({ visible, onClose, post }) => {
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
-            <ThemedText style={styles.sheetTitle}>Comments</ThemedText>
+            <ThemedText font="oleo" style={styles.sheetTitle}>Comments</ThemedText>
             <TouchableOpacity
               style={{
                 borderColor: "#000",
@@ -360,7 +381,7 @@ const CommentsSheet = ({ visible, onClose, post }) => {
               }}
               onPress={onClose}
             >
-              <Ionicons name="close" size={18} color={COLOR.text} />
+              <Ionicons name="close" size={16} color={COLOR.text} />
             </TouchableOpacity>
           </View>
 
@@ -450,7 +471,7 @@ const OptionsSheet = ({ visible, onClose }) => {
         {icon}
         <ThemedText style={[styles.optionLabel, danger && { color: COLOR.danger }]}>{label}</ThemedText>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={danger ? COLOR.danger : COLOR.sub} />
+      {/* <Ionicons name="chevron-forward" size={18} color={danger ? COLOR.danger : COLOR.sub} /> */}
     </TouchableOpacity>
   );
 
@@ -461,7 +482,7 @@ const OptionsSheet = ({ visible, onClose }) => {
         <View style={[styles.sheet, { backgroundColor: "#F9F9F9" }]}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
-            <ThemedText style={styles.sheetTitle}>Options</ThemedText>
+            <ThemedText font="oleo" style={styles.sheetTitle}>Options</ThemedText>
             <TouchableOpacity
               style={{
                 borderColor: "#000",
@@ -472,28 +493,37 @@ const OptionsSheet = ({ visible, onClose }) => {
               }}
               onPress={onClose}
             >
-              <Ionicons name="close" size={18} color={COLOR.text} />
+              <Ionicons name="close" size={16} color={COLOR.text} />
             </TouchableOpacity>
           </View>
 
           <Row
-            icon={<Ionicons name="share-outline" size={20} color={COLOR.text} />}
-            label="Share this post"
+            icon={<Image
+              source={require('../../assets/Vector (16).png')}
+              style={styles.profileImage}
+            />} label="Share this post"
             onPress={onClose}
           />
           <Row
-            icon={<Ionicons name="person-add-outline" size={20} color={COLOR.text} />}
+            icon={<Image
+              source={require('../../assets/Vector (17).png')}
+              style={styles.profileImage}
+            />}
             label="Follow User"
             onPress={onClose}
           />
           <Row
-            icon={<Ionicons name="eye-off-outline" size={20} color={COLOR.text} />}
-            label="Hide Post"
+            icon={<Image
+              source={require('../../assets/Vector (18).png')}
+              style={styles.profileImage}
+            />} label="Hide Post"
             onPress={onClose}
           />
           <Row
-            icon={<Ionicons name="warning-outline" size={20} color={COLOR.danger} />}
-            label="Report Post"
+            icon={<Image
+              source={require('../../assets/Vector (19).png')}
+              style={styles.profileImage}
+            />} label="Report Post"
             danger
             onPress={onClose}
           />
@@ -505,6 +535,8 @@ const OptionsSheet = ({ visible, onClose }) => {
 
 /* -------------------- SCREEN -------------------- */
 export default function FeedScreen() {
+
+  const navigation = useNavigation()
   const [activePost, setActivePost] = useState(null);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -524,7 +556,8 @@ export default function FeedScreen() {
       <FlatList
         data={POSTS}
         keyExtractor={(it) => it.id}
-        ListHeaderComponent={<FeedHeader />}
+        // ListHeaderComponent={<FeedHeader />}
+        ListHeaderComponent={() => <FeedHeader navigation={navigation} />}
         contentContainerStyle={{ paddingBottom: 32 }}
         renderItem={({ item }) => (
           <PostCard item={item} onOpenComments={openComments} onOpenOptions={openOptions} />
@@ -591,24 +624,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   postTop: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  avatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
-  storeName: { fontSize: 14, fontWeight: "700", color: COLOR.text },
-  metaText: { fontSize: 12, color: COLOR.sub, marginTop: 2 },
+  avatar: { width: 55, height: 55, borderRadius: 40, marginRight: 10 },
+  storeName: { fontSize: 14, fontWeight: "400", color: COLOR.text },
+  metaText: { fontSize: 10, color: "#000000B2", marginTop: 2 },
 
   carouselWrap: {
     borderRadius: 14,
     overflow: "hidden",
-    backgroundColor: COLOR.line,
+    // backgroundColor: COLOR.line,
   },
-  postImage: { height: 300, borderRadius: 10, resizeMode: "cover", borderTopRightRadius: 30, borderTopLeftRadius: 30 },
+  postImage: { height: 390, borderRadius: 10, resizeMode: "cover", borderTopRightRadius: 30, borderTopLeftRadius: 30 },
 
   dotsRow: {
-    position: "absolute",
-    bottom: 10,
+    marginTop: 8,
     alignSelf: "center",
     flexDirection: "row",
     gap: 6,
-    backgroundColor: "transparent",
   },
   dot: {
     width: 6,
@@ -633,7 +664,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 15,
   },
-  captionText: { color: COLOR.text, fontSize: 13 },
+  captionText: { color: COLOR.text, fontSize: 12 },
 
   actionsRow: {
     marginTop: 12,
@@ -651,10 +682,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
   },
-  visitBtnText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  visitBtnText: { color: "#fff", fontSize: 10, fontWeight: "700" },
 
   /* Modal / Bottom sheet */
-  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
+  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" },
   sheet: {
     backgroundColor: "#fff",
     paddingHorizontal: 16,
@@ -676,8 +707,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 8,
+    marginBottom: 10
   },
-  sheetTitle: { fontSize: 18, fontWeight: "700", color: COLOR.text },
+  sheetTitle: { fontSize: 20, fontWeight: "700", color: COLOR.text, textAlign: 'center', marginLeft: 160 },
 
   /* Comments */
   commentRow: { flexDirection: "row", paddingVertical: 10 },
@@ -721,7 +753,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 6,
   },
-  input: { flex: 1, height: 46, fontSize: 14, color: COLOR.text },
+  input: { flex: 1, height: 46, fontSize: 12, color: COLOR.text },
   sendBtn: { width: 44, height: 46, alignItems: "center", justifyContent: "center" },
 
   /* Options */
@@ -739,4 +771,10 @@ const styles = StyleSheet.create({
   optionRowDanger: { borderColor: "#FDE2E0", backgroundColor: "#FFF8F8" },
   optionLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   optionLabel: { fontSize: 15, color: COLOR.text },
+  iconRow: { flexDirection: 'row' },
+  iconButton: { marginLeft: 9 },
+  iconPill: { backgroundColor: '#fff', padding: 6, borderRadius: 25 },
+
+  // If your PNGs are already colored, remove tintColor.
+  iconImg: { width: 22, height: 22, resizeMode: 'contain' },
 });

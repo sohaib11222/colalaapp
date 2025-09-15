@@ -9,6 +9,7 @@ import {
     Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import ThemedText from './ThemedText';
 
 const { width } = Dimensions.get('window');
 
@@ -24,7 +25,7 @@ const topStores = [
         followers: 5,
         products: 100,
     },
-     {
+    {
         id: '2',
         name: 'Sasha Stores',
         rating: 4.5,
@@ -44,7 +45,7 @@ const TopStoresSection = () => {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.headerRow}>
-                <Text style={styles.title}>Top Stores</Text>
+                <ThemedText style={styles.title}>Top Stores</ThemedText>
                 <TouchableOpacity>
                     <Text style={styles.viewAll}>View All</Text>
                 </TouchableOpacity>
@@ -135,12 +136,13 @@ const styles = StyleSheet.create({
     container: {
         marginTop: 16,
         paddingHorizontal: 16,
+        marginBottom: 150
     },
     headerRow: {
         backgroundColor: '#E53E3E',
         paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius:5,
+        borderRadius: 5,
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
@@ -152,6 +154,8 @@ const styles = StyleSheet.create({
     viewAll: {
         color: 'white',
         fontSize: 13,
+        textDecorationLine: 'underline'
+
     },
     card: {
         width: width * 0.75,

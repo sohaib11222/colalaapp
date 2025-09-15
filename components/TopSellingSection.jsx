@@ -110,7 +110,7 @@ const TopSellingSection = () => {
                                     <ThemedText style={styles.storeName}>{item.store}</ThemedText>
                                 </View>
                                 <View style={styles.ratingRow}>
-                                    <Ionicons name="star" color="red" size={12} />
+                                    <Ionicons name="star" color="#FF0000" size={10} />
                                     <ThemedText style={styles.rating}>{item.rating}</ThemedText>
                                 </View>
                             </View>
@@ -137,11 +137,11 @@ const TopSellingSection = () => {
 
                             <View style={styles.rowBetween}>
                                 <View style={styles.locationRow}>
-                                    <Ionicons name="location-outline" size={13} color="#444" style={{ marginRight: 2 }} />
+                                    <Ionicons name="location-outline" size={12} color="#444" style={{ marginRight: 2 }} />
                                     <ThemedText style={styles.location}>{item.location}</ThemedText>
                                 </View>
                                 <TouchableOpacity>
-                                    <Image source={require('../assets/Frame 265.png')} style={{ width: 28, height: 28, resizeMode: 'contain' }} />
+                                    <Image source={require('../assets/Frame 265.png')} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -176,10 +176,11 @@ const styles = StyleSheet.create({
     viewAll: {
         color: 'white',
         fontSize: 13,
+        textDecorationLine:'underline'
     },
     card: {
         backgroundColor: '#fff',
-        borderRadius: 16,
+        borderRadius: 20,
         marginTop: 12,
         width: cardWidth,
         overflow: 'hidden',
@@ -197,12 +198,12 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     storeName: {
-        fontSize: 12,
+        fontSize: 9,
         color: '#E53E3E',
         fontWeight: '400',
     },
     productTitle: {
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: '500',
         marginVertical: 4,
     },
@@ -212,8 +213,8 @@ const styles = StyleSheet.create({
     },
     price: {
         color: '#F44336',
-        fontWeight: '700',
-        fontSize: 14,
+        fontWeight: 'bold',
+        fontSize: 13,
         marginRight: 6,
     },
     originalPrice: {
@@ -227,7 +228,7 @@ const styles = StyleSheet.create({
     },
     rating: {
         marginLeft: 2,
-        fontSize: 11,
+        fontSize: 9,
         color: '#000',
     },
     tagsRow: {
@@ -236,8 +237,8 @@ const styles = StyleSheet.create({
         gap: 3,
     },
     tagIcon: {
-        width: 70,
-        height: 20,
+        width: 54,
+        height: 12,
         borderRadius: 50
     },
     locationRow: {
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     location: {
-        fontSize: 9,
+        fontSize: 7,
         color: '#444',
         fontWeight: 500
     },
@@ -260,8 +261,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     storeAvatar: {
-        width: 20,
-        height: 20,
+        width: 16,
+        height: 16,
         borderRadius: 12,
         marginRight: 6,
     },

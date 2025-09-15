@@ -151,8 +151,10 @@ export default function ChatDetailsScreen() {
                             <Ionicons name="ellipsis-vertical" size={18} color="#000" />
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.hIcon}>
-                            <Ionicons name="cart-outline" size={18} color="#000" />
-                        </TouchableOpacity>
+                            <Image
+                                source={require('../../../assets/msg-cart.png')}
+                                style={styles.iconImg}
+                            />                                     </TouchableOpacity>
                     </View>
                 </View>
 
@@ -192,7 +194,10 @@ export default function ChatDetailsScreen() {
 
                 {/* Composer */}
                 <View style={[styles.composer, { marginBottom: 10 + insets.bottom }]}>
-                    <TouchableOpacity><Ionicons name="attach" size={20} color="#777" /></TouchableOpacity>
+                    <TouchableOpacity> <Image
+                        source={require('../../../assets/Vector (21).png')}
+                        style={styles.iconImg}
+                    /></TouchableOpacity>
                     <TextInput
                         style={styles.input}
                         placeholder="Type a message"
@@ -202,7 +207,10 @@ export default function ChatDetailsScreen() {
                         onSubmitEditing={handleSend}
                         returnKeyType="send"
                     />
-                    <TouchableOpacity onPress={handleSend}><Ionicons name="send" size={20} color="#000" /></TouchableOpacity>
+                    <TouchableOpacity onPress={handleSend}><Image
+                        source={require('../../../assets/Vector (22).png')}
+                        style={styles.iconImg}
+                    /></TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
 
@@ -281,20 +289,20 @@ const styles = StyleSheet.create({
     hIcon: { padding: 6, borderColor: '#ddd', borderWidth: 1, borderRadius: 20 },
     headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, marginHorizontal: 10 },
     avatar: { width: 42, height: 42, borderRadius: 21 },
-    storeName: { fontSize: 16, color: '#000', fontWeight: '400' },
-    lastSeen: { fontSize: 11, color: '#888' },
+    storeName: { fontSize: 14, color: '#000', fontWeight: '400', marginBottom: 5 },
+    lastSeen: { fontSize: 8, color: '#888' },
 
     bubble: { maxWidth: '76%', padding: 12, borderRadius: 20, marginVertical: 5 },
     bubbleLeft: { alignSelf: 'flex-start', backgroundColor: COLOR.lightPink, borderTopLeftRadius: 6 },
     bubbleRight: { alignSelf: 'flex-end', backgroundColor: COLOR.primary, borderBottomRightRadius: 6 },
     msg: { fontSize: 13 },
-    time: { fontSize: 10, textAlign: 'right', marginTop: 6 },
+    time: { fontSize: 8, textAlign: 'right', marginTop: 6, color: "#FFFFFF80" },
 
     composer: {
         flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
         marginHorizontal: 16, paddingHorizontal: 12, paddingVertical: 8,
-        borderRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05, shadowRadius: 3, elevation: 1, borderWidth: 0.3, borderColor: '#ddd',
+        borderRadius: 20,
+         borderWidth: 0.5, borderColor: '#CDCDCD',
     },
     input: { flex: 1, fontSize: 14, paddingVertical: Platform.OS === 'ios' ? 8 : 10, color: '#000', marginHorizontal: 10 },
 

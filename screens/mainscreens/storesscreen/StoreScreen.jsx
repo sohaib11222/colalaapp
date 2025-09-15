@@ -98,7 +98,7 @@ const CARD_GAP = 10;
 const SCREEN_PADDING = 10;
 const CARD_WIDTH = (width - SCREEN_PADDING * 2 - CARD_GAP) / 2;
 const COVER_HEIGHT = 100; // reduced
-const AVATAR_SIZE = 44;   // reduced
+const AVATAR_SIZE = 49;   // reduced
 
 export default function StoresScreen() {
   const [query, setQuery] = useState("");
@@ -156,7 +156,7 @@ export default function StoresScreen() {
           </ThemedText>
 
           <View style={styles.rating}>
-            <Ionicons name="star" size={12} color={COLOR.primary} />
+            <Ionicons name="star" size={10} color={COLOR.primary} />
             <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
           </View>
         </View>
@@ -378,15 +378,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 6,
   },
-  storeName: { fontSize: 15, fontWeight: "700", color: COLOR.text, flex: 1 },
+  storeName: { fontSize: 14, fontWeight: "700", color: COLOR.text, flex: 1 },
   rating: { flexDirection: "row", alignItems: "center", gap: 3 },
-  ratingText: { fontSize: 11, color: COLOR.sub, fontWeight: "600" },
+  ratingText: { fontSize: 9, color: COLOR.sub, fontWeight: "600" },
 
   tagsRow: { flexDirection: "row", gap: 8, marginTop: 8, marginBottom: 10 },
-  tagBase: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  tagBase: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 5 },
   tagBlue: { backgroundColor: "#E9F0FF", borderWidth: 1, borderColor: "#3D71FF" },
   tagRed: { backgroundColor: "#FFE7E6", borderWidth: 1, borderColor: "#E53E3E" },
-  tagTextBase: { fontSize: 12, fontWeight: "600" },
+  tagTextBase: { fontSize: 8, fontWeight: "600" },
   tagTextBlue: { color: "#3D71FF" },
   tagTextRed: { color: COLOR.primary },
 
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  ctaText: { color: "#fff", fontWeight: "400", fontSize: 11 },
+  ctaText: { color: "#fff", fontWeight: "400", fontSize: 9 },
 });
 
 /* --------- tiny shadow helper --------- */

@@ -75,11 +75,11 @@ const InfoRow = ({ left, right, strongRight, topBorder }) => (
   <View
     style={[
       styles.infoRow,
-      topBorder && { borderTopWidth: 1, borderTopColor: COLOR.line, marginTop: 8, paddingTop: 8 },
+      topBorder && { borderTopWidth: 1, borderTopColor: COLOR.line, marginTop: 3, paddingTop: 8 },
     ]}
   >
-    <ThemedText style={{ color: COLOR.text }}>{left}</ThemedText>
-    <ThemedText style={[{ color: COLOR.text }, strongRight && { color: COLOR.primary, fontWeight: "800" }]}>
+    <ThemedText style={{ color: COLOR.text, fontSize:12 }}>{left}</ThemedText>
+    <ThemedText style={[{ color: COLOR.text, fontSize:12 }, strongRight && { color: COLOR.primary, fontWeight: "800" }]}>
       {right}
     </ThemedText>
   </View>
@@ -128,7 +128,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
           {showWarning && (
             <View style={styles.warnRow}>
               <Ionicons name="warning-outline" size={18} color={COLOR.primary} />
-              <ThemedText style={{ color: COLOR.primary, marginLeft: 8 }}>
+              <ThemedText style={{ color: COLOR.primary, marginLeft: 8, fontSize:10 }}>
                 Do not provide your code until you have received the product
               </ThemedText>
             </View>
@@ -137,15 +137,15 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
           {showActions && (
             <>
               <TouchableOpacity style={styles.revealBtn} onPress={() => setConfirmOpen(true)}>
-                <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Reveal Code</ThemedText>
+                <ThemedText style={{ color: "#fff", fontWeight: "600", fontSize:12 }}>Reveal Code</ThemedText>
               </TouchableOpacity>
 
               <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
                 <TouchableOpacity style={[styles.ghostBtn, { flex: 1 }]}>
-                  <ThemedText style={{ color: COLOR.text }}>Return</ThemedText>
+                  <ThemedText style={{ color: COLOR.text, fontSize:12 }}>Return</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.ghostBtn, { flex: 1 }]}>
-                  <ThemedText style={{ color: COLOR.text }}>Dispute</ThemedText>
+                  <ThemedText style={{ color: COLOR.text, fontSize:12 }}>Dispute</ThemedText>
                 </TouchableOpacity>
               </View>
             </>
@@ -176,17 +176,17 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
         </View>
 
         {/* top buttons */}
-        <View style={{ paddingHorizontal: 16, flexDirection: "row", gap: 12, marginTop: 10 }}>
+        <View style={{ paddingHorizontal: 16, flexDirection: "row", gap: 10, marginTop: 10 }}>
           <TouchableOpacity
             style={[
               styles.pillBtn,
               { backgroundColor: "#fff", borderWidth: 1, borderColor: COLOR.line },
             ]}
           >
-            <ThemedText style={{ color: COLOR.text }}>Full Details</ThemedText>
+            <ThemedText style={{ color: COLOR.text, fontSize:12 }}>Full Details</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.pillBtn, { backgroundColor: COLOR.primary }]}>
-            <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Open Chat</ThemedText>
+            <ThemedText style={{ color: "#fff", fontWeight: "600", fontSize:12 }}>Open Chat</ThemedText>
           </TouchableOpacity>
         </View>
 
@@ -211,7 +211,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                 color={COLOR.primary}
                 style={{ alignSelf: "center", marginBottom: 8 }}
               />
-              <ThemedText style={{ color: COLOR.text, textAlign: "center", marginBottom: 18 }}>
+              <ThemedText style={{ color: COLOR.text, textAlign: "center", marginBottom: 18, fontSize:13 }}>
                 Do you confirm that your product has been delivered
               </ThemedText>
 
@@ -220,7 +220,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                   style={[styles.ghostBtn, { flex: 1 }]}
                   onPress={() => setConfirmOpen(false)}
                 >
-                  <ThemedText style={{ color: COLOR.text }}>Go Back</ThemedText>
+                  <ThemedText style={{ color: COLOR.text, fontSize:12 }}>Go Back</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.solidBtn, { flex: 1 }]}
@@ -229,7 +229,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                     setCodeOpen(true);
                   }}
                 >
-                  <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Reveal Code</ThemedText>
+                  <ThemedText style={{ color: "#fff", fontWeight: "600", fontSize:12 }}>Reveal Code</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -245,14 +245,14 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
         >
           <View style={styles.centerOverlay}>
             <View style={styles.alertCard}>
-              <ThemedText style={{ color: COLOR.sub, textAlign: "center" }}>
+              <ThemedText style={{ color: COLOR.sub, textAlign: "center", fontSize:12 }}>
                 Dear customer your code is
               </ThemedText>
               <ThemedText
                 style={{
                   color: COLOR.text,
-                  fontSize: 48,
-                  fontWeight: "800",
+                  fontSize: 50,
+                  fontWeight: "900",
                   textAlign: "center",
                   marginVertical: 10,
                 }}
@@ -265,7 +265,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                   style={[styles.ghostBtn, { flex: 1 }]}
                   onPress={() => setCodeOpen(false)}
                 >
-                  <ThemedText style={{ color: COLOR.text }}>Go Back</ThemedText>
+                  <ThemedText style={{ color: COLOR.text, fontSize:12 }}>Go Back</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.solidBtn, { flex: 1 }]}
@@ -274,7 +274,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                     setCodeOpen(false);
                   }}
                 >
-                  <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Copy Code</ThemedText>
+                  <ThemedText style={{ color: "#fff", fontWeight: "600", fontSize:12 }}>Copy Code</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -344,7 +344,7 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
 
         {/* Open Chat row ALWAYS shown above Expand */}
         <TouchableOpacity activeOpacity={0.85} style={styles.openChatRow}>
-          <ThemedText style={{ color: COLOR.text, opacity: 0.9 }}>Open Chat</ThemedText>
+          <ThemedText style={{ color: COLOR.text, opacity: 0.9, fontSize:13 }}>Open Chat</ThemedText>
         </TouchableOpacity>
 
         {/* Expanded details */}
@@ -370,7 +370,7 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
                 <ThemedText style={styles.addrLabel}>Address</ThemedText>
                 <View style={styles.addrRight}>
                   <ThemedText style={styles.addrValue}>No 7 , abcd street , ikeja , Lagos</ThemedText>
-                  <Ionicons name="location-outline" size={14} color={COLOR.sub} />
+                  <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
                 </View>
               </View>
             </View>
@@ -392,7 +392,7 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
           onPress={() => setExpanded((v) => !v)}
           style={styles.expandBtn}
         >
-          <ThemedText style={{ color: "#E53E3E" }}>{expanded ? "Collapse" : "Expand"}</ThemedText>
+          <ThemedText style={{ color: "#E53E3E", fontSize:11 }}>{expanded ? "Collapse" : "Expand"}</ThemedText>
         </TouchableOpacity>
       </View>
     </View>
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     right: 0,
     textAlign: "center",
     color: COLOR.text,
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "400",
   },
 
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
   },
   tabActive: { backgroundColor: COLOR.primary },
   tabInactive: { backgroundColor: "#ECEFF3", borderWidth: 1, borderColor: COLOR.line },
-  tabTxt: { fontSize: 11, fontWeight: "400" },
+  tabTxt: { fontSize: 9, fontWeight: "400" },
 
   /* store section */
   section: { marginBottom: 16 },
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  storeName: { color: "#fff", fontWeight: "700", fontSize: 15, flex: 1 },
+  storeName: { color: "#fff", fontWeight: "700", fontSize: 14, flex: 1 },
   chatBtn: {
     backgroundColor: "#fff",
     paddingHorizontal: 12,
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 8,
   },
-  chatBtnTxt: { color: COLOR.primary, fontWeight: "600", fontSize: 12 },
+  chatBtnTxt: { color: COLOR.primary, fontWeight: "600", fontSize: 10 },
   roundIcon: {
     width: 28,
     height: 28,
@@ -606,10 +606,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 12,
   },
-  itemImg: { width: 120, height: 90, borderRadius: 10, marginRight: 12 },
-  itemTitle: { color: COLOR.text, fontWeight: "600" },
-  price: { color: COLOR.primary, fontWeight: "800", marginTop: 6 },
-  qtyTxt: { marginTop: 6, color: COLOR.sub },
+  itemImg: { width: 104, height: 96, borderTopLeftRadius:10, borderBottomLeftRadius:10, marginRight: 12 },
+  itemTitle: { color: COLOR.text, fontWeight: "600", fontSize:12 },
+  price: { color: COLOR.primary, fontWeight: "800", marginTop: 6, fontSize:12  },
+  qtyTxt: { marginTop: 6, color: COLOR.sub, fontSize:12, color:"#E53E3E" },
 
   trackBtn: {
     backgroundColor: COLOR.primary,
@@ -624,18 +624,18 @@ const styles = StyleSheet.create({
   openChatRow: {
     height: 50,
     borderWidth: 1,
-    borderColor: COLOR.line,
-    borderRadius: 10,
+    borderColor: "#CACACA",
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     marginHorizontal: 12,
-    backgroundColor: COLOR.chip,
+    backgroundColor:"#fff",
     marginTop: 10,
     marginBottom: 8,
   },
 
   sectionTitle: {
-    color: COLOR.sub,
+    // color: COLOR.sub,
     marginTop: 6,
     marginLeft: 12,
     marginBottom: 6,
@@ -649,16 +649,18 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   addrRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    // flexDirection: "row",
+    // alignItems: "center",
     justifyContent: "space-between",
   },
   addrLabel: { color: COLOR.sub, fontSize: 12 },
   addrRight: { flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "70%" },
-  addrValue: { color: COLOR.text, flexShrink: 1 },
+  addrValue: { color: COLOR.text, flexShrink: 1, fontSize:12
+
+   },
 
   summaryWrap: {
-    marginHorizontal: 12,
+    marginHorizontal: 4,
     backgroundColor: "#fff",
     borderRadius: 12,
     borderWidth: 1,
@@ -668,9 +670,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   infoRow: {
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: COLOR.chip,
+    height: 50,
+    borderRadius: 5,
+    backgroundColor: "#EDEDED",
     paddingHorizontal: 14,
     alignItems: "center",
     justifyContent: "space-between",
@@ -678,11 +680,11 @@ const styles = StyleSheet.create({
   },
 
   expandBtn: {
-    height: 35,
+    height: 23,
     // margin: 12,
     marginHorizontal:10,
     marginBottom: 12,
-    borderRadius: 999,
+    borderRadius: 15,
     borderWidth: 0.5,
     borderColor: "#E53E3E",
     alignItems: "center",
@@ -715,17 +717,17 @@ const styles = StyleSheet.create({
     borderColor: COLOR.line,
     ...shadow(6),
   },
-  stepImg: { width: 110, height: 82, borderRadius: 10 },
-  stepTitle: { color: COLOR.primary, fontWeight: "800", fontSize: 18, marginBottom: 2 },
-  stepSub: { color: COLOR.text, opacity: 0.85 },
-  stepPrice: { color: COLOR.primary, fontWeight: "800", marginTop: 6 },
-  stepTime: { color: COLOR.sub, alignSelf: "flex-end", marginTop: 4, fontSize: 11 },
+  stepImg: { width: 104, height: 96, borderRadius: 10 },
+  stepTitle: { color: COLOR.primary, fontWeight: "900", fontSize: 20, marginBottom: 2 },
+  stepSub: { color: COLOR.text, opacity: 0.85, fontSize:12 },
+  stepPrice: { color: COLOR.primary, fontWeight: "800", marginTop: 6, fontSize:12 },
+  stepTime: { color: COLOR.sub, alignSelf: "flex-end", marginTop: 4, fontSize: 7 },
 
   warnRow: {
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 10,
-    backgroundColor: "#FFEDEE",
+    backgroundColor: "#FF000033",
     borderWidth: 1,
     borderColor: "#FFD2D5",
     paddingHorizontal: 12,
@@ -734,7 +736,7 @@ const styles = StyleSheet.create({
   },
   revealBtn: {
     height: 44,
-    borderRadius: 12,
+    borderRadius: 15,
     backgroundColor: COLOR.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -742,7 +744,7 @@ const styles = StyleSheet.create({
   },
   ghostBtn: {
     height: 44,
-    borderRadius: 12,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: COLOR.line,
     backgroundColor: "#fff",
@@ -751,7 +753,7 @@ const styles = StyleSheet.create({
   },
   solidBtn: {
     height: 44,
-    borderRadius: 12,
+    borderRadius: 15,
     backgroundColor: COLOR.primary,
     alignItems: "center",
     justifyContent: "center",

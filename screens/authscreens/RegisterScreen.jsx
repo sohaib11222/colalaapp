@@ -220,9 +220,9 @@ const RegisterScreen = () => {
             <View style={styles.dragIndicator} />
 
             <View style={styles.modalHeader}>
-              <ThemedText style={{ fontSize: 20, fontWeight: '400', fontStyle: 'italic', marginLeft: 160 }}>Country</ThemedText>
-              <TouchableOpacity style={{ borderColor: "#000", borderWidth: 1.5, borderRadius: 20 }} onPress={() => setShowModal(false)}>
-                <Ionicons name="close" size={18} />
+              <ThemedText font="oleo" style={{ fontSize: 20, fontWeight: '400', marginLeft: 160 }}>Country</ThemedText>
+              <TouchableOpacity style={{ borderColor: "#000", borderWidth: 1.5, borderRadius: 24 }} onPress={() => setShowModal(false)}>
+                <Ionicons name="close" size={16} />
               </TouchableOpacity>
             </View>
 
@@ -273,7 +273,7 @@ const RegisterScreen = () => {
             <View style={styles.dragIndicator} />
 
             <View style={styles.modalHeader}>
-              <ThemedText style={{ fontSize: 20, fontWeight: '400', fontStyle: 'italic', marginLeft: 170 }}>State</ThemedText>
+              <ThemedText font='oleo' style={{ fontSize: 20, fontWeight: '400', marginLeft: 170, textAlign:'center' }}>State</ThemedText>
               <TouchableOpacity style={{ borderColor: "#000", borderWidth: 1.5, borderRadius: 20, }} onPress={() => setShowStateModal(false)}>
                 <Ionicons name="close" size={18} />
               </TouchableOpacity>
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#E53E3E',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 14,
@@ -389,9 +389,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 55,
+    borderWidth:0.3,
+    borderColor:"#CDCDCD",
     marginBottom: 16,
     justifyContent: 'center',
-    elevation: 1,
+    // elevation: 1,
   },
   input: {
     fontSize: 16,
