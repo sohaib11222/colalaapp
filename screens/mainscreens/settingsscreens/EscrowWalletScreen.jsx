@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: "#fff", borderWidth: 1, borderColor: COLOR.line,
     alignItems: "center", justifyContent: "center",
-    zIndex:5
+    zIndex: 5
   },
   headerTitle: {
     position: "absolute", left: 0, right: 0, textAlign: "center",
