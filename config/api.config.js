@@ -1,7 +1,7 @@
 // api.config.js
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { QueryClient, useMutation } from "@tanstack/react-query";
+import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
 export const BASE_URL = "https://colala.hmstech.xyz/api";
 
@@ -9,8 +9,21 @@ const API = {
   // Auth
   REGISTER: `${BASE_URL}/auth/register`,
   // (add more as they come, e.g.)
-    LOGIN: `${BASE_URL}/auth/login`,
+  LOGIN: `${BASE_URL}/auth/login`,
+  FORGOT_PASSWORD: `${BASE_URL}/auth/forget-password`,
+  RESET_PASSWORD: `${BASE_URL}/auth/reset-password`,
+  VERIFY_OTP: `${BASE_URL}/auth/verify-otp`,
+
+
   // FORGOT_PASSWORD: `${BASE_URL}/auth/forgot-password`,
+
+  CATEGORIES: `${BASE_URL}/categories`,
+
+  POSTS: `${BASE_URL}/posts`,
+
+  POST_LIKE: (postId) => `${BASE_URL}/posts/${postId}/like`,
+  POST_COMMENTS: (postId) => `${BASE_URL}/posts/${postId}/comments`,
+
 };
 
 export default API;
@@ -48,6 +61,8 @@ api.interceptors.response.use(
 // ---- Tiny HTTP helper (unwraps response.data)
 // api.config.js (only the http.post changed)
 export const http = {
+  get: (url, params, config) =>                      // <-- add
+    api.get(url, { params, ...(config || {}) }).then((r) => r.data),
   post: (url, body, config) => {
     const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
     return api
@@ -78,13 +93,64 @@ export const useRegister = (opts) =>
     ...opts,
   });
 
-  export const useLogin = (opts) =>
+export const useLogin = (opts) =>
   useMutation({
     mutationFn: (payload) => http.post(API.LOGIN, payload),
     ...opts,
   });
 
-export const setAuthUser    = async (user)  => AsyncStorage.setItem("auth_user", JSON.stringify(user));
+export const useForgotPassword = (opts) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.FORGOT_PASSWORD, payload),
+    ...opts,
+  });
+
+export const useVerifyOtp = (opts) =>
+  useMutation({
+    // expects: { email, code }
+    mutationFn: (payload) => http.post(API.VERIFY_OTP, payload),
+    ...opts,
+  });
+
+  export const useResetPassword = (opts) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.RESET_PASSWORD, payload),
+    ...opts,
+  });
+
+export const useCategories = (options) =>
+  useQuery({
+    queryKey: ["categories"],
+    queryFn: () => http.get(API.CATEGORIES),
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+
+export const usePosts = (page = 1, options) =>
+  useQuery({
+    queryKey: ["posts", page],
+    queryFn: () => http.get(API.POSTS, { page }),
+    keepPreviousData: true,
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useTogglePostLike = (opts) =>
+  useMutation({
+    mutationFn: (postId) => http.post(API.POST_LIKE(postId)),
+    // You can invalidate posts if you want server to re-hydrate:
+    // onSuccess: () => queryClient.invalidateQueries({ queryKey: ['posts'] }),
+    ...opts,
+  });
+
+// Add a comment to a post
+export const useAddPostComment = (opts) =>
+  useMutation({
+    mutationFn: ({ postId, body }) => http.post(API.POST_COMMENTS(postId), { body }),
+    // onSuccess: () => queryClient.invalidateQueries({ queryKey: ['posts'] }),
+    ...opts,
+  });
+export const setAuthUser = async (user) => AsyncStorage.setItem("auth_user", JSON.stringify(user));
 
 
 // Optional token helpers for when you add login
