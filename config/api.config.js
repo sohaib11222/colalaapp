@@ -6,23 +6,40 @@ import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 export const BASE_URL = "https://colala.hmstech.xyz/api";
 
 const API = {
+
   // Auth
+
   REGISTER: `${BASE_URL}/auth/register`,
-  // (add more as they come, e.g.)
   LOGIN: `${BASE_URL}/auth/login`,
   FORGOT_PASSWORD: `${BASE_URL}/auth/forget-password`,
   RESET_PASSWORD: `${BASE_URL}/auth/reset-password`,
   VERIFY_OTP: `${BASE_URL}/auth/verify-otp`,
-
-
-  // FORGOT_PASSWORD: `${BASE_URL}/auth/forgot-password`,
-
   CATEGORIES: `${BASE_URL}/categories`,
-
   POSTS: `${BASE_URL}/posts`,
-
   POST_LIKE: (postId) => `${BASE_URL}/posts/${postId}/like`,
   POST_COMMENTS: (postId) => `${BASE_URL}/posts/${postId}/comments`,
+  CATEGORY_PRODUCTS: (categoryId) => `${BASE_URL}/buyer/categories/${categoryId}/products`,
+  PRODUCT_DETAILS: (id) => `${BASE_URL}/buyer/product-details/${id}`,
+  ADD_TO_CART: `${BASE_URL}/buyer/cart/items`,
+  CART: `${BASE_URL}/buyer/cart`,
+  ADDRESSES: `${BASE_URL}/buyer/addresses`,                  // GET (list), POST (create)
+  ADDRESS_ID: (id) => `${BASE_URL}/buyer/addresses/${id}`,
+  CART_ITEM: (itemId) => `${BASE_URL}/buyer/cart/items/${itemId}`,
+  STORES: `${BASE_URL}/buyer/stores`,
+  STORE_DETAILS: (id) => `${BASE_URL}/buyer/stores/${id}`,
+  CHECKOUT_PREVIEW: `${BASE_URL}/buyer/checkout/preview`,   // POST
+  GET_BALANCE: `${BASE_URL}/buyer/getBalance`,
+  CHECKOUT_PLACE: `${BASE_URL}/buyer/checkout/place`,
+  ORDERS: `${BASE_URL}/buyer/orders`,
+  ORDER_DETAILS: (id) => `${BASE_URL}/buyer/orders/${id}`,
+  CHATS: `${BASE_URL}/buyer/chats`,
+  CHAT_MESSAGES: (chatId) => `${BASE_URL}/buyer/chats/${chatId}/messages`,
+  SEND_CHAT_MESSAGE: (chatId) => `${BASE_URL}/buyer/chats/${chatId}/send`,
+  SUPPORT_TICKETS: `${BASE_URL}/buyer/support/tickets`,        // GET (index), POST (create)
+  SUPPORT_TICKET_ID: (id) => `${BASE_URL}/buyer/support/tickets/${id}`,
+
+
+
 
 };
 
@@ -60,9 +77,27 @@ api.interceptors.response.use(
 
 // ---- Tiny HTTP helper (unwraps response.data)
 // api.config.js (only the http.post changed)
+// export const http = {
+//   get: (url, params, config) =>                      // <-- add
+//     api.get(url, { params, ...(config || {}) }).then((r) => r.data),
+//   post: (url, body, config) => {
+//     const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+//     return api
+//       .post(url, body, {
+//         ...(config || {}),
+//         headers: {
+//           ...(config?.headers || {}),
+//           ...(isFormData ? { "Content-Type": "multipart/form-data" } : {}),
+//         },
+//       })
+//       .then((r) => r.data);
+//   },
+// };
+// ---- Tiny HTTP helper (unwraps response.data)
 export const http = {
-  get: (url, params, config) =>                      // <-- add
+  get: (url, params, config) =>
     api.get(url, { params, ...(config || {}) }).then((r) => r.data),
+
   post: (url, body, config) => {
     const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
     return api
@@ -75,7 +110,25 @@ export const http = {
       })
       .then((r) => r.data);
   },
+
+  put: (url, body, config) => {
+    const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+    return api
+      .put(url, body, {
+        ...(config || {}),
+        headers: {
+          ...(config?.headers || {}),
+          ...(isFormData ? { "Content-Type": "multipart/form-data" } : {}),
+        },
+      })
+      .then((r) => r.data);
+  },
+
+  delete: (url, config) =>
+    api.delete(url, { ...(config || {}) }).then((r) => r.data),
 };
+
+
 
 
 // ---- Query Client (use in App root)
@@ -92,6 +145,7 @@ export const useRegister = (opts) =>
     mutationFn: (payload) => http.post(API.REGISTER, payload),
     ...opts,
   });
+
 
 export const useLogin = (opts) =>
   useMutation({
@@ -112,7 +166,7 @@ export const useVerifyOtp = (opts) =>
     ...opts,
   });
 
-  export const useResetPassword = (opts) =>
+export const useResetPassword = (opts) =>
   useMutation({
     mutationFn: (payload) => http.post(API.RESET_PASSWORD, payload),
     ...opts,
@@ -158,3 +212,253 @@ export const setAuthToken = async (token) =>
   AsyncStorage.setItem("auth_token", token);
 export const clearAuthToken = async () => AsyncStorage.removeItem("auth_token");
 export const getAuthToken = async () => AsyncStorage.getItem("auth_token");
+
+
+export const useCategoryProducts = (categoryId, page = 1, options) =>
+  useQuery({
+    enabled: !!categoryId,
+    queryKey: ['categoryProducts', categoryId, page],
+    queryFn: () => http.get(API.CATEGORY_PRODUCTS(categoryId), { page }),
+    keepPreviousData: true,
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useProductDetails = (productId, options) =>
+  useQuery({
+    enabled: !!productId,
+    queryKey: ["productDetails", productId],
+    queryFn: () => http.get(API.PRODUCT_DETAILS(productId)),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+
+export const useAddToCart = (opts) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.ADD_TO_CART, payload),
+    ...opts,
+  });
+
+export const useCart = (options) =>
+  useQuery({
+    queryKey: ["cart"],
+    queryFn: () => http.get(API.CART),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useUpdateCartItem = (opts) =>
+  useMutation({
+    // expects: { itemId, qty }
+    mutationFn: ({ itemId, qty }) =>
+      http.post(API.CART_ITEM(itemId), { qty }),
+    onSuccess: (res) => {
+      console.log("Update qty response:", JSON.stringify(res, null, 2));
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      opts?.onSuccess?.(res);
+    },
+    onError: (err) => {
+      console.log("Update qty error:", err);
+      opts?.onError?.(err);
+    },
+  });
+
+export const useDeleteCartItem = (opts) =>
+  useMutation({
+    // expects: itemId
+    mutationFn: (itemId) => http.delete(API.CART_ITEM(itemId)),
+    onSuccess: (res) => {
+      console.log("Delete item response:", JSON.stringify(res, null, 2));
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      opts?.onSuccess?.(res);
+    },
+    onError: (err) => {
+      console.log("Delete item error:", err);
+      opts?.onError?.(err);
+    },
+  });
+
+export const useWalletBalance = (options) =>
+  useQuery({
+    queryKey: ["walletBalance"],
+    queryFn: () => http.get(API.GET_BALANCE),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+// Auto-runs only when both addressId & method are present
+export const useCheckoutPreview = (addressId, paymentMethod, options) =>
+  useQuery({
+    enabled: !!addressId && !!paymentMethod,
+    queryKey: ["checkoutPreview", addressId, paymentMethod],
+    queryFn: () =>
+      http.post(API.CHECKOUT_PREVIEW, {
+        delivery_address_id: String(addressId),
+        payment_method: String(paymentMethod),
+      }),
+    staleTime: 0,
+    ...options,
+  });
+
+
+export const useCheckoutPlace = (opts) =>
+  useMutation({
+    mutationFn: ({ delivery_address_id, payment_method }) =>
+      http.post(API.CHECKOUT_PLACE, {
+        delivery_address_id: String(delivery_address_id),
+        payment_method: String(payment_method),
+      }),
+    ...opts,
+  });
+
+
+
+// Addresses 
+export const useAddresses = (options) =>
+  useQuery({
+    queryKey: ["addresses"],
+    queryFn: () => http.get(API.ADDRESSES),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useAddAddress = (opts) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.ADDRESSES, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["addresses"] }),
+    ...opts,
+  });
+
+export const useUpdateAddress = (opts) =>
+  useMutation({
+    mutationFn: ({ id, ...payload }) => http.put(API.ADDRESS_ID(id), payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["addresses"] }),
+    ...opts,
+  });
+
+export const useDeleteAddress = (opts) =>
+  useMutation({
+    mutationFn: (id) => http.delete(API.ADDRESS_ID(id)),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["addresses"] }),
+    ...opts,
+  });
+
+export const useStores = (options) =>
+  useQuery({
+    queryKey: ["stores"],
+    queryFn: () => http.get(API.STORES),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useOrders = (page = 1, options) =>
+  useQuery({
+    queryKey: ["orders", page],
+    queryFn: () => http.get(API.ORDERS, { page }),
+    keepPreviousData: true,
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+
+export const useOrderDetails = (orderId, options) =>
+  useQuery({
+    enabled: !!orderId,
+    queryKey: ["orderDetails", orderId],
+    queryFn: () => http.get(API.ORDER_DETAILS(orderId)),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useChats = (options) =>
+  useQuery({
+    queryKey: ["chats"],
+    queryFn: () => http.get(API.CHATS),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useChatMessages = (chatId, options) =>
+  useQuery({
+    enabled: !!chatId,
+    queryKey: ["chatMessages", chatId],
+    queryFn: () => http.get(API.CHAT_MESSAGES(chatId)),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useSendChatMessage = (opts) =>
+  useMutation({
+    // expects: { chatId, message, image }  (image optional; keep hardcoded if your UI doesn’t need it yet)
+    mutationFn: ({ chatId, message, image }) => {
+      const body = image
+        ? (() => { const fd = new FormData(); fd.append('message', message || ''); fd.append('image', { uri: image, name: 'upload.jpg', type: 'image/jpeg' }); return fd; })()
+        : { message };
+      return http.post(API.SEND_CHAT_MESSAGE(chatId), body);
+    },
+    onSuccess: (res, vars) => {
+      // refresh messages thread + chat list meta (last msg, time, unread)
+      queryClient.invalidateQueries({ queryKey: ['chatMessages', vars.chatId] });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      opts?.onSuccess?.(res, vars);
+    },
+    ...opts,
+  });
+
+// List tickets (optionally by status & pagination)
+export const useSupportTickets = (params = {}, options) =>
+  useQuery({
+    queryKey: ["supportTickets", params],
+    queryFn: () => http.get(API.SUPPORT_TICKETS, params), // expects backend to honor ?status=&page=
+    keepPreviousData: true,
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+// Create ticket
+export const useCreateSupportTicket = (opts) =>
+  useMutation({
+    // expects: { category, subject, description, order_id?, store_order_id?, image? }
+    mutationFn: async (payload) => {
+      const { image, ...rest } = payload || {};
+
+      // If backend supports file upload, switch to FormData here:
+      // const fd = new FormData();
+      // Object.entries(rest).forEach(([k, v]) => fd.append(k, v ?? ""));
+      // if (image) {
+      //   fd.append("attachment", {
+      //     uri: image,
+      //     name: "attachment.jpg",
+      //     type: "image/jpeg",
+      //   });
+      // }
+      // return http.post(API.SUPPORT_TICKETS, fd);
+
+      // JSON post (no attachment)
+      return http.post(API.SUPPORT_TICKETS, {
+        ...rest,
+        order_id: rest.order_id ?? null,
+        store_order_id: rest.store_order_id ?? null,
+      });
+    },
+    onSuccess: (res, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["supportTickets"] });
+      opts?.onSuccess?.(res, vars);
+    },
+    onError: (err, vars) => {
+      opts?.onError?.(err, vars);
+    },
+  });
+
+export const useStoreDetails = (id, options) =>
+  useQuery({
+    enabled: !!id,
+    queryKey: ["storeDetails", id],
+    queryFn: () => http.get(API.STORE_DETAILS(id)),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+
+

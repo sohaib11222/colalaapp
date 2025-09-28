@@ -48,7 +48,7 @@ export default function SupportScreen() {
             <Ionicons name="chevron-back" size={20} color={COLOR.text} />
           </TouchableOpacity>
 
-          <ThemedText font="oleo"  style={styles.headerTitle} numberOfLines={1} pointerEvents="none">
+          <ThemedText font="oleo" style={styles.headerTitle} numberOfLines={1} pointerEvents="none">
             Support
           </ThemedText>
 
@@ -98,12 +98,11 @@ export default function SupportScreen() {
       <TouchableOpacity
         style={styles.fab}
         activeOpacity={0.9}
-        onPress={() => {
-          // open "Create Support Chat" flow
-        }}
+        onPress={() => navigation.navigate("SupportForm")}   // <-- open form screen
       >
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
+
     </SafeAreaView>
   );
 }

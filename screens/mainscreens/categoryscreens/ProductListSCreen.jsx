@@ -1,230 +1,272 @@
-// ✅ UPDATED: Dynamic Store Structure for All Products
-// This version ensures you pass the full `store` object when navigating to ProductDetails.
-
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-    FlatList,
-    Image,
-    TextInput,
-    SafeAreaView,
-    ScrollView,
-    Dimensions,
+  View, TouchableOpacity, StyleSheet, FlatList, Image, TextInput,
+  SafeAreaView, ScrollView, Dimensions, ActivityIndicator
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
+import { useCategoryProducts } from "../../../config/api.config";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
 
+const HOST = "https://colala.hmstech.xyz";
+const absUrl = (u) => (u?.startsWith("http") ? u : `${HOST}${u || ""}`);
+
 const ProductsListScreen = () => {
-    const route = useRoute();
-    const navigation = useNavigation();
-    const { categoryTitle } = route.params;
+  const route = useRoute();
+  const navigation = useNavigation();
 
-    const filters = ['Location', 'Store', 'Brand', 'Price', 'Ratings', 'Sort by'];
+  const categoryTitle = route.params?.categoryTitle || "Products";
+  const categoryId = route.params?.categoryId;        // subcategory user tapped
+  const fetchCategoryId = route.params?.fetchCategoryId || categoryId; // parent (if provided)
 
-    const storeDetails = {
-        name: "Sasha Stores",
+  // pagination
+  const [page, setPage] = useState(1);
+  const { data, isLoading, isFetching, isError } = useCategoryProducts(fetchCategoryId, page);
+
+  const pageObj = data?.data;
+  const apiItems = Array.isArray(pageObj?.data) ? pageObj.data : [];
+  const nextPageUrl = pageObj?.next_page_url;
+
+  // map API -> your card model (no UI change)
+  const allProducts = useMemo(() => {
+    return apiItems.map((p) => {
+      const imgs = Array.isArray(p.images) ? p.images : [];
+      const main = imgs.find((im) => Number(im.is_main) === 1) || imgs[0];
+      const imageUri = main?.path ? absUrl(`/storage/${main.path}`) : null;
+
+      const store = {
+        name: p.store?.store_name || "Store",
+        location: p.store?.store_location || "Lagos, Nigeria",
+        rating: 4.5,
         logo: require("../../../assets/Ellipse 18.png"),
         background: require("../../../assets/Rectangle 30.png"),
-        location: "Lagos, Nigeria",
+      };
+
+      const priceNum = Number(p.discount_price || p.price || 0);
+      const origNum  = Number(p.price || 0);
+      const toNaira  = (n) => `₦${Number(n).toLocaleString()}`;
+
+      return {
+        id: String(p.id),
+        title: p.name || "Product",
+        price: priceNum ? toNaira(priceNum) : toNaira(origNum),
+        originalPrice: priceNum && origNum && priceNum < origNum ? toNaira(origNum) : "",
+        image: imageUri ? { uri: imageUri } : require("../../../assets/phone5.png"),
+        store,
+        tagImages: [],
+      };
+    });
+  }, [apiItems]);
+
+  // Simple heuristics (no backend flags yet)
+  const newestFirst = [...apiItems].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+  const newArrivals = newestFirst.slice(0, 6).map((p) => {
+    const imgs = Array.isArray(p.images) ? p.images : [];
+    const main = imgs.find((im) => Number(im.is_main) === 1) || imgs[0];
+    const imageUri = main?.path ? absUrl(`/storage/${main.path}`) : null;
+    return {
+      id: String(p.id),
+      title: p.name || "Product",
+      price: (Number(p.discount_price || p.price || 0)).toLocaleString(),
+      image: imageUri ? { uri: imageUri } : require("../../../assets/phone3.png"),
+      store: {
+        name: p.store?.store_name || "Store",
         rating: 4.5,
-        categories: ["Electronics", "Phones"],
-        social: {
-            whatsapp: require("../../../assets/logos_whatsapp-icon.png"),
-            instagram: require("../../../assets/skill-icons_instagram.png"),
-            x: require("../../../assets/pajamas_twitter.png"),
-            facebook: require("../../../assets/logos_facebook.png"),
-        },
-        sold: 100,
-        followers: 5,
+        logo: require("../../../assets/Ellipse 18.png"),
+        location: p.store?.store_location || "Lagos, Nigeria",
+      },
     };
+  });
 
-    const trendingProducts = [
-        { id: "1", title: "iPhone 16 pro max, black", price: "2,000,000", image: require("../../../assets/phone3.png"), store: storeDetails },
-        { id: "2", title: "iPhone 12 pro", price: "2,000,000", image: require("../../../assets/phone4.png"), store: storeDetails },
-        { id: "3", title: "iPhone 12 pro", price: "2,000,000", image: require("../../../assets/phone4.png"), store: storeDetails },
-    ];
+  const trendingProducts = newArrivals; // placeholder until backend adds a signal
 
-    const newArrivals = [
-        { id: "4", title: "Lenovo Smartphone", price: "2,000,000", image: require("../../../assets/phone3.png"), store: storeDetails },
-        { id: "5", title: "Samsung S8 plus", price: "2,000,000", image: require("../../../assets/Frame 253.png"), store: storeDetails },
-    ];
+  const filters = ['Location', 'Store', 'Brand', 'Price', 'Ratings', 'Sort by'];
 
-    const allProducts = [
-        {
-            id: "6",
-            title: "iPhone 12 pro",
-            store: storeDetails,
-            price: "₦2,000,000",
-            originalPrice: "₦3,000,000",
-            image: require("../../../assets/phone5.png"),
-            tagImages: [require("../../../assets/freedel.png"), require("../../../assets/bulk.png")],
-        },
-        {
-            id: "7",
-            title: "Samsung s24 ultra",
-            store: storeDetails,
-            price: "₦2,000,000",
-            originalPrice: "₦3,000,000",
-            image: require("../../../assets/phone5.png"),
-            tagImages: [require("../../../assets/freedel.png")],
-        },
-    ];
+  const renderHorizontalProduct = ({ item }) => (
+    <TouchableOpacity onPress={() => navigation.navigate("ProductDetails", {  productId: item.id, product: item  })}>
+      <View style={styles.horizontalCard}>
+        <Image source={item.image} style={styles.horizontalImage} />
+        <View style={[styles.rowBetween, { backgroundColor: "#F2F2F2", width: "100%", padding: 4 }]}>
+          <View style={styles.storeRow}>
+            <Image source={item.store.logo} style={styles.storeAvatar} />
+            <ThemedText style={styles.storeNameCard}>{item.store.name}</ThemedText>
+          </View>
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" color="red" size={12} />
+            <ThemedText style={styles.rating}>{item.store.rating}</ThemedText>
+          </View>
+        </View>
+        <View style={{ padding: 6 }}>
+          <ThemedText numberOfLines={1} style={styles.productTitleCard}>{item.title}</ThemedText>
+          <ThemedText style={styles.price}>₦{item.price}</ThemedText>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
-    const renderHorizontalProduct = ({ item }) => (
-        <TouchableOpacity onPress={() => navigation.navigate("ProductDetails", { product: item })}>
-            <View style={styles.horizontalCard}>
-                <Image source={item.image} style={styles.horizontalImage} />
-                <View style={[styles.rowBetween, { backgroundColor: "#F2F2F2", width: "100%", padding: 4 }]}>
-                    <View style={styles.storeRow}>
-                        <Image source={item.store.logo} style={styles.storeAvatar} />
-                        <ThemedText style={styles.storeNameCard}>{item.store.name}</ThemedText>
-                    </View>
-                    <View style={styles.ratingRow}>
-                        <Ionicons name="star" color="red" size={12} />
-                        <ThemedText style={styles.rating}>{item.store.rating}</ThemedText>
-                    </View>
-                </View>
-                <View style={{ padding: 6 }}>
-                    <ThemedText numberOfLines={1} style={styles.productTitleCard}>{item.title}</ThemedText>
-                    <ThemedText style={styles.price}>₦{item.price}</ThemedText>
-                </View>
+  const renderAllProductCard = ({ item }) => (
+    <TouchableOpacity onPress={() => navigation.navigate("ProductDetails", { product: item })}>
+      <View style={styles.card}>
+        <Image source={item.image} style={styles.image} resizeMode="cover" />
+        <View style={[styles.rowBetween, { backgroundColor: "#F2F2F2", width: "100%", padding: 5 }]}>
+          <View style={styles.storeRow}>
+            <Image source={item.store.logo} style={styles.storeAvatar} />
+            <ThemedText style={styles.storeNameCard}>{item.store.name}</ThemedText>
+          </View>
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" color="red" size={12} />
+            <ThemedText style={styles.rating}>{item.store.rating}</ThemedText>
+          </View>
+        </View>
+
+        <View style={styles.infoContainer}>
+          <ThemedText style={styles.productTitleCard}>{item.title}</ThemedText>
+          <View style={styles.priceRow}>
+            <ThemedText style={styles.price}>{item.price}</ThemedText>
+            {item.originalPrice ? (
+              <ThemedText style={styles.originalPrice}>{item.originalPrice}</ThemedText>
+            ) : null}
+          </View>
+
+          <View style={styles.tagsRow}>
+            {item.tagImages?.map((tagImg, index) => (
+              <Image key={index} source={tagImg} style={styles.tagIcon} resizeMode="contain" />
+            ))}
+          </View>
+
+          <View style={styles.rowBetween}>
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={13} color="#444" style={{ marginRight: 2 }} />
+              <ThemedText style={styles.location}>
+                {item.store.location || "Lagos, Nigeria"}
+              </ThemedText>
             </View>
-        </TouchableOpacity>
-    );
+            <TouchableOpacity>
+              <Image
+                source={require("../../../assets/Frame 265.png")}
+                style={{ width: 28, height: 28, resizeMode: "contain" }}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
-    const renderAllProductCard = ({ item }) => (
-        <TouchableOpacity onPress={() => navigation.navigate("ProductDetails", { product: item })}>
-            <View style={styles.card}>
-                <Image source={item.image} style={styles.image} resizeMode="cover" />
-                <View style={[styles.rowBetween, { backgroundColor: "#F2F2F2", width: "100%", padding: 5 }]}>
-                    <View style={styles.storeRow}>
-                        <Image source={item.store.logo} style={styles.storeAvatar} />
-                        <ThemedText style={styles.storeNameCard}>{item.store.name}</ThemedText>
-                    </View>
-                    <View style={styles.ratingRow}>
-                        <Ionicons name="star" color="red" size={12} />
-                        <ThemedText style={styles.rating}>{item.store.rating}</ThemedText>
-                    </View>
+  const loadMore = () => {
+    if (isFetching) return;
+    if (nextPageUrl) setPage((p) => p + 1);
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f4f4f4" }}>
+      {/* HEADER (unchanged) */}
+      <View style={styles.header}>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity style={{ backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 8, zIndex: 5 }} onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={22} color="#E53E3E" />
+          </TouchableOpacity>
+
+          <ThemedText font="oleo" style={styles.headerTitle}>{categoryTitle}</ThemedText>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity style={[styles.iconButton, { backgroundColor: "#fff", padding: 6, borderRadius: 25 }]}>
+              <Ionicons name="cart-outline" size={22} color="#E53E3E" />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.iconButton, { backgroundColor: "#fff", padding: 6, borderRadius: 25 }]}>
+              <Ionicons name="notifications-outline" size={22} color="#E53E3E" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Search */}
+        <View style={styles.searchContainer}>
+          <TextInput
+            placeholder="Search any product, shop or category"
+            placeholderTextColor="#888"
+            style={styles.searchInput}
+          />
+          <Ionicons name="camera-outline" size={22} color="#444" style={styles.cameraIcon} />
+        </View>
+      </View>
+
+      {/* FILTER ROW (unchanged) */}
+      <View style={styles.filterContainer}>
+        {['Location', 'Store', 'Brand', 'Price', 'Ratings', 'Sort by'].map((label) => (
+          <TouchableOpacity key={label} style={styles.filterButton}>
+            <ThemedText style={styles.filterText}>{label}</ThemedText>
+            <Ionicons name="chevron-down" size={14} color="#1A1A1A" />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* CONTENT */}
+      {isLoading && !allProducts.length ? (
+        <View style={{ padding: 16 }}>
+          <ActivityIndicator />
+        </View>
+      ) : isError ? (
+        <View style={{ padding: 16 }}>
+          <ThemedText>Failed to load products</ThemedText>
+        </View>
+      ) : (
+        <ScrollView>
+          {/* TRENDING (heuristic) */}
+          <View style={styles.sectionHeader}>
+            <ThemedText style={styles.sectionTitle}>Trending Products</ThemedText>
+          </View>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={newArrivals}
+            renderItem={renderHorizontalProduct}
+            keyExtractor={(item) => "trend-" + item.id}
+            contentContainerStyle={{ paddingHorizontal: 10 }}
+          />
+
+          {/* NEW ARRIVALS */}
+          <View style={styles.sectionHeader}>
+            <ThemedText style={styles.sectionTitle}>New Arrivals</ThemedText>
+          </View>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={newArrivals}
+            renderItem={renderHorizontalProduct}
+            keyExtractor={(item) => "new-" + item.id}
+            contentContainerStyle={{ paddingHorizontal: 10 }}
+          />
+
+          {/* ALL PRODUCTS */}
+          <View style={styles.sectionHeader}>
+            <ThemedText style={styles.sectionTitle}>All Products</ThemedText>
+          </View>
+          <FlatList
+            data={allProducts}
+            renderItem={renderAllProductCard}
+            keyExtractor={(item) => "all-" + item.id}
+            numColumns={2}
+            columnWrapperStyle={{ gap: -10, justifyContent: 'space-evenly' }}
+            scrollEnabled={false}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            onEndReachedThreshold={0.3}
+            onEndReached={loadMore}
+            ListFooterComponent={
+              isFetching && nextPageUrl ? (
+                <View style={{ paddingVertical: 16 }}>
+                  <ActivityIndicator />
                 </View>
-
-                <View style={styles.infoContainer}>
-                    <ThemedText style={styles.productTitleCard}>{item.title}</ThemedText>
-                    <View style={styles.priceRow}>
-                        <ThemedText style={styles.price}>{item.price}</ThemedText>
-                        <ThemedText style={styles.originalPrice}>{item.originalPrice}</ThemedText>
-                    </View>
-
-                    <View style={styles.tagsRow}>
-                        {item.tagImages?.map((tagImg, index) => (
-                            <Image key={index} source={tagImg} style={styles.tagIcon} resizeMode="contain" />
-                        ))}
-                    </View>
-
-                    <View style={styles.rowBetween}>
-                        <View style={styles.locationRow}>
-                            <Ionicons name="location-outline" size={13} color="#444" style={{ marginRight: 2 }} />
-                            <ThemedText style={styles.location}>{item.store.location}</ThemedText>
-                        </View>
-                        <TouchableOpacity>
-                            <Image source={require("../../../assets/Frame 265.png")} style={{ width: 28, height: 28, resizeMode: "contain" }} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-
-    return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#f4f4f4" }}>
-            {/* HEADER */}
-            {/* ... Keep your header code unchanged ... */}
-            <View style={styles.header}>
-                <View style={styles.headerTopRow}>
-                    <TouchableOpacity style={{ backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 8, zIndex: 5 }} onPress={() => navigation.goBack()}>
-                        <Ionicons name="chevron-back" size={22} color="#E53E3E" />
-                    </TouchableOpacity>
-
-                    <ThemedText font="oleo" style={styles.headerTitle}>{categoryTitle}</ThemedText>
-                    <View style={styles.headerIcons}>
-                        <TouchableOpacity style={[styles.iconButton, { backgroundColor: "#fff", padding: 6, borderRadius: 25 }]}>
-                            <Ionicons name="cart-outline" size={22} color="#E53E3E" />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.iconButton, { backgroundColor: "#fff", padding: 6, borderRadius: 25 }]}>
-                            <Ionicons name="notifications-outline" size={22} color="#E53E3E" />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {/* 🔍 Search Inside Header */}
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        placeholder="Search any product, shop or category"
-                        placeholderTextColor="#888"
-                        style={styles.searchInput}
-                    />
-                    <Ionicons name="camera-outline" size={22} color="#444" style={styles.cameraIcon} />
-                </View>
-            </View>
-
-            {/* FILTER ROW */}
-            <View style={styles.filterContainer}>
-                {filters.map((label) => (
-                    <TouchableOpacity key={label} style={styles.filterButton}>
-                        <ThemedText style={styles.filterText}>{label}</ThemedText>
-                        <Ionicons name="chevron-down" size={14} color="#1A1A1A" />
-                    </TouchableOpacity>
-                ))}
-            </View>
-            <ScrollView>
-                {/* TRENDING PRODUCTS */}
-                <View style={styles.sectionHeader}>
-                    <ThemedText style={styles.sectionTitle}>Trending Products</ThemedText>
-                </View>
-                <FlatList
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    data={trendingProducts}
-                    renderItem={renderHorizontalProduct}
-                    keyExtractor={(item) => "trend-" + item.id}
-                    contentContainerStyle={{ paddingHorizontal: 10 }}
-                />
-
-                {/* NEW ARRIVALS */}
-                <View style={styles.sectionHeader}>
-                    <ThemedText style={styles.sectionTitle}>New Arrivals</ThemedText>
-                </View>
-                <FlatList
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    data={newArrivals}
-                    renderItem={renderHorizontalProduct}
-                    keyExtractor={(item) => "new-" + item.id}
-                    contentContainerStyle={{ paddingHorizontal: 10 }}
-                />
-
-                {/* ALL PRODUCTS */}
-                <View style={styles.sectionHeader}>
-                    <ThemedText style={styles.sectionTitle}>All Products</ThemedText>
-                </View>
-                <FlatList
-                    data={allProducts}
-                    renderItem={renderAllProductCard}
-                    keyExtractor={(item) => "all-" + item.id}
-                    numColumns={2}
-                    columnWrapperStyle={{ gap: -10, justifyContent: 'space-evenly' }}
-                    scrollEnabled={false}
-                    contentContainerStyle={{ paddingBottom: 20 }}
-                />
-            </ScrollView>
-        </SafeAreaView>
-    );
+              ) : null
+            }
+          />
+        </ScrollView>
+      )}
+    </SafeAreaView>
+  );
 };
 
 export default ProductsListScreen;

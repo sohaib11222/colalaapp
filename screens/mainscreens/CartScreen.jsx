@@ -1,18 +1,485 @@
+// // screens/CartScreen.jsx
+// import React, { useMemo, useState } from "react";
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   TouchableOpacity,
+//   Image,
+//   ScrollView,
+//   SafeAreaView,
+//   Platform,
+// } from "react-native";
+// import { Ionicons } from "@expo/vector-icons";
+// import { useNavigation } from "@react-navigation/native";
+// import ThemedText from "../../components/ThemedText";
+
+// /* -------------------- THEME -------------------- */
+// const COLOR = {
+//   primary: "#E53E3E",
+//   bg: "#F5F6F8",
+//   card: "#FFFFFF",
+//   text: "#101318",
+//   sub: "#6C727A",
+//   line: "#ECEDEF",
+//   chip: "#F1F2F5",
+// };
+
+// const currency = (n) => `₦${Number(n).toLocaleString()}`;
+// const PRODUCT_IMG = require("../../assets/Frame 314.png");
+
+// export default function CartScreen() {
+//   const navigation = useNavigation();
+
+//   const [agree, setAgree] = useState(false);
+//   const [stores, setStores] = useState([
+//     {
+//       id: "sasha",
+//       name: "Sasha Stores",
+//       selected: true,
+//       items: [
+//         { id: "i1", title: "Iphone 16 pro max - Black", price: 2500000, qty: 1 },
+//         { id: "i2", title: "Iphone 14 pro max - Green", price: 2500000, qty: 1 },
+//       ],
+//     },
+//     {
+//       id: "vee",
+//       name: "Vee Stores",
+//       selected: true,
+//       items: [
+//         { id: "i3", title: "Iphone 16 pro max - Black", price: 2500000, qty: 1 },
+//         { id: "i4", title: "Iphone 14 pro max - Green", price: 2500000, qty: 1 },
+//       ],
+//     },
+//   ]);
+
+//   const updateQty = (sid, iid, d) => {
+//     setStores((prev) =>
+//       prev.map((s) =>
+//         s.id !== sid
+//           ? s
+//           : {
+//               ...s,
+//               items: s.items.map((it) =>
+//                 it.id !== iid ? it : { ...it, qty: Math.max(1, it.qty + d) }
+//               ),
+//             }
+//       )
+//     );
+//   };
+
+//   const deleteItem = (sid, iid) => {
+//     setStores((prev) =>
+//       prev.map((s) => (s.id !== sid ? s : { ...s, items: s.items.filter((i) => i.id !== iid) }))
+//     );
+//   };
+
+//   const perStore = useMemo(() => {
+//     const map = {};
+//     for (const s of stores) {
+//       const count = s.items.reduce((a, b) => a + b.qty, 0);
+//       const total = s.items.reduce((a, b) => a + b.price * b.qty, 0);
+//       map[s.id] = { count, total };
+//     }
+//     return map;
+//   }, [stores]);
+
+//   const totals = useMemo(() => {
+//     let items = 0;
+//     let sum = 0;
+//     for (const s of stores) {
+//       if (!s.selected) continue;
+//       items += perStore[s.id].count;
+//       sum += perStore[s.id].total;
+//     }
+//     return { items, sum };
+//   }, [stores, perStore]);
+
+//   const canCheckout = agree && totals.items > 0;
+
+//   return (
+//     <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+//       {/* Header */}
+//       <View style={styles.header}>
+//         <View style={styles.headerRow}>
+//           <TouchableOpacity
+//             onPress={() =>
+//               navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+//             }
+//             style={styles.iconBtn}
+//             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+//           >
+//             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
+//           </TouchableOpacity>
+//           <ThemedText style={styles.headerTitle} pointerEvents="none">
+//             Cart
+//           </ThemedText>
+//           <View style={{ width: 40, height: 40 }} />
+//         </View>
+//       </View>
+
+//       <ScrollView
+//         contentContainerStyle={{ padding: 16, paddingBottom: 140 }}
+//         showsVerticalScrollIndicator={false}
+//       >
+//         {stores.map((store) => (
+//           <View key={store.id} style={styles.storeSection}>
+//             {/* OUTSIDE checkbox + column */}
+//             <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+//               <TouchableOpacity
+//                 onPress={() =>
+//                   setStores((p) =>
+//                     p.map((s) => (s.id === store.id ? { ...s, selected: !s.selected } : s))
+//                   )
+//                 }
+//                 style={[
+//                   styles.outCheck,
+//                   store.selected && { backgroundColor: COLOR.primary, borderColor: COLOR.primary },
+//                 ]}
+//               >
+//                 {store.selected && <Ionicons name="checkmark" size={16} color="#fff" />}
+//               </TouchableOpacity>
+
+//               <View style={{ flex: 1 }}>
+//                 {/* red header */}
+//                 <View style={styles.storeHeader}>
+//                   <ThemedText style={styles.storeName}>{store.name}</ThemedText>
+//                   <TouchableOpacity style={styles.chatBtn}>
+//                     <ThemedText style={styles.chatBtnTxt}>Start Chat</ThemedText>
+//                   </TouchableOpacity>
+//                 </View>
+
+//                 {/* white card over header */}
+//                 <View style={styles.itemsCard}>
+//                   {store.items.map((it, idx) => (
+//                     <View
+//                       key={it.id}
+//                       style={[styles.itemRow, idx > 0 && { borderTopWidth: 1, borderTopColor: COLOR.line }]}
+//                     >
+//                       <Image source={PRODUCT_IMG} style={styles.itemImg} />
+//                       <View style={{ flex: 1 }}>
+//                         <ThemedText style={styles.itemTitle} numberOfLines={2}>
+//                           {it.title}
+//                         </ThemedText>
+//                         <ThemedText style={styles.price}>{currency(it.price)}</ThemedText>
+
+//                         <View style={styles.qtyRow}>
+//                           <QtyBtn onPress={() => updateQty(store.id, it.id, -1)} icon="remove" />
+//                           <ThemedText style={styles.qtyVal}>{it.qty}</ThemedText>
+//                           <QtyBtn onPress={() => updateQty(store.id, it.id, +1)} icon="add" />
+
+//                           <View style={{ flex: 1 }} />
+//                           <TouchableOpacity style={styles.iconChip}>
+//                             <Ionicons name="create-outline" size={18} color={COLOR.text} />
+//                           </TouchableOpacity>
+//                           <TouchableOpacity
+//                             style={styles.iconChip}
+//                             onPress={() => deleteItem(store.id, it.id)}
+//                           >
+//                             <Ionicons name="trash-outline" size={18} color={COLOR.primary} />
+//                           </TouchableOpacity>
+//                         </View>
+//                       </View>
+//                     </View>
+//                   ))}
+
+//                   {/* two rows (same design as mock) */}
+//                   <View
+//                     style={[
+//                       styles.totalLikeRow,
+//                       {
+//                         borderTopRightRadius: 15,
+//                         borderTopLeftRadius: 15,
+//                         borderBottomRightRadius: 5,
+//                         borderBottomLeftRadius: 5,
+//                       },
+//                     ]}
+//                   >
+//                     <ThemedText style={{ color: COLOR.text }}>No it items</ThemedText>
+//                     <ThemedText style={{ color: COLOR.text, fontWeight: "700" }}>
+//                       {perStore[store.id].count}
+//                     </ThemedText>
+//                   </View>
+//                   <View
+//                     style={[
+//                       styles.totalLikeRow,
+//                       {
+//                         marginBottom: 10,
+//                         marginTop: 5,
+//                         borderTopRightRadius: 5,
+//                         borderTopLeftRadius: 5,
+//                         borderBottomRightRadius: 15,
+//                         borderBottomLeftRadius: 15,
+//                       },
+//                     ]}
+//                   >
+//                     <ThemedText style={{ color: COLOR.text, fontWeight: "600" }}>Total</ThemedText>
+//                     <ThemedText style={{ color: COLOR.primary, fontWeight: "800" }}>
+//                       {currency(perStore[store.id].total)}
+//                     </ThemedText>
+//                   </View>
+//                 </View>
+//               </View>
+//             </View>
+//           </View>
+//         ))}
+
+//         {/* page totals styled like the card rows */}
+//         <View style={{ gap: 10, marginTop: 6 }}>
+//           <View style={styles.totalLikeRow}>
+//             <ThemedText style={{ color: COLOR.text }}>Total Items</ThemedText>
+//             <ThemedText style={{ color: COLOR.text, fontWeight: "700" }}>
+//               {totals.items}
+//             </ThemedText>
+//           </View>
+//           <View style={styles.totalLikeRow}>
+//             <ThemedText style={{ color: COLOR.text, fontWeight: "600" }}>Total</ThemedText>
+//             <ThemedText style={{ color: COLOR.primary, fontWeight: "800" }}>
+//               {currency(totals.sum)}
+//             </ThemedText>
+//           </View>
+//         </View>
+
+//         {/* Terms */}
+//         <TouchableOpacity style={styles.termsRow} onPress={() => setAgree((v) => !v)}>
+//           <View
+//             style={[
+//               styles.smallCheck,
+//               agree && { backgroundColor: COLOR.primary, borderColor: COLOR.primary },
+//             ]}
+//           >
+//             {agree && <Ionicons name="checkmark" size={12} color="#fff" />}
+//           </View>
+//           <ThemedText style={styles.termsTxt}>
+//             I agree to Colala’s{" "}
+//             <ThemedText style={styles.link}>terms of use</ThemedText>,{" "}
+//             <ThemedText style={styles.link}>returns policy</ThemedText> and{" "}
+//             <ThemedText style={styles.link}>privacy policy</ThemedText>
+//           </ThemedText>
+//         </TouchableOpacity>
+//       </ScrollView>
+
+//       {/* Checkout bar */}
+//       <View style={styles.checkoutBar}>
+//         <TouchableOpacity
+//           disabled={!canCheckout}
+//           style={[styles.checkoutBtn, !canCheckout && { opacity: 0.5 }]}
+//           onPress={() =>
+//             navigation.navigate("Shipping", {
+//               stores: stores.filter((s) => s.selected),
+//             })
+//           }
+//         >
+//           <ThemedText style={styles.checkoutTxt}>Checkout</ThemedText>
+//         </TouchableOpacity>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
+
+// /* ---------- small bits ---------- */
+// const QtyBtn = ({ onPress, icon }) => (
+//   <TouchableOpacity onPress={onPress} style={styles.qtyBtn}>
+//     <Ionicons name={icon} size={16} color="#fff" />
+//   </TouchableOpacity>
+// );
+
+// /* -------------------- Styles -------------------- */
+// function shadow(e = 12) {
+//   return Platform.select({
+//     android: { elevation: e },
+//     ios: {
+//       shadowColor: "#000",
+//       shadowOpacity: 0.12,
+//       shadowRadius: e / 2,
+//       shadowOffset: { width: 0, height: e / 3 },
+//     },
+//   });
+// }
+
+// const styles = StyleSheet.create({
+//   /* Header */
+//   header: {
+//     backgroundColor: "#fff",
+//     paddingTop: 30,
+//     paddingBottom: 10,
+//     paddingHorizontal: 16,
+//     borderBottomWidth: 1,
+//     borderBottomColor: COLOR.line,
+//   },
+//   headerRow: {
+//     height: 44,
+//     flexDirection: "row",
+//     alignItems: "center",
+//     justifyContent: "space-between",
+//     position: "relative",
+//   },
+//   iconBtn: {
+//     width: 40,
+//     height: 40,
+//     borderRadius: 20,
+//     backgroundColor: "#fff",
+//     borderWidth: 1,
+//     borderColor: COLOR.line,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     zIndex: 5,
+//   },
+//   headerTitle: {
+//     position: "absolute",
+//     left: 0,
+//     right: 0,
+//     textAlign: "center",
+//     color: COLOR.text,
+//     fontSize: 18,
+//     fontWeight: "400",
+//   },
+
+//   /* Store section */
+//   storeSection: { marginBottom: 16 },
+//   outCheck: {
+//     width: 26,
+//     height: 26,
+//     borderRadius: 6,
+//     borderWidth: 1,
+//     borderColor: COLOR.line,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     marginRight: 10,
+//     backgroundColor: "#fff",
+//     marginTop: 12,
+//   },
+
+//   storeHeader: {
+//     backgroundColor: COLOR.primary,
+//     borderTopLeftRadius: 16,
+//     borderTopRightRadius: 16,
+//     paddingHorizontal: 12,
+//     paddingVertical: 18,
+//     flexDirection: "row",
+//     alignItems: "center",
+//   },
+//   storeName: { color: "#fff", fontWeight: "700", fontSize: 15, flex: 1 },
+//   chatBtn: {
+//     backgroundColor: "#fff",
+//     paddingHorizontal: 12,
+//     height: 30,
+//     borderRadius: 10,
+//     alignItems: "center",
+//     justifyContent: "center",
+//   },
+//   chatBtnTxt: { color: COLOR.primary, fontWeight: "600", fontSize: 12 },
+
+//   // white card “over” the header
+//   itemsCard: {
+//     marginTop: -12,
+//     backgroundColor: "#fff",
+//     borderRadius: 12,
+//     borderWidth: 1,
+//     borderColor: COLOR.line,
+//     ...shadow(10),
+//   },
+
+//   itemRow: {
+//     flexDirection: "row",
+//     paddingHorizontal: 12,
+//     paddingTop: 12,
+//     paddingBottom: 10,
+//     alignItems: "center",
+//   },
+//   itemImg: { width: 116, height: 88, borderRadius: 12, marginRight: 12 },
+//   itemTitle: { color: COLOR.text, fontWeight: "600" },
+//   price: { color: COLOR.primary, fontWeight: "800", marginTop: 6 },
+
+//   qtyRow: { flexDirection: "row", alignItems: "center", marginTop: 10 },
+//   qtyBtn: {
+//     width: 30,
+//     height: 30,
+//     borderRadius: 8,
+//     backgroundColor: COLOR.primary,
+//     alignItems: "center",
+//     justifyContent: "center",
+//   },
+//   qtyVal: { marginHorizontal: 12, color: COLOR.text, fontWeight: "700" },
+//   iconChip: {
+//     width: 32,
+//     height: 32,
+//     borderRadius: 8,
+//     borderWidth: 1,
+//     borderColor: COLOR.line,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     marginLeft: 10,
+//   },
+
+//   // “No it items” and “Total” rows
+//   totalLikeRow: {
+//     backgroundColor: COLOR.chip,
+//     marginHorizontal: 12,
+//     marginTop: 12,
+//     borderRadius: 12,
+//     borderWidth: 1,
+//     borderColor: COLOR.line,
+//     paddingHorizontal: 14,
+//     // marginBottom:10,
+//     height: 52,
+//     flexDirection: "row",
+//     alignItems: "center",
+//     justifyContent: "space-between",
+//   },
+
+//   /* Terms */
+//   termsRow: { flexDirection: "row", alignItems: "center", marginTop: 14, gap: 8 },
+//   smallCheck: {
+//     width: 16,
+//     height: 16,
+//     borderRadius: 4,
+//     borderWidth: 1,
+//     borderColor: COLOR.line,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     backgroundColor: "#fff",
+//   },
+//   termsTxt: { color: COLOR.text, flex: 1 },
+//   link: { color: COLOR.primary },
+
+//   /* Checkout bar */
+//   checkoutBar: {
+//     position: "absolute",
+//     left: 0,
+//     right: 0,
+//     bottom: 0,
+//     padding: 16,
+//     backgroundColor: COLOR.bg,
+//     borderTopWidth: 1,
+//     borderTopColor: COLOR.line,
+//   },
+//   checkoutBtn: {
+//     height: 54,
+//     borderRadius: 14,
+//     backgroundColor: COLOR.primary,
+//     alignItems: "center",
+//     justifyContent: "center",
+//   },
+//   checkoutTxt: { color: "#fff", fontWeight: "700" },
+// });
 // screens/CartScreen.jsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Image,
   ScrollView,
   SafeAreaView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../components/ThemedText";
+import { useCart, useUpdateCartItem, useDeleteCartItem } from "../../config/api.config";
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
@@ -25,53 +492,69 @@ const COLOR = {
   chip: "#F1F2F5",
 };
 
-const currency = (n) => `₦${Number(n).toLocaleString()}`;
+const currency = (n) => `₦${Number(n || 0).toLocaleString()}`;
 const PRODUCT_IMG = require("../../assets/Frame 314.png");
 
 export default function CartScreen() {
   const navigation = useNavigation();
 
-  const [agree, setAgree] = useState(false);
-  const [stores, setStores] = useState([
-    {
-      id: "sasha",
-      name: "Sasha Stores",
-      selected: true,
-      items: [
-        { id: "i1", title: "Iphone 16 pro max - Black", price: 2500000, qty: 1 },
-        { id: "i2", title: "Iphone 14 pro max - Green", price: 2500000, qty: 1 },
-      ],
-    },
-    {
-      id: "vee",
-      name: "Vee Stores",
-      selected: true,
-      items: [
-        { id: "i3", title: "Iphone 16 pro max - Black", price: 2500000, qty: 1 },
-        { id: "i4", title: "Iphone 14 pro max - Green", price: 2500000, qty: 1 },
-      ],
-    },
-  ]);
+  // Fetch cart from API (include refetch so we can refresh after mutations)
+  const { data, isLoading, isError, refetch } = useCart();
 
-  const updateQty = (sid, iid, d) => {
-    setStores((prev) =>
-      prev.map((s) =>
-        s.id !== sid
-          ? s
-          : {
-              ...s,
-              items: s.items.map((it) =>
-                it.id !== iid ? it : { ...it, qty: Math.max(1, it.qty + d) }
-              ),
-            }
-      )
+  const [agree, setAgree] = useState(false);
+  const [stores, setStores] = useState([]);
+
+  // mutations
+  const updateItem = useUpdateCartItem({
+    onError: (err) => Alert.alert("Error", err?.message || "Failed to update quantity."),
+  });
+  const deleteItemMut = useDeleteCartItem({
+    onError: (err) => Alert.alert("Error", err?.message || "Failed to remove item."),
+  });
+
+  // hydrate UI from API
+  useEffect(() => {
+    const storesObj = data?.data?.stores || {};
+    const normalized = Object.entries(storesObj).map(([storeId, block]) => ({
+      id: String(storeId),
+      // API has no store name -> keep hardcoded
+      name: `Store ${storeId}`,
+      selected: true,
+      items: (block?.items || []).map((it) => ({
+        id: String(it.id), // cart item id
+        title: `${it.name}${it.color ? ` - ${it.color}` : ""}${it.size ? ` (${it.size})` : ""}`,
+        price: Number(it.unit_price || 0),
+        qty: Number(it.qty || 0),
+      })),
+    }));
+    setStores(normalized);
+  }, [data]);
+
+  // qty -> POST /buyer/cart/items/:id { qty }
+  const updateQty = (sid, iid, delta) => {
+    const store = stores.find((s) => s.id === sid);
+    const item = store?.items.find((i) => i.id === iid);
+    if (!item) return;
+    const nextQty = Math.max(1, item.qty + delta);
+    updateItem.mutate(
+      { itemId: iid, qty: nextQty },
+      {
+        onSuccess: () => {
+          // response already logged by the hook
+          refetch();
+        },
+      }
     );
   };
 
+  // delete -> DELETE /buyer/cart/items/:id
   const deleteItem = (sid, iid) => {
-    setStores((prev) =>
-      prev.map((s) => (s.id !== sid ? s : { ...s, items: s.items.filter((i) => i.id !== iid) }))
-    );
+    deleteItemMut.mutate(iid, {
+      onSuccess: () => {
+        // response already logged by the hook
+        refetch();
+      },
+    });
   };
 
   const perStore = useMemo(() => {
@@ -89,13 +572,29 @@ export default function CartScreen() {
     let sum = 0;
     for (const s of stores) {
       if (!s.selected) continue;
-      items += perStore[s.id].count;
-      sum += perStore[s.id].total;
+      items += perStore[s.id]?.count || 0;
+      sum += perStore[s.id]?.total || 0;
     }
     return { items, sum };
   }, [stores, perStore]);
 
   const canCheckout = agree && totals.items > 0;
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color={COLOR.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg, alignItems: "center", justifyContent: "center" }}>
+        <ThemedText>Failed to load cart.</ThemedText>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
@@ -156,6 +655,7 @@ export default function CartScreen() {
                       key={it.id}
                       style={[styles.itemRow, idx > 0 && { borderTopWidth: 1, borderTopColor: COLOR.line }]}
                     >
+                      {/* Image stays hardcoded per request */}
                       <Image source={PRODUCT_IMG} style={styles.itemImg} />
                       <View style={{ flex: 1 }}>
                         <ThemedText style={styles.itemTitle} numberOfLines={2}>
@@ -165,7 +665,9 @@ export default function CartScreen() {
 
                         <View style={styles.qtyRow}>
                           <QtyBtn onPress={() => updateQty(store.id, it.id, -1)} icon="remove" />
-                          <ThemedText style={styles.qtyVal}>{it.qty}</ThemedText>
+                          <ThemedText style={styles.qtyVal}>
+                            {updateItem.isPending ? "…" : it.qty}
+                          </ThemedText>
                           <QtyBtn onPress={() => updateQty(store.id, it.id, +1)} icon="add" />
 
                           <View style={{ flex: 1 }} />
@@ -176,7 +678,11 @@ export default function CartScreen() {
                             style={styles.iconChip}
                             onPress={() => deleteItem(store.id, it.id)}
                           >
-                            <Ionicons name="trash-outline" size={18} color={COLOR.primary} />
+                            {deleteItemMut.isPending ? (
+                              <ActivityIndicator size="small" color={COLOR.primary} />
+                            ) : (
+                              <Ionicons name="trash-outline" size={18} color={COLOR.primary} />
+                            )}
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -197,7 +703,7 @@ export default function CartScreen() {
                   >
                     <ThemedText style={{ color: COLOR.text }}>No it items</ThemedText>
                     <ThemedText style={{ color: COLOR.text, fontWeight: "700" }}>
-                      {perStore[store.id].count}
+                      {perStore[store.id]?.count || 0}
                     </ThemedText>
                   </View>
                   <View
@@ -215,7 +721,7 @@ export default function CartScreen() {
                   >
                     <ThemedText style={{ color: COLOR.text, fontWeight: "600" }}>Total</ThemedText>
                     <ThemedText style={{ color: COLOR.primary, fontWeight: "800" }}>
-                      {currency(perStore[store.id].total)}
+                      {currency(perStore[store.id]?.total || 0)}
                     </ThemedText>
                   </View>
                 </View>
@@ -284,7 +790,7 @@ const QtyBtn = ({ onPress, icon }) => (
   </TouchableOpacity>
 );
 
-/* -------------------- Styles -------------------- */
+/* -------------------- Styles (unchanged) -------------------- */
 function shadow(e = 12) {
   return Platform.select({
     android: { elevation: e },
@@ -421,7 +927,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLOR.line,
     paddingHorizontal: 14,
-    // marginBottom:10,
     height: 52,
     flexDirection: "row",
     alignItems: "center",

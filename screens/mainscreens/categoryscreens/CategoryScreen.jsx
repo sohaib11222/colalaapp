@@ -63,7 +63,7 @@
 
 // const CategoryScreen = () => {
 //     const navigation = useNavigation();
-  
+
 //     const [categories, setCategories] = useState(initialCategories);
 
 //     const toggleExpand = (id) => {
@@ -373,7 +373,13 @@ const CategoryScreen = () => {
                     <TouchableOpacity
                       onPress={() =>
                         navigation.navigate('ProductsList', {
+                          categoryId: sub.id,
                           categoryTitle: sub.title,
+                          //  categoryId: sub.id,
+
+                          // IMPORTANT: fetch from the parent that actually has products right now
+                          fetchCategoryId: item.id,
+
                           products: grand.map((g) => ({
                             title: g.title,
                             image_url: g.image_url,
