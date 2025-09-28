@@ -181,7 +181,11 @@ const CategorySection = ({ onCategoryPress }) => {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <ThemedText style={styles.title}>Categories</ThemedText>
-        <TouchableOpacity onPress={() => navigation.navigate('CategoryNavigator', { screen: 'Category' })}>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('CategoryNavigator', { screen: 'Category' })
+          }
+        >
           <ThemedText style={styles.viewAll}>View All</ThemedText>
         </TouchableOpacity>
       </View>
@@ -204,6 +208,12 @@ const CategorySection = ({ onCategoryPress }) => {
                 if (item.isServices) {
                   navigation.navigate('ServiceNavigator', { screen: 'ServicesScreen' });
                 } else {
+                  // Open the same Category page, with THIS parent expanded
+                  navigation.navigate('CategoryNavigator', {
+                    screen: 'Category',
+                    params: { initialParentId: item.id }, // <-- key change
+                  });
+                  // still call optional callback if you use it elsewhere
                   onCategoryPress?.(item);
                 }
               }}

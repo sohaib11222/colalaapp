@@ -53,16 +53,37 @@ const ServicesScreen = () => {
             {/* 🔴 Header with Search */}
             <View style={styles.header}>
                 <View style={styles.headerTopRow}>
-                    <TouchableOpacity style={{ backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 10, zIndex:5 }} onPress={() => navigation.goBack()}>
+                    <TouchableOpacity style={{ backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 10, zIndex: 5 }} onPress={() => navigation.goBack()}>
                         <Ionicons name="chevron-back" size={22} color="#E53E3E" />
                     </TouchableOpacity>
                     <ThemedText font='oleo' style={styles.headerTitle}>Services</ThemedText>
-                    <View style={styles.headerIcons}>
-                        <TouchableOpacity style={[styles.iconButton, { backgroundColor: "#fff", padding: 6, borderRadius: 25 }]}>
-                            <Ionicons name="cart-outline" size={22} color="#E53E3E" />
+                    <View style={styles.iconRow}>
+                        <TouchableOpacity
+                            onPress={() =>
+                                navigation.navigate('ServiceNavigator', { screen: 'Cart' })
+                            }
+                            style={[styles.iconButton, styles.iconPill]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Open cart"
+                        >
+                            <Image
+                                source={require('../../../assets/cart-icon.png')}
+                                style={styles.iconImg}
+                            />
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.iconButton, { backgroundColor: "#fff", padding: 6, borderRadius: 25 }]}>
-                            <Ionicons name="notifications-outline" size={22} color="#E53E3E" />
+
+                        <TouchableOpacity
+                            onPress={() =>
+                                navigation.navigate('ServiceNavigator', { screen: 'Notifications' })
+                            }
+                            style={[styles.iconButton, styles.iconPill]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Open notifications"
+                        >
+                            <Image
+                                source={require('../../../assets/bell-icon.png')}
+                                style={styles.iconImg}
+                            />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -74,8 +95,10 @@ const ServicesScreen = () => {
                         placeholderTextColor="#888"
                         style={styles.searchInput}
                     />
-                    <Ionicons name="camera-outline" size={22} color="#444" style={styles.cameraIcon} />
-                </View>
+                    <Image
+                        source={require('../../../assets/camera-icon.png')}
+                        style={styles.iconImg}
+                    />                   </View>
             </View>
 
             {/* ⚪️ Card Body Overlapping Header */}
@@ -215,5 +238,12 @@ const styles = StyleSheet.create({
     },
     iconButton: {
         marginLeft: 9,
+
     },
+    iconRow: { flexDirection: 'row' },
+    iconButton: { marginLeft: 9 },
+    iconPill: { backgroundColor: '#fff', padding: 6, borderRadius: 25 },
+
+    // If your PNGs are already colored, remove tintColor.
+    iconImg: { width: 22, height: 22, resizeMode: 'contain' },
 });

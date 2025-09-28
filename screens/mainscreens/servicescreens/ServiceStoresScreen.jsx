@@ -192,9 +192,34 @@ export default function ServiceStoresScreen() {
             <Ionicons name="chevron-back" size={22} color={COLOR.primary} />
           </TouchableOpacity>
           <ThemedText font="oleo" style={styles.headerTitle}>{serviceTitle}</ThemedText>
-          <View style={styles.headerIcons}>
-            <Ionicons name="cart-outline" size={22} color={COLOR.primary} style={styles.icon} />
-            <Ionicons name="notifications-outline" size={22} color={COLOR.primary} style={styles.icon} />
+          <View style={styles.iconRow}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('ServiceNavigator', { screen: 'Cart' })
+              }
+              style={[styles.iconButton, styles.iconPill]}
+              accessibilityRole="button"
+              accessibilityLabel="Open cart"
+            >
+              <Image
+                source={require('../../../assets/cart-icon.png')}
+                style={styles.iconImg}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('ServiceNavigator', { screen: 'Notifications' })
+              }
+              style={[styles.iconButton, styles.iconPill]}
+              accessibilityRole="button"
+              accessibilityLabel="Open notifications"
+            >
+              <Image
+                source={require('../../../assets/bell-icon.png')}
+                style={styles.iconImg}
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -205,8 +230,10 @@ export default function ServiceStoresScreen() {
             placeholderTextColor="#888"
             style={styles.searchInput}
           />
-          <Ionicons name="camera-outline" size={22} color="#444" style={styles.cameraIcon} />
-        </View>
+          <Image
+            source={require('../../../assets/camera-icon.png')}
+            style={styles.iconImg}
+          />           </View>
       </View>
 
       {/* Filters grid */}
@@ -557,6 +584,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  iconRow: { flexDirection: 'row' },
+  iconButton: { marginLeft: 9 },
+  iconPill: { backgroundColor: '#fff', padding: 6, borderRadius: 25 },
+
+  // If your PNGs are already colored, remove tintColor.
+  iconImg: { width: 22, height: 22, resizeMode: 'contain' },
   headerTitle: {
     position: "absolute",
     left: 0,
@@ -565,7 +598,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 24,
     fontWeight: "400",
-    marginLeft:-120
+    marginLeft: -120
   },
   headerIcons: { flexDirection: "row" },
   backBtn: { backgroundColor: "#fff", padding: 6, borderRadius: 30, zIndex: 5 },

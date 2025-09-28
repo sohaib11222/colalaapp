@@ -599,9 +599,34 @@ export default function StoresScreen() {
             <Ionicons name="chevron-back" size={22} color="#E53E3E" />
           </TouchableOpacity>
           <ThemedText font="oleo" style={styles.headerTitle}>Stores</ThemedText>
-          <View style={styles.headerIcons}>
-            <Ionicons name="cart-outline" size={22} color="#E53E3E" style={styles.icon} />
-            <Ionicons name="notifications-outline" size={22} color="#E53E3E" style={styles.icon} />
+          <View style={styles.iconRow}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('ServiceNavigator', { screen: 'Cart' })
+              }
+              style={[styles.iconButton, styles.iconPill]}
+              accessibilityRole="button"
+              accessibilityLabel="Open cart"
+            >
+              <Image
+                source={require('../../../assets/cart-icon.png')}
+                style={styles.iconImg}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('ServiceNavigator', { screen: 'Notifications' })
+              }
+              style={[styles.iconButton, styles.iconPill]}
+              accessibilityRole="button"
+              accessibilityLabel="Open notifications"
+            >
+              <Image
+                source={require('../../../assets/bell-icon.png')}
+                style={styles.iconImg}
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -614,8 +639,10 @@ export default function StoresScreen() {
             value={query}
             onChangeText={setQuery}
           />
-          <Ionicons name="camera-outline" size={22} color="#444" style={styles.cameraIcon} />
-        </View>
+          <Image
+            source={require('../../../assets/camera-icon.png')}
+            style={styles.iconImg}
+          />         </View>
       </View>
 
       {/* Filters (UI only; values are placeholders) */}
@@ -705,6 +732,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 50,
   },
+  iconRow: { flexDirection: 'row' },
+  iconButton: { marginLeft: 9 },
+  iconPill: { backgroundColor: '#fff', padding: 6, borderRadius: 25 },
+
+  // If your PNGs are already colored, remove tintColor.
+  iconImg: { width: 22, height: 22, resizeMode: 'contain' },
   searchInput: { flex: 1, fontSize: 14, color: '#333' },
   cameraIcon: { marginLeft: 8 },
 
