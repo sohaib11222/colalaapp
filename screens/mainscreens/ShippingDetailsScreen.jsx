@@ -527,7 +527,14 @@ export default function ShippingDetailsScreen() {
               <ThemedText style={styles.walletAmount}>
                 {currency(wallet.shopping_balance)}
               </ThemedText>
-              <TouchableOpacity style={styles.topupBtn}>
+              <TouchableOpacity 
+                style={styles.topupBtn}
+                onPress={() => navigation.navigate('FlutterwaveWebView', { 
+                  amount: 1000, 
+                  order_id: 'topup_' + Date.now(), 
+                  isTopUp: true 
+                })}
+              >
                 <ThemedText style={{ color: COLOR.primary, fontWeight: "700" }}>Top Up</ThemedText>
               </TouchableOpacity>
             </View>
@@ -602,7 +609,14 @@ export default function ShippingDetailsScreen() {
                 <ThemedText style={styles.walletSmall}>Shopping Wallet Balance</ThemedText>
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                   <ThemedText style={styles.walletAmount}>{currency(wallet.shopping_balance)}</ThemedText>
-                  <TouchableOpacity style={styles.topupBtn}>
+                  <TouchableOpacity 
+                    style={styles.topupBtn}
+                    onPress={() => navigation.navigate('FlutterwaveWebView', { 
+                      amount: 1000, 
+                      order_id: 'topup_' + Date.now(), 
+                      isTopUp: true 
+                    })}
+                  >
                     <ThemedText style={{ color: COLOR.primary, fontWeight: "700" }}>Top Up</ThemedText>
                   </TouchableOpacity>
                 </View>
