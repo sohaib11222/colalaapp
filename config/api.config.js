@@ -37,6 +37,7 @@ const API = {
   SEND_CHAT_MESSAGE: (chatId) => `${BASE_URL}/buyer/chats/${chatId}/send`,
   SUPPORT_TICKETS: `${BASE_URL}/buyer/support/tickets`,        // GET (index), POST (create)
   SUPPORT_TICKET_ID: (id) => `${BASE_URL}/buyer/support/tickets/${id}`,
+  Supoort_Ticket_Message: `${BASE_URL}/buyer/support/messages`,
   SERVICES: `${BASE_URL}/seller/service`,
   SEARCH: `${BASE_URL}/search`,
 
@@ -46,6 +47,22 @@ const API = {
   Services_Categories: `${BASE_URL}/service-categories`,
   Services_By_Category: (categoryId) => `${BASE_URL}/service-categories/${categoryId}`,
   Services_Detail: (serviceId) => `${BASE_URL}/seller/service/${serviceId}`,
+  Saved_Toggle_Item: `${BASE_URL}/buyer/saved-items/toggle`,
+  Check_Saved_Item: `${BASE_URL}/buyer/saved-items/check`,
+  Toggle_Follow_Store: `${BASE_URL}/buyer/followed-stores/toggle`,
+  Check_Followed_Store: `${BASE_URL}/buyer/followed-stores/check`,
+  Get_Followed_Stores: `${BASE_URL}/buyer/followed-stores`,
+  List_Of_All_Saved_Items: `${BASE_URL}/buyer/saved-items`,
+  Escrow_Wallet: `${BASE_URL}/faqs/escrow`,
+  Escrow_Wallet_History: `${BASE_URL}/faqs/escrow/history`,
+  Create_Dispute: `${BASE_URL}/faqs/dispute`,
+  All_Disputes: `${BASE_URL}/faqs/dispute/all`,
+  Dispute_Details: `${BASE_URL}/faqs/dispute/details`,
+  
+  // Support Tickets
+  Support_Tickets: `${BASE_URL}/buyer/support/tickets`,
+  Support_Ticket_Details: (ticketId) => `${BASE_URL}/buyer/support/tickets/${ticketId}`,
+  Support_Ticket_Message: `${BASE_URL}/buyer/support/messages`,
 };
 
 export default API;
@@ -578,3 +595,109 @@ export const useSearch = (type, q, options) =>
     ...options,
   });
 
+
+export const useSavedToggleItem = (opts) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.Saved_Toggle_Item, payload),
+    ...opts,
+  });
+
+export const useCheckSavedItem = (opts) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.Check_Saved_Item, payload),
+    ...opts,
+  });
+
+export const useToggleFollowStore = (opts) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.Toggle_Follow_Store, payload),
+    ...opts,
+  });
+
+export const useCheckFollowedStore = (opts) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.Check_Followed_Store, payload),
+    ...opts,
+  });
+
+export const useGetFollowedStores = (opts) =>
+  useQuery({
+    queryKey: ["followedStores"],
+    queryFn: () => http.get(API.Get_Followed_Stores),
+    ...opts,
+  });
+
+export const useListOfAllSavedItems = (opts) =>
+  useQuery({
+    queryKey: ["listOfAllSavedItems"],
+    queryFn: () => http.get(API.List_Of_All_Saved_Items),
+    ...opts,
+  });
+
+// Escrow Wallet Hooks
+export const useEscrowWallet = (options) =>
+  useQuery({
+    queryKey: ["escrowWallet"],
+    queryFn: () => http.get(API.Escrow_Wallet),
+    ...options,
+  });
+
+export const useEscrowWalletHistory = (page = 1, options) =>
+  useQuery({
+    queryKey: ["escrowWalletHistory", page],
+    queryFn: () => http.get(API.Escrow_Wallet_History, { page }),
+    ...options,
+  });
+
+
+// Dispute Hooks
+export const useCreateDispute = (opts) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.Create_Dispute, payload),
+    ...opts,
+  });
+
+export const useAllDisputes = (options) =>
+  useQuery({
+    queryKey: ["allDisputes"],
+    queryFn: () => http.get(API.All_Disputes),
+    ...options,
+  });
+
+export const useDisputeDetails = (disputeId, options) =>
+  useQuery({
+    enabled: !!disputeId,
+    queryKey: ["disputeDetails", disputeId],
+    queryFn: () => http.get(API.Dispute_Details(disputeId)),
+    ...options,
+  });
+
+
+export const useSupportTicketDetails = (ticketId, options) =>
+  useQuery({
+    enabled: !!ticketId,
+    queryKey: ["supportTicketDetails", ticketId],
+    queryFn: () => http.get(API.Support_Ticket_Details(ticketId)),
+    ...options,
+  });
+
+
+export const useSupportTicketMessage = (opts) =>
+  useMutation({
+    mutationFn: (payload) => {
+      console.log("API Request - Support Ticket Message:", {
+        url: API.Support_Ticket_Message,
+        payload: payload
+      });
+      return http.post(API.Support_Ticket_Message, payload);
+    },
+    ...opts,
+    onSuccess: (res, vars) => {
+      console.log("API Response - Support Ticket Message Success:", res);
+      queryClient.invalidateQueries({ queryKey: ["supportTicketDetails", vars.ticketId] });
+      opts?.onSuccess?.(res, vars);
+    },
+    onError: (err, vars) => {
+      opts?.onError?.(err, vars);
+    },
+  });

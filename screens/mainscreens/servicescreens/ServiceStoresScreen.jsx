@@ -348,9 +348,10 @@ export default function ServiceStoresScreen() {
                 <ThemedText style={styles.price}>{item.price}</ThemedText>
                 <TouchableOpacity
                   style={styles.detailsBtn}
-                  onPress={() =>
-                    navigation.navigate("ServiceDetails", { service: item.serviceData })
-                  }
+                  onPress={() => {
+                    console.log("Navigating to ServiceDetails with service:", item.serviceData);
+                    navigation.navigate("ServiceDetails", { service: item.serviceData });
+                  }}
                 >
                   <ThemedText style={styles.detailsText}>Details</ThemedText>
                 </TouchableOpacity>

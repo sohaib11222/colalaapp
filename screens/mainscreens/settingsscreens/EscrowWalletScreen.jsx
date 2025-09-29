@@ -7,11 +7,15 @@ import {
   SafeAreaView,
   Image,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText"; // <-- adjust path if needed
+
+import { useEscrowWallet } from "../../../config/api.config";
+import { useEscrowWalletHistory } from "../../../config/api.config";
 
 /* ---- THEME ---- */
 const COLOR = {
@@ -57,6 +61,114 @@ const LockRow = ({ item, onPressStore }) => (
 export default function EscrowWalletScreen() {
   const navigation = useNavigation();
 
+  // Fetch escrow wallet data
+  const { data: walletData, isLoading: walletLoading, error: walletError } = useEscrowWallet();
+  
+  // Fetch escrow wallet history
+  const { data: historyData, isLoading: historyLoading, error: historyError } = useEscrowWalletHistory();
+
+  // Helper function to format currency
+  const formatCurrency = (amount) => {
+    if (!amount) return "₦0";
+    return `₦${Number(amount).toLocaleString()}`;
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return "N/A";
+    }
+  };
+
+  // Process history data
+  const historyItems = useMemo(() => {
+    if (!historyData?.data?.data) return [];
+    return historyData.data.data.map((item, index) => ({
+      id: `h${index + 1}`,
+      title: item.title || "Transaction",
+      amount: formatCurrency(item.amount),
+      store: item.description || "View Details",
+      when: formatDate(item.created_at),
+      type: item.type || "transaction"
+    }));
+  }, [historyData]);
+
+  // Loading state
+  if (walletLoading || historyLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.canGoBack()
+                  ? navigation.goBack()
+                  : navigation.navigate("Home")
+              }
+              style={styles.iconBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="chevron-back" size={22} color={COLOR.text} />
+            </TouchableOpacity>
+            <ThemedText style={styles.headerTitle} pointerEvents="none">
+              Escrow Wallet
+            </ThemedText>
+            <View style={{ width: 40, height: 40 }} />
+          </View>
+        </View>
+        
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLOR.primary} />
+          <ThemedText style={styles.loadingText}>Loading wallet data...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (walletError || historyError) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.canGoBack()
+                  ? navigation.goBack()
+                  : navigation.navigate("Home")
+              }
+              style={styles.iconBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="chevron-back" size={22} color={COLOR.text} />
+            </TouchableOpacity>
+            <ThemedText style={styles.headerTitle} pointerEvents="none">
+              Escrow Wallet
+            </ThemedText>
+            <View style={{ width: 40, height: 40 }} />
+          </View>
+        </View>
+        
+        <View style={styles.errorContainer}>
+          <ThemedText style={styles.errorText}>
+            Failed to load wallet data. Please try again.
+          </ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
       {/* Header */}
@@ -64,20 +176,24 @@ export default function EscrowWalletScreen() {
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() =>
-              navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigation.navigate("Home")
             }
             style={styles.iconBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
-          <ThemedText style={styles.headerTitle} pointerEvents="none">Escrow Wallet</ThemedText>
+          <ThemedText style={styles.headerTitle} pointerEvents="none">
+            Escrow Wallet
+          </ThemedText>
           <View style={{ width: 40, height: 40 }} />
         </View>
       </View>
 
       <FlatList
-        data={LOCKS}
+        data={historyItems}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         ListHeaderComponent={
@@ -89,8 +205,10 @@ export default function EscrowWalletScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.gradientCard}
             >
-              <ThemedText style={styles.gcLabel}>Shopping Wallet</ThemedText>
-              <ThemedText style={styles.gcAmount}>N35,000</ThemedText>
+              <ThemedText style={styles.gcLabel}>Escrow Wallet</ThemedText>
+              <ThemedText style={styles.gcAmount}>
+                {formatCurrency(walletData?.data?.locked_balance)}
+              </ThemedText>
             </LinearGradient>
 
             <ThemedText style={styles.sectionTitle}>History</ThemedText>
@@ -107,6 +225,17 @@ export default function EscrowWalletScreen() {
         )}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="wallet-outline" size={48} color={COLOR.sub} />
+            <ThemedText style={styles.emptyText}>
+              No transaction history found
+            </ThemedText>
+            <ThemedText style={styles.emptySubText}>
+              Your escrow transactions will appear here
+            </ThemedText>
+          </View>
+        }
       />
     </SafeAreaView>
   );
@@ -142,14 +271,24 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   iconBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: "#fff", borderWidth: 1, borderColor: COLOR.line,
-    alignItems: "center", justifyContent: "center",
-    zIndex: 5
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 5,
   },
   headerTitle: {
-    position: "absolute", left: 0, right: 0, textAlign: "center",
-    color: COLOR.text, fontSize: 18, fontWeight: "400",
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    color: COLOR.text,
+    fontSize: 18,
+    fontWeight: "400",
   },
 
   gradientCard: {
@@ -188,4 +327,51 @@ const styles = StyleSheet.create({
   rowLink: { color: COLOR.primary, marginTop: 4, fontSize: 12 },
   rowAmount: { color: COLOR.primary, fontWeight: "800" },
   rowWhen: { color: COLOR.sub, fontSize: 11, marginTop: 6 },
+  
+  // Loading, Error, and Empty States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLOR.text,
+    textAlign: "center",
+  },
+  emptySubText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: COLOR.sub,
+    textAlign: "center",
+    lineHeight: 20,
+  },
 });

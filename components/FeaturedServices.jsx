@@ -122,12 +122,13 @@ const FeaturedServices = () => {
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.card}
-            onPress={() => 
+            onPress={() => {
+              console.log("FeaturedServices navigating to ServiceDetails with service:", item);
               navigation.navigate("ServiceNavigator", {
                 screen: "ServiceDetails",
                 params: { service: item }
-              })
-            }
+              });
+            }}
           >
             <Image
               source={getServiceImage(item)}
@@ -160,12 +161,13 @@ const FeaturedServices = () => {
 
               <TouchableOpacity 
                 style={styles.detailsBtn}
-                onPress={() => 
+                onPress={() => {
+                  console.log("FeaturedServices navigating to ServiceDetails with service:", item);
                   navigation.navigate("ServiceNavigator", {
                     screen: "ServiceDetails",
                     params: { service: item }
-                  })
-                }
+                  });
+                }}
               >
                 <ThemedText style={styles.detailsBtnText}>Details</ThemedText>
               </TouchableOpacity>

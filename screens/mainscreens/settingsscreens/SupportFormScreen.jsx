@@ -1,319 +1,459 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
-  Text,
   TextInput,
-  StyleSheet,
   TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  Platform,
+  ActivityIndicator,
   Image,
   Modal,
-  FlatList,
-  Alert,
-  Platform,
+  Pressable,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { StatusBar } from "expo-status-bar";
-import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
-
-// adjust import path to where your api.config.js lives
 import { useCreateSupportTicket } from "../../../config/api.config";
 
 const COLOR = {
   primary: "#E53E3E",
-  bg: "#F5F6F8",
-  card: "#FFFFFF",
-  text: "#101318",
-  sub: "#6C727A",
-  line: "#ECEDEF",
+  bg: "#F8F9FA",
+  white: "#fff",
+  text: "#2D3748",
+  sub: "#718096",
+  line: "#E2E8F0",
+  lightGray: "#F7FAFC",
 };
 
 const CATEGORIES = [
-  "Account",
   "Orders",
   "Payments",
-  "Delivery",
+  "Account",
   "Technical",
+  "Refunds",
   "Other",
 ];
 
 export default function SupportFormScreen() {
   const navigation = useNavigation();
-
   const [category, setCategory] = useState("");
-  const [details, setDetails] = useState("");
+  const [subject, setSubject] = useState("");
+  const [description, setDescription] = useState("");
   const [imageUri, setImageUri] = useState(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
 
-  const createTicket = useCreateSupportTicket({
-    onSuccess: () => {
-      Alert.alert("Success", "Ticket created");
-      navigation.goBack();
+  // Create support ticket mutation
+  const { mutate: createTicket, isLoading: isCreating } = useCreateSupportTicket({
+    onSuccess: (data) => {
+      Alert.alert(
+        "Success",
+        "Support ticket created successfully. Our team will get back to you soon.",
+        [
+          {
+            text: "OK",
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
     },
-    onError: (err) => {
-      const msg =
-        err?.data?.message ||
-        err?.message ||
-        "Could not create the ticket. Please try again.";
-      Alert.alert("Error", String(msg));
+    onError: (error) => {
+      console.log("Create ticket error:", error);
+      Alert.alert("Error", "Failed to create support ticket. Please try again.");
     },
   });
 
-  const subject = useMemo(() => {
-    const head = (details || "").trim().replace(/\s+/g, " ").slice(0, 60);
-    return `${category || "General"} - ${head || "Issue"}`;
-  }, [category, details]);
-
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission required", "Please allow photo library access.");
-      return;
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Please grant permission to access your photo library."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log("Image picker error:", error);
+      Alert.alert("Error", "Failed to pick image. Please try again.");
     }
-    const res = await ImagePicker.launchImageLibraryAsync({
-      allowsEditing: false,
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-    });
-    if (!res.canceled && res.assets?.[0]?.uri) setImageUri(res.assets[0].uri);
   };
 
-  const submit = () => {
-    if (!category.trim()) return Alert.alert("Validation", "Select an issue category.");
-    if (!details.trim()) return Alert.alert("Validation", "Type issue details.");
+  const selectCategory = (selectedCategory) => {
+    setCategory(selectedCategory);
+    setShowCategoryModal(false);
+  };
 
-    // We keep exactly your UI; subject is generated here to satisfy the API.
-    createTicket.mutate({
-      category: category.trim(),
-      subject: subject,
-      description: details.trim(),
-      order_id: null,
-      store_order_id: null,
-      // image is only used if your hook posts FormData (see comments in api.config.js)
-      image: imageUri || undefined,
-    });
+  const handleSubmit = () => {
+    if (!category || !description.trim()) {
+      Alert.alert("Missing Information", "Please fill in all required fields.");
+      return;
+    }
+
+    // Create form data
+    const formData = new FormData();
+    formData.append("category", category);
+    formData.append("subject", `${category} - ${description.trim().substring(0, 50)}`);
+    formData.append("description", description.trim());
+    
+    if (imageUri) {
+      formData.append("image", {
+        uri: imageUri,
+        type: "image/jpeg",
+        name: "support_image.jpg",
+      });
+    }
+
+    createTicket(formData);
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F7FF" }}>
-      <StatusBar style="dark" />
-
-      {/* Top bar */}
-      <View style={styles.bar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, {borderWidth:0.3, borderColor:"#ccc"}]}>
-          <Ionicons name="chevron-back" size={20} color={COLOR.text} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }} edges={["top", "bottom"]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={24} color={COLOR.text} />
         </TouchableOpacity>
-        <ThemedText style={styles.barTitle}>Support Form</ThemedText>
-        <View style={{ width: 36 }} />
+        <ThemedText style={styles.headerTitle}>Support Form</ThemedText>
+        <View style={{ width: 24 }} />
       </View>
 
-      {/* Body */}
-      <View style={styles.screenPad}>
-        {/* Category row (select) */}
-        <TouchableOpacity style={styles.categoryRow} onPress={() => setPickerOpen(true)} activeOpacity={0.9}>
-          <ThemedText
-            style={[
-              styles.categoryText,
-              !category ? { color: "#9CA3AF", fontSize:14 } : { color: COLOR.text },
-            ]}
-            numberOfLines={1}
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Category Selection */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.selectRow}
+            onPress={() => setShowCategoryModal(true)}
+            disabled={isCreating}
           >
-            {category || "Issue Category"}
-          </ThemedText>
-            <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-        </TouchableOpacity>
+            <ThemedText
+              style={[
+                styles.selectText,
+                { color: category ? COLOR.text : COLOR.sub },
+              ]}
+            >
+              {category || "Issue Category"}
+            </ThemedText>
+            <Ionicons name="chevron-forward" size={18} color={COLOR.sub} />
+          </TouchableOpacity>
+        </View>
 
-        {/* Details box */}
-        <TextInput
-          style={styles.detailsBox}
-          value={details}
-          onChangeText={setDetails}
-          placeholder="Type Issue Details"
-          placeholderTextColor="#9CA3AF"
-          multiline
-          textAlignVertical="top"
-        />
+        {/* Description */}
+        <View style={styles.section}>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Type Issue Details"
+            placeholderTextColor={COLOR.sub}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            textAlignVertical="top"
+            maxLength={1000}
+          />
+        </View>
 
-        {/* Image tile */}
-        <TouchableOpacity style={styles.imageTile} onPress={pickImage} activeOpacity={0.9}>
-          {imageUri ? (
-            <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+        {/* Image Attachment */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.attachmentButton}
+            onPress={pickImage}
+            disabled={isCreating}
+          >
+            {imageUri ? (
+              <View style={styles.imagePreview}>
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.previewImage}
+                />
+                <TouchableOpacity
+                  onPress={() => setImageUri(null)}
+                  style={styles.removeImage}
+                >
+                  <Ionicons name="close" size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.attachmentPlaceholder}>
+                <Ionicons name="image-outline" size={24} color={COLOR.sub} />
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Submit Button */}
+        <TouchableOpacity
+          onPress={handleSubmit}
+          disabled={!category || !description.trim() || isCreating}
+          style={[
+            styles.submitButton,
+            {
+              opacity:
+                !category || !description.trim() || isCreating
+                  ? 0.6
+                  : 1,
+            },
+          ]}
+        >
+          {isCreating ? (
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Ionicons name="image-outline" size={24} color="#6B7280" />
+            <ThemedText style={styles.submitButtonText}>
+              Proceed
+            </ThemedText>
           )}
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
-      {/* Proceed button */}
-      <TouchableOpacity
-        style={[styles.proceedBtn, createTicket.isPending && { opacity: 0.7 }]}
-        onPress={submit}
-        disabled={createTicket.isPending}
-        activeOpacity={0.9}
+      {/* Category Selection Modal */}
+      <Modal
+        visible={showCategoryModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCategoryModal(false)}
       >
-        <ThemedText style={styles.proceedText}>
-          {createTicket.isPending ? "Submitting..." : "Proceed"}
-        </ThemedText>
-      </TouchableOpacity>
+        <Pressable
+          style={styles.categoryOverlay}
+          onPress={() => setShowCategoryModal(false)}
+        >
+          <View style={styles.categoryModal}>
+            <View style={styles.categoryHeader}>
+              <ThemedText style={styles.categoryTitle}>
+                Select Category
+              </ThemedText>
+              <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
+                <Ionicons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
 
-      {/* Simple Category Picker (modal) */}
-      <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <ThemedText style={styles.modalTitle}>Select Category</ThemedText>
-            <FlatList
-              data={CATEGORIES}
-              keyExtractor={(item) => item}
-              renderItem={({ item }) => (
+            <View style={styles.categoryList}>
+              {CATEGORIES.map((cat, index) => (
                 <TouchableOpacity
-                  style={styles.modalItem}
-                  onPress={() => {
-                    setCategory(item);
-                    setPickerOpen(false);
-                  }}
+                  key={index}
+                  style={[
+                    styles.categoryItem,
+                    category === cat && styles.categoryItemSelected,
+                  ]}
+                  onPress={() => selectCategory(cat)}
                 >
-                  <ThemedText style={styles.modalItemText}>{item}</ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.categoryText,
+                      category === cat && styles.categoryTextSelected,
+                    ]}
+                  >
+                    {cat}
+                  </ThemedText>
+                  {category === cat && (
+                    <Ionicons
+                      name="checkmark"
+                      size={20}
+                      color={COLOR.primary}
+                    />
+                  )}
                 </TouchableOpacity>
-              )}
-              ItemSeparatorComponent={() => <View style={styles.modalSep} />}
-            />
-            <TouchableOpacity onPress={() => setPickerOpen(false)} style={styles.modalClose}>
-              <ThemedText style={styles.modalCloseText}>Cancel</ThemedText>
-            </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
 }
 
-function iosShadow(d = 8) {
-  return Platform.select({
-    ios: {
-      shadowColor: "#000",
-      shadowOpacity: 0.06,
-      shadowRadius: d / 2,
-      shadowOffset: { width: 0, height: d / 3 },
-    },
-    android: { elevation: d / 2 },
-  });
-}
-
 const styles = StyleSheet.create({
-  bar: {
+  header: {
+    backgroundColor: COLOR.white,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 14,
-    paddingTop: 15,
-    paddingBottom: 8,
-    backgroundColor:"#fff"
+    borderBottomWidth: 0,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-
+  backButton: { 
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: COLOR.lightGray,
   },
-  barTitle: {
-    fontSize: 16.5,
-    fontWeight: "700",
-    color: COLOR.text,
+  headerTitle: { 
+    fontSize: 18, 
+    color: COLOR.text, 
+    fontWeight: "600" 
   },
 
-  screenPad: {
-    paddingHorizontal: 14,
-    paddingTop: 8,
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
-
-  categoryRow: {
-    height: 52,
+  section: {
+    marginBottom: 24,
+    backgroundColor: COLOR.white,
     borderRadius: 12,
+    padding: 16,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLOR.text,
+    marginBottom: 8,
+  },
+  selectRow: {
+    backgroundColor: COLOR.white,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     borderWidth: 1,
     borderColor: COLOR.line,
-    backgroundColor: "#fff",
-    paddingHorizontal: 14,
-    flexDirection: "row",
+  },
+  selectText: { 
+    fontSize: 16,
+    color: COLOR.text,
+  },
+  input: {
+    backgroundColor: COLOR.white,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: COLOR.text,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+  },
+  textArea: {
+    height: 200,
+    textAlignVertical: "top",
+  },
+  charCount: {
+    fontSize: 12,
+    color: COLOR.sub,
+    textAlign: "right",
+    marginTop: 4,
+  },
+  attachmentButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: COLOR.lightGray,
     alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: COLOR.line,
+  },
+  attachmentPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imagePreview: {
+    position: "relative",
+  },
+  previewImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+  },
+  removeImage: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: COLOR.primary,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imagePlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imagePlaceholderText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: COLOR.sub,
+  },
+  submitButton: {
+    backgroundColor: COLOR.primary,
+    borderRadius: 8,
+    paddingVertical: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    marginTop: 20,
+  },
+  submitButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  // Category Modal Styles
+  categoryOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  categoryModal: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "70%",
+  },
+  categoryHeader: {
+    flexDirection: "row",
     justifyContent: "space-between",
-    // ...iosShadow(4),
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5E5",
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000",
+  },
+  categoryList: {
+    paddingVertical: 10,
+  },
+  categoryItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  categoryItemSelected: {
+    backgroundColor: "#FFF5F5",
   },
   categoryText: {
-    fontSize: 14,
-    flex: 1,
-    marginRight: 8,
-  },
-
-  detailsBox: {
-    marginTop: 12,
-    height: 180,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLOR.line,
-    backgroundColor: "#fff",
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    fontSize: 14,
-    color: COLOR.text,
-    // ...iosShadow(2),
-  },
-
-  imageTile: {
-    width: 66,
-    height: 66,
-    borderRadius: 12,
-    backgroundColor: "#E6E7EB",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 14,
-  },
-  imagePreview: { width: 56, height: 56, borderRadius: 10 },
-
-  proceedBtn: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 20,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: COLOR.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    ...iosShadow(10),
-  },
-  proceedText: { color: "#fff", fontWeight: "600" },
-
-  // modal
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 420,
-    borderRadius: 14,
-    backgroundColor: "#fff",
-    paddingVertical: 10,
-    ...iosShadow(12),
-  },
-  modalTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    color: COLOR.text,
-    paddingHorizontal: 14,
-    paddingBottom: 8,
+    color: "#000",
   },
-  modalItem: { paddingHorizontal: 14, paddingVertical: 12 },
-  modalItemText: { fontSize: 14, color: COLOR.text },
-  modalSep: { height: 1, backgroundColor: "#F0F1F4" },
-  modalClose: { padding: 12, alignItems: "center" },
-  modalCloseText: { color: COLOR.primary, fontWeight: "600" },
+  categoryTextSelected: {
+    color: COLOR.primary,
+    fontWeight: "600",
+  },
 });

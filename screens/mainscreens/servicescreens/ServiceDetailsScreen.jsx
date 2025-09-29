@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
@@ -14,11 +16,39 @@ import { StatusBar } from "expo-status-bar";
 import ThemedText from "../../../components/ThemedText";
 
 import { useServicesDetail } from "../../../config/api.config";
+import { useSavedToggleItem } from "../../../config/api.config";
+import { useCheckSavedItem } from "../../../config/api.config";
+
 
 const ServiceDetailsScreen = () => {
   const { params } = useRoute();
   const navigation = useNavigation();
   const { service } = params;
+
+  // Handle case where service is not passed or doesn't have an id
+  if (!service || !service.id) {
+    return (
+      <View style={styles.errorContainer}>
+        <ThemedText style={styles.errorText}>
+          Service information not available. Please try again.
+        </ThemedText>
+        <TouchableOpacity 
+          style={styles.retryButton}
+          onPress={() => navigation.goBack()}
+        >
+          <ThemedText style={styles.retryButtonText}>Go Back</ThemedText>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // State for saved status
+  const [isSaved, setIsSaved] = useState(false);
+  const [isCheckingSaved, setIsCheckingSaved] = useState(true);
+  
+  // State for image viewer
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Fetch service details from API
   const {
@@ -26,6 +56,64 @@ const ServiceDetailsScreen = () => {
     isLoading,
     error,
   } = useServicesDetail(service?.id);
+
+  // Check if service is saved
+  const { mutate: checkSaved } = useCheckSavedItem({
+    onSuccess: (data) => {
+      setIsSaved(data?.data?.saved || false);
+      setIsCheckingSaved(false);
+    },
+    onError: () => {
+      setIsSaved(false);
+      setIsCheckingSaved(false);
+    },
+  });
+
+  // Toggle saved status
+  const { mutate: toggleSaved, isLoading: isToggling } = useSavedToggleItem({
+    onSuccess: (data) => {
+      setIsSaved(data?.data?.saved || false);
+    },
+    onError: (error) => {
+      console.error("Error toggling saved status:", error);
+    },
+  });
+
+  // Check saved status when component mounts
+  useEffect(() => {
+    if (service?.id) {
+      checkSaved({
+        type: "service",
+        type_id: service.id.toString(),
+      });
+    }
+  }, [service?.id]);
+
+  // Handle heart icon press
+  const handleHeartPress = () => {
+    if (service?.id && !isToggling) {
+      toggleSaved({
+        type: "service",
+        type_id: service.id.toString(),
+      });
+    }
+  };
+
+  // Handle video play
+  const handleVideoPlay = () => {
+    const videoUri = getFirstVideo(serviceInfo?.media);
+    if (videoUri) {
+      // TODO: Implement video player
+      console.log("Play video:", videoUri);
+      // You can integrate with react-native-video or expo-av here
+    }
+  };
+
+  // Handle image click
+  const handleImageClick = () => {
+    setCurrentImageIndex(0);
+    setImageViewerVisible(true);
+  };
 
   // Helper function to format price
   const formatPrice = (priceFrom, priceTo) => {
@@ -40,6 +128,44 @@ const ServiceDetailsScreen = () => {
       return { uri: `https://colala.hmstech.xyz/storage/${media[0].path}` };
     }
     return require("../../../assets/Frame 264.png"); // Default image
+  };
+
+  // Helper function to check if media has video
+  const hasVideo = (media) => {
+    return media && media.some(item => item.type === 'video');
+  };
+
+  // Helper function to get first video
+  const getFirstVideo = (media) => {
+    if (media && media.length > 0) {
+      const video = media.find(item => item.type === 'video');
+      return video ? { uri: `https://colala.hmstech.xyz/storage/${video.path}` } : null;
+    }
+    return null;
+  };
+
+  // Helper function to get all images for viewer
+  const getAllImages = (media) => {
+    if (media && media.length > 0) {
+      return media
+        .filter(item => item.type === 'image')
+        .map(item => ({ uri: `https://colala.hmstech.xyz/storage/${item.path}` }));
+    }
+    return [getServiceImage(media)];
+  };
+
+  // Handle image viewer navigation
+  const handleNextImage = () => {
+    const images = getAllImages(serviceInfo?.media);
+    if (currentImageIndex < images.length - 1) {
+      setCurrentImageIndex(currentImageIndex + 1);
+    }
+  };
+
+  const handlePrevImage = () => {
+    if (currentImageIndex > 0) {
+      setCurrentImageIndex(currentImageIndex - 1);
+    }
   };
 
   // Helper function to get price breakdown from sub_services
@@ -123,20 +249,34 @@ const ServiceDetailsScreen = () => {
               borderWidth: 1,
               borderRadius: 30,
             }}
+            onPress={handleHeartPress}
+            disabled={isToggling || isCheckingSaved}
           >
-            <Ionicons name="heart-outline" size={22} color="#000" />
+            {isToggling || isCheckingSaved ? (
+              <ActivityIndicator size="small" color="#000" />
+            ) : (
+              <Ionicons 
+                name={isSaved ? "heart" : "heart-outline"} 
+                size={22} 
+                color={isSaved ? "#E53E3E" : "#000"} 
+              />
+            )}
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.imageContainer}>
-        <Image
-          source={getServiceImage(serviceInfo?.media)}
-          style={styles.mainImage}
-        />
-        <View style={styles.videoIcon}>
-          <Ionicons name="videocam" size={30} color="#fff" />
-        </View>
+        <TouchableOpacity onPress={hasVideo(serviceInfo?.media) ? handleVideoPlay : handleImageClick}>
+          <Image
+            source={getServiceImage(serviceInfo?.media)}
+            style={styles.mainImage}
+          />
+          {hasVideo(serviceInfo?.media) && (
+            <View style={styles.videoIcon}>
+              <Ionicons name="play-circle" size={50} color="#fff" />
+            </View>
+          )}
+        </TouchableOpacity>
 
         {/* Store Info Overlay */}
         <View style={styles.storeOverlay}>
@@ -248,6 +388,73 @@ const ServiceDetailsScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Image Viewer Modal */}
+      <Modal
+        visible={imageViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setImageViewerVisible(false)}
+      >
+        <View style={styles.imageViewerContainer}>
+          <TouchableOpacity
+            style={styles.imageViewerClose}
+            onPress={() => setImageViewerVisible(false)}
+          >
+            <Ionicons name="close" size={30} color="#fff" />
+          </TouchableOpacity>
+          
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            style={styles.imageViewerScroll}
+            contentOffset={{ x: currentImageIndex * Dimensions.get('window').width, y: 0 }}
+          >
+            {getAllImages(serviceInfo?.media).map((image, index) => (
+              <View key={index} style={styles.imageViewerItem}>
+                <Image
+                  source={image}
+                  style={styles.imageViewerImage}
+                  resizeMode="contain"
+                />
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Navigation buttons */}
+          {getAllImages(serviceInfo?.media).length > 1 && (
+            <>
+              {currentImageIndex > 0 && (
+                <TouchableOpacity
+                  style={[styles.imageViewerNav, styles.imageViewerNavLeft]}
+                  onPress={handlePrevImage}
+                >
+                  <Ionicons name="chevron-back" size={30} color="#fff" />
+                </TouchableOpacity>
+              )}
+              
+              {currentImageIndex < getAllImages(serviceInfo?.media).length - 1 && (
+                <TouchableOpacity
+                  style={[styles.imageViewerNav, styles.imageViewerNavRight]}
+                  onPress={handleNextImage}
+                >
+                  <Ionicons name="chevron-forward" size={30} color="#fff" />
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+
+          {/* Image counter */}
+          {getAllImages(serviceInfo?.media).length > 1 && (
+            <View style={styles.imageCounter}>
+              <ThemedText style={styles.imageCounterText}>
+                {currentImageIndex + 1} / {getAllImages(serviceInfo?.media).length}
+              </ThemedText>
+            </View>
+          )}
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -293,11 +500,15 @@ const styles = StyleSheet.create({
   },
   videoIcon: {
     position: "absolute",
-    top: "40%",
-    left: "45%",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -25 }, { translateY: -25 }],
     backgroundColor: "#000000CC",
-    padding: 20,
-    borderRadius: 40,
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
   },
   storeOverlay: {
     position: "absolute",
@@ -434,5 +645,90 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#E53E3E",
     fontSize: 14,
+  },
+  // Image Viewer Styles
+  imageViewerContainer: {
+    flex: 1,
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageViewerClose: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: "#00000080",
+    borderRadius: 20,
+    padding: 10,
+  },
+  imageViewerScroll: {
+    flex: 1,
+    width: Dimensions.get('window').width,
+  },
+  imageViewerItem: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageViewerImage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
+  },
+  imageViewerNav: {
+    position: "absolute",
+    top: "50%",
+    backgroundColor: "#00000080",
+    borderRadius: 25,
+    padding: 15,
+    zIndex: 10,
+  },
+  imageViewerNavLeft: {
+    left: 20,
+  },
+  imageViewerNavRight: {
+    right: 20,
+  },
+  imageCounter: {
+    position: "absolute",
+    bottom: 50,
+    alignSelf: "center",
+    backgroundColor: "#00000080",
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 15,
+  },
+  imageCounterText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  // Error handling styles
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    backgroundColor: "#fff",
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#E53E3E",
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  retryButton: {
+    backgroundColor: "#E53E3E",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
