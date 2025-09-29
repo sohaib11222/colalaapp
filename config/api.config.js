@@ -64,6 +64,7 @@ const API = {
   Support_Tickets: `${BASE_URL}/buyer/support/tickets`,
   Support_Ticket_Details: (ticketId) => `${BASE_URL}/buyer/support/tickets/${ticketId}`,
   Support_Ticket_Message: `${BASE_URL}/buyer/support/messages`,
+  My_Points: `${BASE_URL}/my-points`,
 };
 
 export default API;
@@ -768,4 +769,13 @@ export const fileUrl = (p) => {
   const cleaned = String(p).replace(/^\/?storage\/?/, ""); // avoid duplicated /storage
   return `${base}/storage/${cleaned}`;
 };
+
+
+export const useMyPoints = (options) =>
+  useQuery({
+    queryKey: ["myPoints"],
+    queryFn: () => http.get(API.My_Points),
+    ...options,
+  });
+
 

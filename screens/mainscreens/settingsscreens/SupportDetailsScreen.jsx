@@ -82,6 +82,7 @@ export default function SupportDetailsScreen() {
   const [headerH, setHeaderH] = useState(0);
   const [inputText, setInputText] = useState("");
   const [imageUri, setImageUri] = useState(null);
+  const [optimisticMessages, setOptimisticMessages] = useState([]);
   const listRef = useRef(null);
 
   // Fetch ticket details
@@ -97,39 +98,44 @@ export default function SupportDetailsScreen() {
 
   // Process messages data
   const messages = useMemo(() => {
-    if (!ticketData?.data?.messages) return [];
-    const sorted = [...ticketData.data.messages].sort(
-      (a, b) => new Date(a.created_at) - new Date(b.created_at)
-    );
+    let apiMessages = [];
+    if (ticketData?.data?.messages) {
+      const sorted = [...ticketData.data.messages].sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      );
+      
+      apiMessages = sorted.map((m) => {
+        // Determine sender type based on role and user_id
+        const isCurrentUser = m.sender_id === ticketData.data.user_id;
+        const isSupport = m.sender?.role === "seller" || m.sender?.role === "admin";
+        const isSystem = m.sender?.role === "system";
+        
+        let senderType = "support";
+        if (isCurrentUser) {
+          senderType = "me";
+        } else if (isSupport) {
+          senderType = "support";
+        } else if (isSystem) {
+          senderType = "system";
+        }
+        
+        return {
+          id: m.id,
+          text: m.message || "",
+          sender: senderType,
+          time: fmtTime(m.created_at),
+          attachment: m.attachment,
+          senderInfo: m.sender,
+          isRead: m.is_read,
+        };
+      });
+    }
     
-    const processedMessages = sorted.map((m) => {
-      // Determine sender type based on role and user_id
-      const isCurrentUser = m.sender_id === ticketData.data.user_id;
-      const isSupport = m.sender?.role === "seller" || m.sender?.role === "admin";
-      const isSystem = m.sender?.role === "system";
-      
-      let senderType = "support";
-      if (isCurrentUser) {
-        senderType = "me";
-      } else if (isSupport) {
-        senderType = "support";
-      } else if (isSystem) {
-        senderType = "system";
-      }
-      
-      return {
-        id: m.id,
-        text: m.message || "",
-        sender: senderType,
-        time: fmtTime(m.created_at),
-        attachment: m.attachment,
-        senderInfo: m.sender,
-        isRead: m.is_read,
-      };
-    });
+    // Combine API messages with optimistic messages
+    const allMessages = [...apiMessages, ...optimisticMessages];
     
     // Add welcome message if no messages exist
-    if (processedMessages.length === 0) {
+    if (allMessages.length === 0) {
       return [{
         id: "welcome",
         text: "Kindly be patient, a customer agent will join you shortly",
@@ -141,8 +147,8 @@ export default function SupportDetailsScreen() {
       }];
     }
     
-    return processedMessages;
-  }, [ticketData]);
+    return allMessages;
+  }, [ticketData, optimisticMessages]);
 
   useEffect(() => {
     const a = Keyboard.addListener("keyboardDidShow", scrollToEnd);
@@ -186,8 +192,8 @@ export default function SupportDetailsScreen() {
   // Use the support ticket message hook
   const { mutate: sendMessage, isLoading: isSending } = useSupportTicketMessage({
     onSuccess: (data) => {
-      setInputText("");
-      setImageUri(null);
+      // Clear optimistic messages on successful send
+      setOptimisticMessages([]);
       scrollToEnd();
       // Refresh ticket details
       queryClient.invalidateQueries({ queryKey: ["supportTicketDetails", ticketId] });
@@ -224,6 +230,28 @@ export default function SupportDetailsScreen() {
       Alert.alert("Error", "Ticket ID is missing. Please try again.");
       return;
     }
+
+    // Create optimistic message
+    const optimisticMessage = {
+      id: `temp_${Date.now()}`,
+      text: v,
+      sender: "me",
+      time: fmtTime(new Date()),
+      attachment: imageUri,
+      senderInfo: null,
+      isRead: false,
+      isOptimistic: true,
+    };
+
+    // Add optimistic message immediately
+    setOptimisticMessages(prev => [...prev, optimisticMessage]);
+    
+    // Clear input and image
+    setInputText("");
+    setImageUri(null);
+    
+    // Scroll to end
+    scrollToEnd();
 
     // Create form data
     const formData = new FormData();
@@ -264,13 +292,15 @@ export default function SupportDetailsScreen() {
     const mine = item.sender === "me";
     const isSystem = item.sender === "system";
     const isSupport = item.sender === "support";
+    const isOptimistic = item.isOptimistic;
     
     return (
       <View style={styles.messageContainer}>
         <View
           style={[
             styles.bubble, 
-            mine ? styles.bubbleRight : isSystem ? styles.bubbleSystem : styles.bubbleLeft
+            mine ? styles.bubbleRight : isSystem ? styles.bubbleSystem : styles.bubbleLeft,
+            isOptimistic && styles.bubbleOptimistic
           ]}
         >
           {!mine && !isSystem && (
@@ -286,7 +316,7 @@ export default function SupportDetailsScreen() {
           </ThemedText>
           {item.attachment && (
             <Image
-              source={{ uri: `https://colala.hmstech.xyz/storage/${item.attachment}` }}
+              source={{ uri: item.attachment.startsWith('http') ? item.attachment : `https://colala.hmstech.xyz/storage/${item.attachment}` }}
               style={styles.attachmentImage}
               resizeMode="cover"
             />
@@ -301,9 +331,9 @@ export default function SupportDetailsScreen() {
             {mine && (
               <View style={styles.readStatus}>
                 <Ionicons 
-                  name={item.isRead ? "checkmark-done" : "checkmark"} 
+                  name={isOptimistic ? "time" : (item.isRead ? "checkmark-done" : "checkmark")} 
                   size={12} 
-                  color={item.isRead ? "#4CAF50" : "#fff"} 
+                  color={isOptimistic ? "#fff" : (item.isRead ? "#4CAF50" : "#fff")} 
                 />
               </View>
             )}
@@ -376,28 +406,26 @@ export default function SupportDetailsScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="chevron-back" size={24} color={COLOR.text} />
+            <Ionicons name="chevron-back" size={24} color="#000" />
           </TouchableOpacity>
 
           <View style={styles.headerCenter}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={toSrc(user?.profile_picture) || require("../../../assets/Ellipse 18.png")}
-                style={styles.avatar}
-              />
-            </View>
+            <Image
+              source={require("../../../assets/Ellipse 18.png")}
+              style={styles.avatar}
+            />
             <View>
               <ThemedText style={styles.storeName}>
-                {user?.full_name || "Support Team"}
+                Sasha Stores
               </ThemedText>
               <ThemedText style={styles.lastSeen}>
-                {ticket?.status === "open" ? "Online" : "Offline"}
+                Last seen 3 min ago
               </ThemedText>
             </View>
           </View>
 
           <TouchableOpacity style={styles.cartButton}>
-            <Ionicons name="cart-outline" size={20} color={COLOR.text} />
+            <Ionicons name="cart-outline" size={20} color="#000" />
           </TouchableOpacity>
         </View>
 
@@ -405,25 +433,19 @@ export default function SupportDetailsScreen() {
         <View style={styles.disputeCard}>
           <View style={styles.disputeRow}>
             <ThemedText style={styles.disputeLabel}>Category</ThemedText>
-            <ThemedText style={styles.disputeValue}>{ticket?.category || "N/A"}</ThemedText>
-          </View>
-          <View style={styles.disputeRow}>
-            <ThemedText style={styles.disputeLabel}>Subject</ThemedText>
-            <ThemedText style={styles.disputeValue}>{ticket?.subject || "N/A"}</ThemedText>
+            <ThemedText style={styles.disputeValue}>Payment Dispute</ThemedText>
           </View>
           <View style={styles.disputeRow}>
             <ThemedText style={styles.disputeLabel}>Details</ThemedText>
-            <ThemedText style={styles.disputeDescription}>{ticket?.description || "No description provided"}</ThemedText>
+            <ThemedText style={styles.disputeDescription}>I made payment and my wallet was not credited</ThemedText>
           </View>
-          <View style={styles.disputeRow}>
-            <ThemedText style={styles.disputeLabel}>Status</ThemedText>
-            <ThemedText style={[styles.disputeValue, { 
-              color: ticket?.status === "open" ? "#10B981" : "#EF4444",
-              textTransform: "capitalize"
-            }]}>
-              {ticket?.status || "Unknown"}
-            </ThemedText>
-          </View>
+        </View>
+
+        {/* System Message Bar */}
+        <View style={styles.systemMessageBar}>
+          <ThemedText style={styles.systemMessageText}>
+            Kindly be patient, a customer agent will join you shortly
+          </ThemedText>
         </View>
 
         {/* Messages */}
@@ -453,7 +475,7 @@ export default function SupportDetailsScreen() {
         {/* Composer */}
         <View style={[styles.composer, { marginBottom: 10 + insets.bottom }]}>
           <TouchableOpacity onPress={pickImage} disabled={isSending}>
-            <Ionicons name="image-outline" size={24} color={COLOR.primary} />
+            <Ionicons name="attach" size={24} color="#000" />
           </TouchableOpacity>
           
           {imageUri && (
@@ -483,7 +505,7 @@ export default function SupportDetailsScreen() {
             {isSending ? (
               <Ionicons name="hourglass-outline" size={24} color={COLOR.sub} />
             ) : (
-              <Ionicons name="send" size={24} color={inputText.trim() ? COLOR.primary : COLOR.sub} />
+              <Ionicons name="send" size={24} color={inputText.trim() ? "#000" : COLOR.sub} />
             )}
           </TouchableOpacity>
         </View>
@@ -494,7 +516,7 @@ export default function SupportDetailsScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: COLOR.white,
+    backgroundColor: "#fff",
     paddingHorizontal: 20,
     paddingVertical: 16,
     flexDirection: "row",
@@ -544,12 +566,13 @@ const styles = StyleSheet.create({
     color: COLOR.sub,
   },
   avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
   },
   disputeCard: {
-    backgroundColor: COLOR.lightPink,
+    backgroundColor: "#FEEAEA",
     margin: 16,
     padding: 16,
     borderRadius: 12,
@@ -620,6 +643,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginVertical: 8,
   },
+  bubbleOptimistic: {
+    opacity: 0.7,
+  },
   msg: { fontSize: 13 },
   time: { fontSize: 8, textAlign: "right", marginTop: 6, color: "#FFFFFF80" },
   attachmentImage: {
@@ -632,13 +658,21 @@ const styles = StyleSheet.create({
   composer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLOR.white,
+    backgroundColor: "#fff",
     marginHorizontal: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLOR.line,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 0.5,
+    borderColor: "#CDCDCD",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   input: {
     flex: 1,
@@ -719,5 +753,21 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+
+  // System message bar styles
+  systemMessageBar: {
+    backgroundColor: "#FADCDC",
+    marginHorizontal: 16,
+    marginVertical: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignItems: "center",
+  },
+  systemMessageText: {
+    fontSize: 14,
+    color: "#000",
+    fontWeight: "500",
   },
 });

@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   Image,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -24,31 +25,96 @@ const COLOR = {
   line: "#ECEDEF",
 };
 
-/* ---- MOCK ---- */
-const TOTAL_POINTS = 5000;
-const STORES = [
-  { id: "1", name: "Sasha Stores", pts: 200, avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop" },
-  { id: "2", name: "Abc Stores", pts: 200, avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop" },
-  { id: "3", name: "ASH Stores", pts: 150, avatar: "https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=200&auto=format&fit=crop" },
-  { id: "4", name: "AJW Stores", pts: 220, avatar: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?q=80&w=200&auto=format&fit=crop" },
-  { id: "5", name: "Aji Stores", pts: 180, avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=200&auto=format&fit=crop" },
-  { id: "6", name: "Asjs Stores", pts: 170, avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop" },
-  { id: "7", name: "odj Stores", pts: 210, avatar: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=200&auto=format&fit=crop" },
-  { id: "8", name: "Okkh Stores", pts: 190, avatar: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?q=80&w=200&auto=format&fit=crop" },
-];
+import { useMyPoints } from "../../../config/api.config";
 
 const Row = ({ item }) => (
   <View style={styles.row}>
     <View style={{ flexDirection: "row", alignItems: "center" }}>
-      <Image source={{ uri: item.avatar }} style={styles.avatar} />
+      <Image 
+        source={{ uri: item.avatar || require("../../../assets/Ellipse 18.png") }} 
+        style={styles.avatar} 
+      />
       <ThemedText style={styles.storeName}>{item.name}</ThemedText>
     </View>
-    <ThemedText style={styles.points}>{item.pts}</ThemedText>
+    <ThemedText style={styles.points}>{item.points}</ThemedText>
   </View>
 );
 
 export default function MyPointsScreen() {
   const navigation = useNavigation();
+  
+  // Fetch points data
+  const { data: pointsData, isLoading, error } = useMyPoints();
+
+  // Process API data
+  const totalPoints = pointsData?.data?.total_points || 0;
+  const stores = pointsData?.data?.stores || [];
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.canGoBack()
+                  ? navigation.goBack()
+                  : navigation.navigate("Home")
+              }
+              style={styles.iconBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="chevron-back" size={22} color={COLOR.text} />
+            </TouchableOpacity>
+            <ThemedText style={styles.headerTitle} pointerEvents="none">
+              My Points
+            </ThemedText>
+            <View style={{ width: 40, height: 40 }} />
+          </View>
+        </View>
+
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLOR.primary} />
+          <ThemedText style={styles.loadingText}>Loading points data...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.canGoBack()
+                  ? navigation.goBack()
+                  : navigation.navigate("Home")
+              }
+              style={styles.iconBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="chevron-back" size={22} color={COLOR.text} />
+            </TouchableOpacity>
+            <ThemedText style={styles.headerTitle} pointerEvents="none">
+              My Points
+            </ThemedText>
+            <View style={{ width: 40, height: 40 }} />
+          </View>
+        </View>
+
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={COLOR.primary} />
+          <ThemedText style={styles.errorText}>
+            Failed to load points data. Please try again.
+          </ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
@@ -57,21 +123,25 @@ export default function MyPointsScreen() {
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() =>
-              navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigation.navigate("Home")
             }
             style={styles.iconBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="chevron-back" size={22} color={COLOR.text} />
           </TouchableOpacity>
-          <ThemedText style={styles.headerTitle} pointerEvents="none">My Points</ThemedText>
+          <ThemedText style={styles.headerTitle} pointerEvents="none">
+            My Points
+          </ThemedText>
           <View style={{ width: 40, height: 40 }} />
         </View>
       </View>
 
       <FlatList
-        data={STORES}
-        keyExtractor={(i) => i.id}
+        data={stores}
+        keyExtractor={(i) => String(i.id)}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         ListHeaderComponent={
           <>
@@ -81,8 +151,12 @@ export default function MyPointsScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.totalCard}
             >
-              <ThemedText style={styles.totalLabel}>Total Points Balance</ThemedText>
-              <ThemedText style={styles.totalValue}>{TOTAL_POINTS.toLocaleString()}</ThemedText>
+              <ThemedText style={styles.totalLabel}>
+                Total Points Balance
+              </ThemedText>
+              <ThemedText style={styles.totalValue}>
+                {totalPoints.toLocaleString()}
+              </ThemedText>
             </LinearGradient>
 
             <ThemedText style={styles.pointsTitle}>Points/ Store</ThemedText>
@@ -91,6 +165,17 @@ export default function MyPointsScreen() {
         renderItem={({ item }) => <Row item={item} />}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="gift-outline" size={48} color={COLOR.sub} />
+            <ThemedText style={styles.emptyText}>
+              No points earned yet
+            </ThemedText>
+            <ThemedText style={styles.emptySubtext}>
+              Start shopping to earn points from your favorite stores
+            </ThemedText>
+          </View>
+        }
       />
     </SafeAreaView>
   );
@@ -126,14 +211,24 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   iconBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: "#fff", borderWidth: 1, borderColor: COLOR.line,
-    alignItems: "center", justifyContent: "center",
-    zIndex:5
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 5,
   },
   headerTitle: {
-    position: "absolute", left: 0, right: 0, textAlign: "center",
-    color: COLOR.text, fontSize: 18, fontWeight: "400",
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    color: COLOR.text,
+    fontSize: 18,
+    fontWeight: "400",
   },
 
   totalCard: {
@@ -161,4 +256,53 @@ const styles = StyleSheet.create({
   avatar: { width: 44, height: 44, borderRadius: 22, marginRight: 12 },
   storeName: { color: COLOR.text },
   points: { color: COLOR.primary, fontWeight: "700" },
+
+  // Loading and Error States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.primary,
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 18,
+    color: COLOR.text,
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  emptySubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: COLOR.sub,
+    textAlign: "center",
+    lineHeight: 20,
+  },
 });

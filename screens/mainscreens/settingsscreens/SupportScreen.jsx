@@ -17,7 +17,11 @@ import { useNavigation } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import ThemedText from "../../../components/ThemedText";
 
-import { useSupportTickets, useSupportTicketDetails, useSupportTicketMessage } from "../../../config/api.config";
+import {
+  useSupportTickets,
+  useSupportTicketDetails,
+  useSupportTicketMessage,
+} from "../../../config/api.config";
 /* ---- Theme ---- */
 const COLOR = {
   primary: "#E53E3E",
@@ -41,13 +45,13 @@ export default function SupportScreen() {
     if (!dateString) return "N/A";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
       });
     } catch (error) {
       return "N/A";
@@ -68,31 +72,36 @@ export default function SupportScreen() {
       createdAt: formatDate(ticket.created_at),
       unreadCount: ticket.unread_messages_count_count || 0,
       lastMessage: ticket.last_message?.message || null,
-      lastMessageTime: ticket.last_message?.created_at ? formatDate(ticket.last_message.created_at) : null,
+      lastMessageTime: ticket.last_message?.created_at
+        ? formatDate(ticket.last_message.created_at)
+        : null,
     }));
   }, [ticketsData]);
 
   // Filter tickets based on tab
   const filteredTickets = useMemo(() => {
     let filtered = tickets;
-    
+
     // Filter by status
     if (tab === "pending") {
-      filtered = filtered.filter(ticket => ticket.status === "open");
+      filtered = filtered.filter((ticket) => ticket.status === "open");
     } else if (tab === "resolved") {
-      filtered = filtered.filter(ticket => ticket.status === "closed" || ticket.status === "resolved");
+      filtered = filtered.filter(
+        (ticket) => ticket.status === "closed" || ticket.status === "resolved"
+      );
     }
-    
+
     // Filter by search query
     if (query.trim()) {
       const searchTerm = query.trim().toLowerCase();
-      filtered = filtered.filter(ticket => 
-        ticket.subject.toLowerCase().includes(searchTerm) ||
-        ticket.description.toLowerCase().includes(searchTerm) ||
-        ticket.category.toLowerCase().includes(searchTerm)
+      filtered = filtered.filter(
+        (ticket) =>
+          ticket.subject.toLowerCase().includes(searchTerm) ||
+          ticket.description.toLowerCase().includes(searchTerm) ||
+          ticket.category.toLowerCase().includes(searchTerm)
       );
     }
-    
+
     return filtered;
   }, [tickets, tab, query]);
 
@@ -169,7 +178,9 @@ export default function SupportScreen() {
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLOR.primary} />
-          <ThemedText style={styles.loadingText}>Loading support tickets...</ThemedText>
+          <ThemedText style={styles.loadingText}>
+            Loading support tickets...
+          </ThemedText>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
@@ -189,17 +200,18 @@ export default function SupportScreen() {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <ThemedText style={styles.emptyText}>
-                {query.trim() 
+                {query.trim()
                   ? "No tickets found matching your search"
-                  : "Your support chat list is empty, contact support by clicking the plus icon"
-                }
+                  : "Your support chat list is empty, contact support by clicking the plus icon"}
               </ThemedText>
             </View>
           }
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.ticketCard}
-              onPress={() => navigation.navigate("SupportDetails", { ticketId: item.id })}
+              onPress={() =>
+                navigation.navigate("SupportDetails", { ticketId: item.id })
+              }
             >
               <View style={styles.ticketContent}>
                 <View style={styles.ticketLeft}>
@@ -211,10 +223,14 @@ export default function SupportScreen() {
                     <ThemedText style={styles.ticketSubject} numberOfLines={1}>
                       {item.subject}
                     </ThemedText>
-                    <ThemedText style={[
-                      styles.ticketStatus,
-                      item.status === "open" ? styles.statusPending : styles.statusResolved
-                    ]}>
+                    <ThemedText
+                      style={[
+                        styles.ticketStatus,
+                        item.status === "open"
+                          ? styles.statusPending
+                          : styles.statusResolved,
+                      ]}
+                    >
                       {item.status === "open" ? "Pending" : "Resolved"}
                     </ThemedText>
                   </View>
@@ -225,7 +241,9 @@ export default function SupportScreen() {
                   </ThemedText>
                   {item.unreadCount > 0 && (
                     <View style={styles.unreadBadge}>
-                      <ThemedText style={styles.unreadText}>{item.unreadCount}</ThemedText>
+                      <ThemedText style={styles.unreadText}>
+                        {item.unreadCount}
+                      </ThemedText>
                     </View>
                   )}
                 </View>
@@ -325,7 +343,7 @@ const styles = StyleSheet.create({
     ...shadow(3),
     marginTop: 20,
   },
-  searchInput: { flex: 1, color: COLOR.text, fontSize: 12  },
+  searchInput: { flex: 1, color: COLOR.text, fontSize: 12 },
   searchIconBtn: {
     width: 34,
     height: 34,
@@ -400,7 +418,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   errorText: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLOR.primary,
     textAlign: "center",
     lineHeight: 24,
@@ -411,7 +429,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLOR.card,
     borderRadius: 12,
     padding: 16,
-    marginVertical: 6,
     ...shadow(2),
   },
   ticketHeader: {
@@ -425,13 +442,13 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   ticketSubject: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "600",
     color: COLOR.text,
     marginBottom: 4,
   },
   ticketCategory: {
-    fontSize: 12,
+    fontSize: 10,
     color: COLOR.sub,
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -452,7 +469,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#D1FAE5",
   },
   statusText: {
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: "600",
     textTransform: "uppercase",
   },
@@ -477,7 +494,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   ticketDescription: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLOR.sub,
     lineHeight: 20,
     marginBottom: 12,
