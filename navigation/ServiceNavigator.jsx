@@ -27,7 +27,7 @@ const ServiceNavigator = () => {
 
       <Stack.Screen name="ServicesScreen" component={ServicesScreen} />
       <Stack.Screen name="ServiceStore" component={ServiceStoresScreen} />
-      <Stack.Screen name="SeviceDeatils" component={ServiceDetailsScreen} />
+      <Stack.Screen name="ServiceDetails" component={ServiceDetailsScreen} />
       <Stack.Screen name="ServiceChat" component={ServiceChatScreen} />
       <Stack.Screen name="StoreDetails" component={StoreDetailsScreen} />
       <Stack.Screen name="StoreChat" component={StoreChatScreen} />

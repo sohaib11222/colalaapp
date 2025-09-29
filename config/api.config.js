@@ -40,7 +40,10 @@ const API = {
 
 
   Get_All_Products: `${BASE_URL}/buyer/product/get-all`,
-
+  Edit_Profile: `${BASE_URL}/auth/edit-profile`,
+  Services_Categories: `${BASE_URL}/service-categories`,
+  Services_By_Category: (categoryId) => `${BASE_URL}/service-categories/${categoryId}`,
+  Services_Detail: (serviceId) => `${BASE_URL}/seller/service/${serviceId}`,
 };
 
 export default API;
@@ -54,23 +57,33 @@ export const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem("auth_token"); // optional
+    console.log('API Request - URL:', config.url);
+    console.log('API Request - Token:', token ? 'Present' : 'Missing');
     config.headers = {
       ...(config.headers || {}),
       Accept: "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
+    console.log('API Request - Headers:', config.headers);
     return config;
   },
   (err) => Promise.reject(err)
 );
 
 api.interceptors.response.use(
-  (r) => r,
+  (r) => {
+    console.log('API Response - Status:', r.status);
+    console.log('API Response - Data:', r.data);
+    return r;
+  },
   (error) => {
     const status = error?.response?.status;
     const data = error?.response?.data;
     const message =
       data?.message || error?.message || "Something went wrong. Please try again.";
+    console.log('API Response Error - Status:', status);
+    console.log('API Response Error - Data:', data);
+    console.log('API Response Error - Message:', message);
     return Promise.reject({ status, data, message });
   }
 );
@@ -113,6 +126,10 @@ export const http = {
 
   put: (url, body, config) => {
     const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+    console.log('HTTP PUT - URL:', url);
+    console.log('HTTP PUT - Body type:', typeof body, 'Is FormData:', isFormData);
+    console.log('HTTP PUT - Body:', body);
+
     return api
       .put(url, body, {
         ...(config || {}),
@@ -121,7 +138,14 @@ export const http = {
           ...(isFormData ? { "Content-Type": "multipart/form-data" } : {}),
         },
       })
-      .then((r) => r.data);
+      .then((r) => {
+        console.log('HTTP PUT - Response:', r);
+        return r.data;
+      })
+      .catch((error) => {
+        console.log('HTTP PUT - Error:', error);
+        throw error;
+      });
   },
 
   delete: (url, config) =>
@@ -155,20 +179,44 @@ export const useLogin = (opts) =>
 
 export const useForgotPassword = (opts) =>
   useMutation({
-    mutationFn: (payload) => http.post(API.FORGOT_PASSWORD, payload),
+    mutationFn: (payload) => {
+      console.log('ForgotPassword API call - URL:', API.FORGOT_PASSWORD);
+      console.log('ForgotPassword API call - Payload:', payload);
+      return http.post(API.FORGOT_PASSWORD, payload);
+    },
+    onError: (error) => {
+      console.error('ForgotPassword error:', error);
+      if (opts?.onError) opts.onError(error);
+    },
     ...opts,
   });
 
 export const useVerifyOtp = (opts) =>
   useMutation({
     // expects: { email, code }
-    mutationFn: (payload) => http.post(API.VERIFY_OTP, payload),
+    mutationFn: (payload) => {
+      console.log('VerifyOtp API call - URL:', API.VERIFY_OTP);
+      console.log('VerifyOtp API call - Payload:', payload);
+      return http.post(API.VERIFY_OTP, payload);
+    },
+    onError: (error) => {
+      console.error('VerifyOtp error:', error);
+      if (opts?.onError) opts.onError(error);
+    },
     ...opts,
   });
 
 export const useResetPassword = (opts) =>
   useMutation({
-    mutationFn: (payload) => http.post(API.RESET_PASSWORD, payload),
+    mutationFn: (payload) => {
+      console.log('ResetPassword API call - URL:', API.RESET_PASSWORD);
+      console.log('ResetPassword API call - Payload:', payload);
+      return http.post(API.RESET_PASSWORD, payload);
+    },
+    onError: (error) => {
+      console.error('ResetPassword error:', error);
+      if (opts?.onError) opts.onError(error);
+    },
     ...opts,
   });
 
@@ -468,4 +516,45 @@ export const useGetAllProducts = (options) =>
     staleTime: 60 * 1000,
     ...options,
   });
+export const useEditProfile = (opts) =>
+  useMutation({
+    mutationFn: (payload) => {
+      console.log('EditProfile API call - URL:', API.Edit_Profile);
+      console.log('EditProfile API call - Payload:', payload);
+      return http.post(API.Edit_Profile, payload);
+    },
+    onError: (error) => {
+      // Log the error or display it as needed
+      console.error('Error updating profile:', error);
 
+      // You can also handle error state in your UI, like setting an error message
+      if (opts?.onError) opts.onError(error); // Call custom onError if passed via opts
+    },
+    ...opts,
+  });
+
+
+
+export const useServicesCategories = (options) =>
+  useQuery({
+    queryKey: ["servicesCategories"],
+    queryFn: () => http.get(API.Services_Categories),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useServicesByCategory = (categoryId, options) =>
+  useQuery({
+    queryKey: ["servicesByCategory", categoryId],
+    queryFn: () => http.get(API.Services_By_Category(categoryId)),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useServicesDetail = (serviceId, options) =>
+  useQuery({
+    queryKey: ["servicesDetail", serviceId],
+    queryFn: () => http.get(API.Services_Detail(serviceId)),
+    staleTime: 60 * 1000,
+    ...options,
+  });

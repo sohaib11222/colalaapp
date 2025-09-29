@@ -12,10 +12,13 @@ import {
   ScrollView,
   SafeAreaView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
+
+import { useServicesByCategory } from "../../../config/api.config";
 
 /* ------------ THEME ------------ */
 const COLOR = {
@@ -116,7 +119,28 @@ const BottomSheet = ({ visible, onClose, title, children }) => {
 export default function ServiceStoresScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { serviceTitle } = route.params ?? { serviceTitle: "Service" };
+  const { serviceTitle, categoryId } = route.params ?? { serviceTitle: "Service", categoryId: 1 };
+  
+  // Fetch services by category from API
+  const { data: servicesData, isLoading, error } = useServicesByCategory(categoryId);
+  
+  // Helper function to format price
+  const formatPrice = (priceFrom, priceTo) => {
+    const from = Number(priceFrom || 0);
+    const to = Number(priceTo || 0);
+    return `₦${from.toLocaleString()} - ₦${to.toLocaleString()}`;
+  };
+  
+  // Helper function to get service image
+  const getServiceImage = (service) => {
+    // For now, use default images since service images aren't in the API response
+    const defaultImages = [
+      require("../../../assets/Rectangle 32.png"),
+      require("../../../assets/Frame 264 (4).png"),
+      require("../../../assets/Frame 264 (5).png"),
+    ];
+    return defaultImages[service.id % defaultImages.length];
+  };
 
   const filtersOrder = [
     "Location",
@@ -149,38 +173,22 @@ export default function ServiceStoresScreen() {
   const clearPick = (key) => setPicked((p) => ({ ...p, [key]: null }));
 
   /* ------------ STORE CARDS ------------ */
-  const stores = useMemo(
-    () => [
-      {
-        id: "1",
-        name: "Sasha Stores",
-        price: "₦5,000 - ₦100,000",
-        image: require("../../../assets/Rectangle 32.png"),
-        rating: 4.5,
-        profileImage: require("../../../assets/Ellipse 18.png"),
-        service: "Fashion designing Service",
-      },
-      {
-        id: "2",
-        name: "Sasha Stores",
-        price: "₦5,000 - ₦100,000",
-        image: require("../../../assets/Frame 264 (4).png"),
-        rating: 4.5,
-        profileImage: require("../../../assets/Ellipse 18.png"),
-        service: "Fashion designing Service",
-      },
-      {
-        id: "3",
-        name: "Sasha Stores",
-        price: "₦5,000 - ₦100,000",
-        image: require("../../../assets/Frame 264 (5).png"),
-        rating: 4.5,
-        profileImage: require("../../../assets/Ellipse 18.png"),
-        service: "Fashion designing Service",
-      },
-    ],
-    []
-  );
+  const stores = useMemo(() => {
+    if (!servicesData?.data?.services || servicesData.data.services.length === 0) {
+      return [];
+    }
+    
+    return servicesData.data.services.map((service) => ({
+      id: service.id.toString(),
+      name: "Store Name", // Default since store info isn't in service data
+      price: formatPrice(service.price_from, service.price_to),
+      image: getServiceImage(service),
+      rating: 4.5, // Default rating
+      profileImage: require("../../../assets/Ellipse 18.png"),
+      service: service.name,
+      serviceData: service, // Keep original service data for navigation
+    }));
+  }, [servicesData]);
 
   /* ------------ RENDER ------------ */
   return (
@@ -188,35 +196,42 @@ export default function ServiceStoresScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
             <Ionicons name="chevron-back" size={22} color={COLOR.primary} />
           </TouchableOpacity>
-          <ThemedText font="oleo" style={styles.headerTitle}>{serviceTitle}</ThemedText>
+          <ThemedText font="oleo" style={styles.headerTitle}>
+            {serviceTitle}
+          </ThemedText>
           <View style={styles.iconRow}>
             <TouchableOpacity
               onPress={() =>
-                navigation.navigate('ServiceNavigator', { screen: 'Cart' })
+                navigation.navigate("ServiceNavigator", { screen: "Cart" })
               }
               style={[styles.iconButton, styles.iconPill]}
               accessibilityRole="button"
               accessibilityLabel="Open cart"
             >
               <Image
-                source={require('../../../assets/cart-icon.png')}
+                source={require("../../../assets/cart-icon.png")}
                 style={styles.iconImg}
               />
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() =>
-                navigation.navigate('ServiceNavigator', { screen: 'Notifications' })
+                navigation.navigate("ServiceNavigator", {
+                  screen: "Notifications",
+                })
               }
               style={[styles.iconButton, styles.iconPill]}
               accessibilityRole="button"
               accessibilityLabel="Open notifications"
             >
               <Image
-                source={require('../../../assets/bell-icon.png')}
+                source={require("../../../assets/bell-icon.png")}
                 style={styles.iconImg}
               />
             </TouchableOpacity>
@@ -231,9 +246,10 @@ export default function ServiceStoresScreen() {
             style={styles.searchInput}
           />
           <Image
-            source={require('../../../assets/camera-icon.png')}
+            source={require("../../../assets/camera-icon.png")}
             style={styles.iconImg}
-          />           </View>
+          />{" "}
+        </View>
       </View>
 
       {/* Filters grid */}
@@ -293,37 +309,57 @@ export default function ServiceStoresScreen() {
       </View>
 
       {/* Store Cards */}
-      <FlatList
-        data={stores}
-        numColumns={2}
-        keyExtractor={(item) => item.id}
-        columnWrapperStyle={{ justifyContent: "space-between" }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image source={item.image} style={styles.cardImage} />
-            <View style={styles.cardHeader}>
-              <Image source={item.profileImage} style={styles.profileImage} />
-              <ThemedText style={styles.storeName}>{item.name}</ThemedText>
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={14} color={COLOR.primary} />
-                <ThemedText style={styles.rating}>{item.rating}</ThemedText>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLOR.primary} />
+          <ThemedText style={styles.loadingText}>Loading services...</ThemedText>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <ThemedText style={styles.errorText}>Failed to load services</ThemedText>
+        </View>
+      ) : stores.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <ThemedText style={styles.emptyText}>No services available</ThemedText>
+          <ThemedText style={styles.emptySubText}>
+            There are no services in this category at the moment.
+          </ThemedText>
+        </View>
+      ) : (
+        <FlatList
+          data={stores}
+          numColumns={2}
+          keyExtractor={(item) => item.id}
+          columnWrapperStyle={{ justifyContent: "space-between" }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Image source={item.image} style={styles.cardImage} />
+              <View style={styles.cardHeader}>
+                <Image source={item.profileImage} style={styles.profileImage} />
+                <ThemedText style={styles.storeName}>{item.name}</ThemedText>
+                <View style={styles.ratingContainer}>
+                  <Ionicons name="star" size={14} color={COLOR.primary} />
+                  <ThemedText style={styles.rating}>{item.rating}</ThemedText>
+                </View>
+              </View>
+              <View style={styles.cardBody}>
+                <ThemedText style={styles.serviceName}>{item.service}</ThemedText>
+                <ThemedText style={styles.price}>{item.price}</ThemedText>
+                <TouchableOpacity
+                  style={styles.detailsBtn}
+                  onPress={() =>
+                    navigation.navigate("ServiceDetails", { service: item.serviceData })
+                  }
+                >
+                  <ThemedText style={styles.detailsText}>Details</ThemedText>
+                </TouchableOpacity>
               </View>
             </View>
-            <View style={styles.cardBody}>
-              <ThemedText style={styles.serviceName}>{item.service}</ThemedText>
-              <ThemedText style={styles.price}>{item.price}</ThemedText>
-              <TouchableOpacity
-                style={styles.detailsBtn}
-                onPress={() => navigation.navigate("SeviceDeatils", { store: item })}
-              >
-                <ThemedText style={styles.detailsText}>Details</ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-        showsVerticalScrollIndicator={false}
-      />
+          )}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       {/* -------- Location Sheet -------- */}
       <BottomSheet
@@ -332,7 +368,12 @@ export default function ServiceStoresScreen() {
         title="Location"
       >
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={COLOR.sub} style={{ marginRight: 8 }} />
+          <Ionicons
+            name="search"
+            size={18}
+            color={COLOR.sub}
+            style={{ marginRight: 8 }}
+          />
           <TextInput
             placeholder="Search location"
             placeholderTextColor={COLOR.sub}
@@ -361,7 +402,9 @@ export default function ServiceStoresScreen() {
             </TouchableOpacity>
           ))}
 
-          <ThemedText style={[styles.groupTitle, { marginTop: 14 }]}>All States</ThemedText>
+          <ThemedText style={[styles.groupTitle, { marginTop: 14 }]}>
+            All States
+          </ThemedText>
           {ALL_STATES.map((s) => (
             <TouchableOpacity
               key={s}
@@ -385,9 +428,18 @@ export default function ServiceStoresScreen() {
       </BottomSheet>
 
       {/* -------- Store Sheet -------- */}
-      <BottomSheet visible={sheet === "Store"} onClose={closeSheet} title="Store">
+      <BottomSheet
+        visible={sheet === "Store"}
+        onClose={closeSheet}
+        title="Store"
+      >
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={COLOR.sub} style={{ marginRight: 8 }} />
+          <Ionicons
+            name="search"
+            size={18}
+            color={COLOR.sub}
+            style={{ marginRight: 8 }}
+          />
           <TextInput
             placeholder="Search Stores"
             placeholderTextColor={COLOR.sub}
@@ -416,7 +468,9 @@ export default function ServiceStoresScreen() {
             </TouchableOpacity>
           ))}
 
-          <ThemedText style={[styles.groupTitle, { marginTop: 14 }]}>All Stores</ThemedText>
+          <ThemedText style={[styles.groupTitle, { marginTop: 14 }]}>
+            All Stores
+          </ThemedText>
           {ALL_STORES.map((name) => (
             <TouchableOpacity
               key={name}
@@ -446,7 +500,12 @@ export default function ServiceStoresScreen() {
         title="Store"
       >
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={COLOR.sub} style={{ marginRight: 8 }} />
+          <Ionicons
+            name="search"
+            size={18}
+            color={COLOR.sub}
+            style={{ marginRight: 8 }}
+          />
           <TextInput
             placeholder="Search Services"
             placeholderTextColor={COLOR.sub}
@@ -471,7 +530,11 @@ export default function ServiceStoresScreen() {
       </BottomSheet>
 
       {/* -------- Price Sheet -------- */}
-      <BottomSheet visible={sheet === "Price"} onClose={closeSheet} title="Price">
+      <BottomSheet
+        visible={sheet === "Price"}
+        onClose={closeSheet}
+        title="Price"
+      >
         <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 16 }}>
           <View style={[styles.inputBox, { flex: 1 }]}>
             <TextInput
@@ -495,7 +558,10 @@ export default function ServiceStoresScreen() {
           </View>
         </View>
 
-        <ScrollView style={{ marginTop: 12 }} contentContainerStyle={{ paddingBottom: 24 }}>
+        <ScrollView
+          style={{ marginTop: 12 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        >
           {PRICE_BUCKETS.map((p) => (
             <TouchableOpacity
               key={p}
@@ -507,7 +573,9 @@ export default function ServiceStoresScreen() {
                 closeSheet();
               }}
             >
-              <ThemedText style={[styles.listMain, { marginBottom: 0 }]}>{p}</ThemedText>
+              <ThemedText style={[styles.listMain, { marginBottom: 0 }]}>
+                {p}
+              </ThemedText>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -523,13 +591,19 @@ export default function ServiceStoresScreen() {
               closeSheet();
             }}
           >
-            <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Apply</ThemedText>
+            <ThemedText style={{ color: "#fff", fontWeight: "600" }}>
+              Apply
+            </ThemedText>
           </TouchableOpacity>
         </View>
       </BottomSheet>
 
       {/* -------- Ratings Sheet -------- */}
-      <BottomSheet visible={sheet === "Ratings"} onClose={closeSheet} title="Reviews">
+      <BottomSheet
+        visible={sheet === "Ratings"}
+        onClose={closeSheet}
+        title="Reviews"
+      >
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
           {RATINGS.map((r) => (
             <TouchableOpacity
@@ -548,7 +622,11 @@ export default function ServiceStoresScreen() {
       </BottomSheet>
 
       {/* -------- Sort Sheet -------- */}
-      <BottomSheet visible={sheet === "Sort by"} onClose={closeSheet} title="Sort By">
+      <BottomSheet
+        visible={sheet === "Sort by"}
+        onClose={closeSheet}
+        title="Sort By"
+      >
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
           {SORTS.map((r) => (
             <TouchableOpacity
@@ -584,25 +662,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  iconRow: { flexDirection: 'row' },
+  iconRow: { flexDirection: "row" },
   iconButton: { marginLeft: 9 },
-  iconPill: { backgroundColor: '#fff', padding: 6, borderRadius: 25 },
+  iconPill: { backgroundColor: "#fff", padding: 6, borderRadius: 25 },
 
   // If your PNGs are already colored, remove tintColor.
-  iconImg: { width: 22, height: 22, resizeMode: 'contain' },
+  iconImg: { width: 22, height: 22, resizeMode: "contain" },
   headerTitle: {
     position: "absolute",
-    left: 0,
+    left: 160,
     right: 0,
-    textAlign: "center",
+    textAlign: "start",
     color: "#fff",
     fontSize: 24,
     fontWeight: "400",
-    marginLeft: -120
+    marginLeft: -120,
   },
   headerIcons: { flexDirection: "row" },
   backBtn: { backgroundColor: "#fff", padding: 6, borderRadius: 30, zIndex: 5 },
-  icon: { backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 8 },
+  icon: {
+    backgroundColor: "#fff",
+    padding: 6,
+    borderRadius: 30,
+    marginLeft: 8,
+  },
 
   searchContainer: {
     marginTop: 20,
@@ -635,7 +718,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   chipLeft: { flexDirection: "row", alignItems: "center", flexShrink: 1 },
-  filterText: { fontSize: 12, color: COLOR.text, fontWeight: "400", maxWidth: "85%" },
+  filterText: {
+    fontSize: 12,
+    color: COLOR.text,
+    fontWeight: "400",
+    maxWidth: "85%",
+  },
 
   /* cards */
   card: {
@@ -649,17 +737,50 @@ const styles = StyleSheet.create({
   cardImage: { width: "100%", height: 100 },
   cardBody: { padding: 10, paddingTop: 0 },
   storeName: { fontSize: 12, fontWeight: "700" },
-  price: { fontSize: 13, color: COLOR.primary, marginBottom: 6, fontWeight: "700" },
-  detailsBtn: { backgroundColor: COLOR.primary, paddingVertical: 10, borderRadius: 10 },
-  detailsText: { color: "#fff", fontSize: 10, textAlign: "center", fontWeight: "400" },
-  cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 6, padding: 6, backgroundColor: "#F2F2F2" },
+  price: {
+    fontSize: 13,
+    color: COLOR.primary,
+    marginBottom: 6,
+    fontWeight: "700",
+  },
+  detailsBtn: {
+    backgroundColor: COLOR.primary,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  detailsText: {
+    color: "#fff",
+    fontSize: 10,
+    textAlign: "center",
+    fontWeight: "400",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+    padding: 6,
+    backgroundColor: "#F2F2F2",
+  },
   profileImage: { width: 18, height: 18, borderRadius: 9, marginRight: 6 },
-  ratingContainer: { flexDirection: "row", alignItems: "center", marginLeft: "auto" },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: "auto",
+  },
   rating: { fontSize: 10, marginLeft: 3, color: COLOR.text },
-  serviceName: { fontSize: 12, fontWeight: "500", color: COLOR.text, marginBottom: 4 },
+  serviceName: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: COLOR.text,
+    marginBottom: 4,
+  },
 
   /* bottom sheet */
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" },
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+  },
   sheetContainer: {
     backgroundColor: "#fff",
     borderTopLeftRadius: 22,
@@ -684,7 +805,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "#E5E5E5",
   },
-  sheetTitle: { fontSize: 20, fontWeight: "700", color: COLOR.text, marginTop: 8 },
+  sheetTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLOR.text,
+    marginTop: 8,
+  },
   sheetClose: { position: "absolute", right: 12, top: 10, padding: 6 },
 
   searchBar: {
@@ -698,7 +824,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#F6F6F6",
   },
-  groupTitle: { color: COLOR.text, fontWeight: "600", marginHorizontal: 16, marginBottom: 10, marginTop: 4 },
+  groupTitle: {
+    color: COLOR.text,
+    fontWeight: "600",
+    marginHorizontal: 16,
+    marginBottom: 10,
+    marginTop: 4,
+  },
 
   listRow: {
     marginHorizontal: 16,
@@ -783,5 +915,47 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLOR.sub,
     marginLeft: "auto",
+  },
+  
+  // Loading and error states
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: COLOR.sub,
+    fontSize: 14,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  errorText: {
+    color: COLOR.primary,
+    fontSize: 14,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    color: COLOR.text,
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  emptySubText: {
+    color: COLOR.sub,
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
