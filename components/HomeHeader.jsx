@@ -359,7 +359,7 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
 
           <TouchableOpacity
             onPress={() =>
-              navigation.navigate('ServiceNavigator', { screen: 'Notifications' })
+              navigation.navigate('AuthNavigator', { screen: 'Search' })
             }
             style={[styles.iconButton, styles.iconPill]}
             accessibilityRole="button"
