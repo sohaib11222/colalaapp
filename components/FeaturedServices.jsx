@@ -47,7 +47,7 @@ const services = [
 
 const FeaturedServices = () => {
   const navigation = useNavigation();
-  
+
   return (
     <View style={styles.container}>
       {/* Header */}

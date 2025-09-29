@@ -15,22 +15,25 @@ import ThemedText from "../../../components/ThemedText";
 
 import { useServicesDetail } from "../../../config/api.config";
 
-
 const ServiceDetailsScreen = () => {
   const { params } = useRoute();
   const navigation = useNavigation();
   const { service } = params;
-  
+
   // Fetch service details from API
-  const { data: serviceData, isLoading, error } = useServicesDetail(service?.id);
-  
+  const {
+    data: serviceData,
+    isLoading,
+    error,
+  } = useServicesDetail(service?.id);
+
   // Helper function to format price
   const formatPrice = (priceFrom, priceTo) => {
     const from = Number(priceFrom || 0);
     const to = Number(priceTo || 0);
     return `₦${from.toLocaleString()} - ₦${to.toLocaleString()}`;
   };
-  
+
   // Helper function to get service image
   const getServiceImage = (media) => {
     if (media && media.length > 0) {
@@ -38,13 +41,13 @@ const ServiceDetailsScreen = () => {
     }
     return require("../../../assets/Frame 264.png"); // Default image
   };
-  
+
   // Helper function to get price breakdown from sub_services
   const getPriceBreakdown = (subServices) => {
     if (subServices && subServices.length > 0) {
-      return subServices.map(sub => ({
+      return subServices.map((sub) => ({
         name: sub.name,
-        price: formatPrice(sub.price_from, sub.price_to)
+        price: formatPrice(sub.price_from, sub.price_to),
       }));
     }
     // Fallback to dummy data
@@ -63,7 +66,9 @@ const ServiceDetailsScreen = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#E53E3E" />
-        <ThemedText style={styles.loadingText}>Loading service details...</ThemedText>
+        <ThemedText style={styles.loadingText}>
+          Loading service details...
+        </ThemedText>
       </View>
     );
   }
@@ -72,7 +77,9 @@ const ServiceDetailsScreen = () => {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <ThemedText style={styles.errorText}>Failed to load service details</ThemedText>
+        <ThemedText style={styles.errorText}>
+          Failed to load service details
+        </ThemedText>
       </View>
     );
   }
@@ -123,14 +130,20 @@ const ServiceDetailsScreen = () => {
       </View>
 
       <View style={styles.imageContainer}>
-        <Image source={getServiceImage(serviceInfo?.media)} style={styles.mainImage} />
+        <Image
+          source={getServiceImage(serviceInfo?.media)}
+          style={styles.mainImage}
+        />
         <View style={styles.videoIcon}>
           <Ionicons name="videocam" size={30} color="#fff" />
         </View>
 
         {/* Store Info Overlay */}
         <View style={styles.storeOverlay}>
-          <Image source={require("../../../assets/Ellipse 18.png")} style={styles.avatar} />
+          <Image
+            source={require("../../../assets/Ellipse 18.png")}
+            style={styles.avatar}
+          />
           <ThemedText style={styles.storeName}>Service Store</ThemedText>
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={14} color="#E53E3E" />
@@ -155,19 +168,22 @@ const ServiceDetailsScreen = () => {
         style={styles.gallery}
       >
         {serviceInfo?.media?.map((media, index) => (
-          <Image 
-            key={index} 
-            source={{ uri: `https://colala.hmstech.xyz/storage/${media.path}` }} 
-            style={styles.thumbnail} 
+          <Image
+            key={index}
+            source={{ uri: `https://colala.hmstech.xyz/storage/${media.path}` }}
+            style={styles.thumbnail}
           />
-        )) || [getServiceImage(serviceInfo?.media)].map((img, index) => (
-          <Image key={index} source={img} style={styles.thumbnail} />
-        ))}
+        )) ||
+          [getServiceImage(serviceInfo?.media)].map((img, index) => (
+            <Image key={index} source={img} style={styles.thumbnail} />
+          ))}
       </ScrollView>
 
       <View style={styles.details}>
         <View style={styles.headerRow}>
-          <ThemedText style={styles.title}>{serviceInfo?.name || "Service Name"}</ThemedText>
+          <ThemedText style={styles.title}>
+            {serviceInfo?.name || "Service Name"}
+          </ThemedText>
           <View style={styles.ratingRow}>
             <Ionicons name="star" size={16} color="#E53E3E" />
             <ThemedText style={styles.ratingText}>4.5</ThemedText>
@@ -175,16 +191,17 @@ const ServiceDetailsScreen = () => {
         </View>
 
         <ThemedText style={styles.price}>
-          {serviceInfo?.discount_price 
+          {serviceInfo?.discount_price
             ? `₦${Number(serviceInfo.discount_price).toLocaleString()}`
-            : formatPrice(serviceInfo?.price_from, serviceInfo?.price_to)
-          }
+            : formatPrice(serviceInfo?.price_from, serviceInfo?.price_to)}
         </ThemedText>
         <View style={styles.divider} />
         {/* Description */}
         <ThemedText style={styles.sectionTitle}>Description</ThemedText>
         <ThemedText style={styles.description}>
-          {serviceInfo?.full_description || serviceInfo?.short_description || "Service description not available"}
+          {serviceInfo?.full_description ||
+            serviceInfo?.short_description ||
+            "Service description not available"}
         </ThemedText>
         <View style={styles.divider} />
 
@@ -223,7 +240,9 @@ const ServiceDetailsScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.messageBtn}
-            onPress={() => navigation.navigate("ServiceChat", { service: serviceInfo })}
+            onPress={() =>
+              navigation.navigate("ServiceChat", { service: serviceInfo })
+            }
           >
             <ThemedText style={styles.messageText}>Message Store</ThemedText>
           </TouchableOpacity>
@@ -393,7 +412,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ccc",
     marginVertical: 10,
   },
-  
+
   // Loading and error states
   loadingContainer: {
     flex: 1,
