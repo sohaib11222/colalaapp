@@ -39,7 +39,7 @@ const API = {
   SUPPORT_TICKET_ID: (id) => `${BASE_URL}/buyer/support/tickets/${id}`,
 
 
-
+  Get_All_Products: `${BASE_URL}/buyer/product/get-all`,
 
 };
 
@@ -461,4 +461,11 @@ export const useStoreDetails = (id, options) =>
   });
 
 
+export const useGetAllProducts = (options) =>
+  useQuery({
+    queryKey: ["getAllProducts"],
+    queryFn: () => http.get(API.Get_All_Products),
+    staleTime: 60 * 1000,
+    ...options,
+  });
 
