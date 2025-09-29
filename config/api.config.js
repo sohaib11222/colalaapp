@@ -586,14 +586,23 @@ export const useServices = (options) =>
     ...options,
   });
 
-export const useSearch = (type, q, options) =>
-  useQuery({
-    enabled: !!type && !!q,                       // only when a tab & query selected
-    queryKey: ['search', type, q],
+export const useSearch = (activeTab, q, options) => {
+  // map UI tabs -> API expects singular
+  const typeMap = { products: "product", stores: "store", services: "service" };
+  const type = typeMap[activeTab];
+
+  return useQuery({
+    enabled: !!type && !!q,                 // only call when tab selected AND query present
+    queryKey: ["search", type, q],
     queryFn: () => http.get(API.SEARCH, { type, q }),
     staleTime: 60 * 1000,
     ...options,
   });
+}
+
+ 
+
+
 
 
 export const useSavedToggleItem = (opts) =>
