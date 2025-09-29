@@ -3,6 +3,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCart } from "../config/api.config";
 
 import HomeScreen from "../screens/mainscreens/HomeScreen";
 import FeedScreen from "../screens/mainscreens/FeedScreen";
@@ -31,6 +32,10 @@ const COLOR = {
 /* ----------------- Custom tab bar ----------------- */
 function CustomTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
+  const { data: cartData } = useCart();
+  
+  // Calculate total cart items count
+  const cartCount = cartData?.data?.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0;
 
   const onPress = (route, isFocused, index) => {
     const event = navigation.emit({
@@ -99,7 +104,14 @@ function CustomTabBar({ state, descriptors, navigation }) {
                 style={styles.tabBtn}
                 activeOpacity={0.8}
               >
-                <Image source={TAB_ICONS[route.name]} style={[styles.icon, { tintColor: color }]} />
+                <View style={styles.iconContainer}>
+                  <Image source={TAB_ICONS[route.name]} style={[styles.icon, { tintColor: color }]} />
+                  {route.name === "Stores" && cartCount > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={[styles.label, { color }]} numberOfLines={1}>
                   {route.name}
                 </Text>
@@ -188,6 +200,28 @@ const styles = StyleSheet.create({
   },
   icon: { width: 22, height: 22, resizeMode: "contain" },
   label: { fontSize: 11, fontWeight: "400" },
+  
+  // Cart count badge
+  iconContainer: {
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -6,
+    right: -8,
+    backgroundColor: "#E53E3E",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+  },
 
   // Raised Home
   homeBadge: {

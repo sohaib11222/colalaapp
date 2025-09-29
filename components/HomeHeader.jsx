@@ -260,6 +260,7 @@ import ThemedText from './ThemedText';
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
+  Text,
   TextInput,
   Image,
   TouchableOpacity,
@@ -269,10 +270,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCart } from '../config/api.config';
 
 // keep same prop for backward-compat, but we'll override with stored user when found
 const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Nigeria' } }) => {
   const navigation = useNavigation();
+  const { data: cartData } = useCart();
+  
+  // Calculate total cart items count
+  const cartCount = cartData?.data?.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0;
 
   const [user, setUser] = useState({
     name: propUser.name,
@@ -351,10 +357,17 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
             accessibilityRole="button"
             accessibilityLabel="Open cart"
           >
-            <Image
-              source={require('../assets/cart-icon.png')}
-              style={styles.iconImg}
-            />
+            <View style={styles.cartIconContainer}>
+              <Image
+                source={require('../assets/cart-icon.png')}
+                style={styles.iconImg}
+              />
+              {cartCount > 0 && (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -416,6 +429,28 @@ const styles = StyleSheet.create({
 
   // If your PNGs are already colored, remove tintColor.
   iconImg: { width: 22, height: 22, resizeMode: 'contain' },
+  
+  // Cart count badge
+  cartIconContainer: {
+    position: 'relative',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    backgroundColor: '#E53E3E',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
 
   searchContainer: {
     marginTop: 15,

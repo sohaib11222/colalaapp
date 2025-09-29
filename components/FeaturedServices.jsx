@@ -8,45 +8,93 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");
 
-const services = [
-  {
-    id: "1",
-    title: "Fashion designing Service",
-    store: "Sasha Stores",
-    store_image: require("../assets/Ellipse 18.png"),
-    priceRange: "₦5,000 - ₦100,000",
-    rating: 4.5,
-    image: require("../assets/Frame 264 (4).png"),
-  },
-  {
-    id: "2",
-    title: "Fashion designing Service",
-    store: "Sasha Stores",
-    store_image: require("../assets/Ellipse 18.png"),
-    priceRange: "₦5,000 - ₦100,000",
-    rating: 4.5,
-    image: require("../assets/Frame 264 (5).png"),
-  },
-  {
-    id: "3",
-    title: "Fashion designing Service",
-    store: "Sasha Stores",
-    store_image: require("../assets/Ellipse 18.png"),
-    priceRange: "₦5,000 - ₦100,000",
+import { useServices } from "../config/api.config";
 
-    rating: 4.5,
-    image: require("../assets/Rectangle 32.png"),
-  },
-];
 
 const FeaturedServices = () => {
   const navigation = useNavigation();
+  
+  // Fetch services from API
+  const { data: servicesData, isLoading, error } = useServices();
+  
+  // Helper function to format price
+  const formatPrice = (priceFrom, priceTo) => {
+    const from = Number(priceFrom || 0);
+    const to = Number(priceTo || 0);
+    return `₦${from.toLocaleString()} - ₦${to.toLocaleString()}`;
+  };
+  
+  // Helper function to get service image
+  const getServiceImage = (service) => {
+    if (service?.media && service.media.length > 0) {
+      return { uri: `https://colala.hmstech.xyz/storage/${service.media[0].path}` };
+    }
+    // Fallback to default images
+    const defaultImages = [
+      require("../assets/Frame 264 (4).png"),
+      require("../assets/Frame 264 (5).png"),
+      require("../assets/Rectangle 32.png"),
+    ];
+    return defaultImages[service.id % defaultImages.length];
+  };
+  
+  const services = (servicesData?.data || []).slice(0, 4);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <ThemedText style={styles.title}>Features Services</ThemedText>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("ServiceNavigator", {
+                screen: "ServicesScreen",
+              })
+            }
+          >
+            <ThemedText style={styles.viewAll}>View All</ThemedText>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#E53E3E" />
+          <ThemedText style={styles.loadingText}>Loading services...</ThemedText>
+        </View>
+      </View>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <ThemedText style={styles.title}>Features Services</ThemedText>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("ServiceNavigator", {
+                screen: "ServicesScreen",
+              })
+            }
+          >
+            <ThemedText style={styles.viewAll}>View All</ThemedText>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.errorContainer}>
+          <ThemedText style={styles.errorText}>
+            Error loading services: {error.message}
+          </ThemedText>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -67,14 +115,22 @@ const FeaturedServices = () => {
       {/* Scrollable Cards */}
       <FlatList
         data={services}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingVertical: 12 }}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <TouchableOpacity 
+            style={styles.card}
+            onPress={() => 
+              navigation.navigate("ServiceNavigator", {
+                screen: "ServiceDetails",
+                params: { service: item }
+              })
+            }
+          >
             <Image
-              source={item.image}
+              source={getServiceImage(item)}
               style={styles.image}
               resizeMode="cover"
             />
@@ -82,26 +138,39 @@ const FeaturedServices = () => {
             {/* Store Row */}
             <View style={styles.rowBetween}>
               <View style={styles.storeRow}>
-                <Image source={item.store_image} style={styles.storeAvatar} />
-                <ThemedText style={styles.storeName}>{item.store}</ThemedText>
+                <Image 
+                  source={require("../assets/Ellipse 18.png")} 
+                  style={styles.storeAvatar} 
+                />
+                <ThemedText style={styles.storeName}>
+                  Store {item.store_id || "N/A"}
+                </ThemedText>
               </View>
               <View style={styles.ratingRow}>
                 <Ionicons name="star" size={10} color="#FF0000" />
-                <ThemedText style={styles.rating}>{item.rating}</ThemedText>
+                <ThemedText style={styles.rating}>4.5</ThemedText>
               </View>
             </View>
 
             <View style={styles.cardContent}>
-              <ThemedText style={styles.serviceTitle}>{item.title}</ThemedText>
+              <ThemedText style={styles.serviceTitle}>{item.name}</ThemedText>
               <ThemedText style={styles.priceRange}>
-                {item.priceRange}
+                {formatPrice(item.price_from, item.price_to)}
               </ThemedText>
 
-              <TouchableOpacity style={styles.detailsBtn}>
+              <TouchableOpacity 
+                style={styles.detailsBtn}
+                onPress={() => 
+                  navigation.navigate("ServiceNavigator", {
+                    screen: "ServiceDetails",
+                    params: { service: item }
+                  })
+                }
+              >
                 <ThemedText style={styles.detailsBtnText}>Details</ThemedText>
               </TouchableOpacity>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
       />
     </View>
@@ -201,5 +270,26 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 9,
     fontWeight: "400",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: "#666",
+    fontSize: 14,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  errorText: {
+    color: "#E53E3E",
+    fontSize: 14,
   },
 });

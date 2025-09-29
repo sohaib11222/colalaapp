@@ -15,7 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import ThemedText from "../../../components/ThemedText";
-import { useProductDetails } from "../../../config/api.config";
+import { useProductDetails, useCart } from "../../../config/api.config";
 import { useAddToCart } from "../../../config/api.config";
 
 const HOST = "https://colala.hmstech.xyz";
@@ -32,7 +32,15 @@ const ProductDetailsScreen = () => {
   console.log("Product Id:", route.params);
   console.log("Product Id:", productId);
   const { data, isLoading, isError } = useProductDetails(productId);
+  const { data: cartData } = useCart();
   const raw = data?.data;
+  
+  // Calculate total cart items count
+  const cartCount = cartData?.data?.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0;
+  
+  // Debug cart data
+  console.log("Cart Data:", cartData);
+  console.log("Cart Count:", cartCount);
   const product = raw && {
     ...raw,
     store: raw.store ? {
@@ -569,10 +577,19 @@ const ProductDetailsScreen = () => {
                   {addToCartMutation.isLoading ? (
                     <ActivityIndicator size="small" color="#E53E3E" />
                   ) : (
-                    <Image
-                      source={require("../../../assets/ShoppingCartSimple.png")}
-                      style={{ width: 24, height: 24, resizeMode: "contain" }}
-                    />
+                    <View style={styles.cartIconContainer}>
+                      <Image
+                        source={require("../../../assets/ShoppingCartSimple.png")}
+                        style={{ width: 24, height: 24, resizeMode: "contain" }}
+                      />
+                      {(cartCount > 0 || cartData) && (
+                        <View style={styles.cartBadge}>
+                          <ThemedText style={styles.cartBadgeText}>
+                            {cartCount > 99 ? "99+" : cartCount || "0"}
+                          </ThemedText>
+                        </View>
+                      )}
+                    </View>
                   )}
                 </TouchableOpacity>
                 <View style={styles.qtyControl}>
@@ -838,6 +855,24 @@ const styles = StyleSheet.create({
   subtotalLabel: { fontSize: 12, color: "#444" },
   subtotal: { color: "red", fontWeight: "700", fontSize: 14 },
   cartIcon: { marginLeft: "auto", marginRight: 10, borderColor: "#ccc", borderRadius: 15, borderWidth: 1, padding: 6 },
+  cartIconContainer: { position: "relative" },
+  cartBadge: {
+    position: "absolute",
+    top: -6,
+    right: -8,
+    backgroundColor: "#E53E3E",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+  },
   qtyControl: { flexDirection: "row", alignItems: "center", borderRadius: 6, overflow: "hidden" },
   qtyButton: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 7 },
   qtyText: { fontSize: 18 },
