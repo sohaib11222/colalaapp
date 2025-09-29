@@ -5,7 +5,7 @@ import { WebView } from 'react-native-webview';
 import { BASE_URL, http } from '../config/api.config';
 
 const FlutterwaveWebView = ({ route, navigation }) => {
-    const { amount, order_id } = route.params;
+    const { amount, order_id, isTopUp = false } = route.params;
 
     const handleWebViewMessage = async (event) => {
         try {
@@ -18,14 +18,24 @@ const FlutterwaveWebView = ({ route, navigation }) => {
                 const tx_id = data.data?.id || data.data?.tx_ref || 'unknown';
 
                 try {
-                    const responseData = await http.post('/buyer/payment/confirmation', {
-                        order_id,
-                        tx_id,
-                        amount,
-                    });
-
-                    console.log('✅ Payment confirmation response:', responseData);
-                    Alert.alert('Success', 'Payment confirmed!');
+                    let responseData;
+                    if (isTopUp) {
+                        // For top-up, use the wallet/top-up endpoint with fixed amount of 1000
+                        responseData = await http.post('/wallet/top-up', {
+                            amount: 1000,
+                        });
+                        console.log('✅ Top-up confirmation response:', responseData);
+                        Alert.alert('Success', 'Wallet topped up successfully!');
+                    } else {
+                        // For regular payment
+                        responseData = await http.post('/buyer/payment/confirmation', {
+                            order_id,
+                            tx_id,
+                            amount,
+                        });
+                        console.log('✅ Payment confirmation response:', responseData);
+                        Alert.alert('Success', 'Payment confirmed!');
+                    }
                 } catch (error) {
                     console.warn('⚠️ Server responded with error:', error);
                     Alert.alert('Error', error.message || 'Something went wrong.');
