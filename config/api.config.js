@@ -40,6 +40,7 @@ const API = {
   Supoort_Ticket_Message: `${BASE_URL}/buyer/support/messages`,
   SERVICES: `${BASE_URL}/seller/service`,
   SEARCH: `${BASE_URL}/search`,
+  STORE_REVIEWS: (id) => `${BASE_URL}/buyer/stores/${id}/reviews`,
 
 
   Get_All_Products: `${BASE_URL}/buyer/product/get-all`,
@@ -58,7 +59,7 @@ const API = {
   Create_Dispute: `${BASE_URL}/faqs/dispute`,
   All_Disputes: `${BASE_URL}/faqs/dispute/all`,
   Dispute_Details: `${BASE_URL}/faqs/dispute/details`,
-  
+
   // Support Tickets
   Support_Tickets: `${BASE_URL}/buyer/support/tickets`,
   Support_Ticket_Details: (ticketId) => `${BASE_URL}/buyer/support/tickets/${ticketId}`,
@@ -600,7 +601,7 @@ export const useSearch = (activeTab, q, options) => {
   });
 }
 
- 
+
 
 
 
@@ -709,4 +710,62 @@ export const useSupportTicketMessage = (opts) =>
     onError: (err, vars) => {
       opts?.onError?.(err, vars);
     },
+
+
   });
+
+
+export const useStoreReviews = (storeId, options) =>
+  useQuery({
+    enabled: !!storeId,
+    queryKey: ["storeReviews", storeId],
+    queryFn: () => http.get(API.STORE_REVIEWS(storeId)),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useAddStoreReview = (opts) =>
+  useMutation({
+    mutationFn: async ({ storeId, rating, comment, images }) => {
+      // If images are provided, send multipart/form-data, otherwise JSON
+      const hasImages = Array.isArray(images) && images.length > 0;
+
+      if (hasImages) {
+        const fd = new FormData();
+        fd.append("rating", String(rating ?? ""));
+        fd.append("comment", comment ?? "");
+        images.forEach((uri, i) =>
+          fd.append("images[]", {
+            uri,
+            name: `review_${Date.now()}_${i}.jpg`,
+            type: "image/jpeg",
+          })
+        );
+        return http.post(API.STORE_REVIEWS(storeId), fd); // http.post already sets content-type for FormData
+      }
+
+      return http.post(API.STORE_REVIEWS(storeId), {
+        rating,
+        comment,
+        images: [],
+      });
+    },
+    onSuccess: (res, vars) => {
+      // Refresh the reviews list for this store
+      queryClient.invalidateQueries({ queryKey: ["storeReviews", vars.storeId] });
+      opts?.onSuccess?.(res, vars);
+    },
+    onError: (err, vars) => {
+      opts?.onError?.(err, vars);
+    },
+  });
+
+
+export const fileUrl = (p) => {
+  if (!p) return null;
+  if (/^https?:\/\//i.test(p)) return p;
+  const base = BASE_URL.replace(/\/api\/?$/, ""); // -> https://colala.hmstech.xyz
+  const cleaned = String(p).replace(/^\/?storage\/?/, ""); // avoid duplicated /storage
+  return `${base}/storage/${cleaned}`;
+};
+
