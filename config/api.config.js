@@ -42,6 +42,11 @@ const API = {
   SEARCH: `${BASE_URL}/search`,
   STORE_REVIEWS: (id) => `${BASE_URL}/buyer/stores/${id}/reviews`,
   Get_All_Products: `${BASE_URL}/buyer/product/get-all`,
+
+
+
+
+  
   Edit_Profile: `${BASE_URL}/auth/edit-profile`,
   Services_Categories: `${BASE_URL}/service-categories`,
   Services_By_Category: (categoryId) => `${BASE_URL}/service-categories/${categoryId}`,

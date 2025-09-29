@@ -233,7 +233,7 @@ const ServiceDetailsScreen = () => {
         </TouchableOpacity>
         <ThemedText style={styles.topHeaderTitle}>Service Details</ThemedText>
         <View style={{ flexDirection: "row", gap: 8 }}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={{
               padding: 5,
               borderColor: "#ccc",
@@ -242,7 +242,7 @@ const ServiceDetailsScreen = () => {
             }}
           >
             <Ionicons name="ellipsis-vertical" size={22} color="#000" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TouchableOpacity
             style={{
               padding: 5,

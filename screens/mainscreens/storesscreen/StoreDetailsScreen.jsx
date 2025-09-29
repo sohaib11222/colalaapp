@@ -27,6 +27,9 @@ import {
   useStartChat,
 } from "../../../config/api.config";
 
+import { useToggleFollowStore } from "../../../config/api.config";
+import { useCheckFollowedStore } from "../../../config/api.config";
+
 const { width } = Dimensions.get("window");
 const COLOR = {
   primary: "#EF534E",
@@ -51,7 +54,8 @@ const STATS_ICONS = {
 };
 
 // Helper: Image can accept require(...) or URL
-const toSrc = (v) => (typeof v === "number" ? v : v ? { uri: String(v) } : undefined);
+const toSrc = (v) =>
+  typeof v === "number" ? v : v ? { uri: String(v) } : undefined;
 
 export default function StoreDetailsScreen() {
   const navigation = useNavigation();
@@ -59,12 +63,13 @@ export default function StoreDetailsScreen() {
 
   // From Stores screen: params: { store: item, storeId }
   let initialStore = route?.params?.store ?? {};
-  const storeId = route?.params?.storeId ?? initialStore?._api?.id ?? initialStore?.id;
+  const storeId =
+    route?.params?.storeId ?? initialStore?._api?.id ?? initialStore?.id;
 
   if (typeof initialStore === "string") {
     try {
       initialStore = JSON.parse(initialStore);
-    } catch { }
+    } catch {}
   }
 
   // ======== Fetch the live store and reviews ========
@@ -75,7 +80,38 @@ export default function StoreDetailsScreen() {
   const reviewsApiList = reviewsRes?.data ?? apiStore?.store_reveiews; // prefer endpoint; fallback to payload key
   const { mutateAsync: startChat, isPending: creatingChat } = useStartChat();
 
+  // Follow/Unfollow functionality
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isCheckingFollow, setIsCheckingFollow] = useState(true);
+  
+  const { mutateAsync: toggleFollow, isPending: isTogglingFollow } = useToggleFollowStore({
+    onSuccess: (response) => {
+      console.log("Toggle follow response:", response);
+      if (response?.status === "success") {
+        setIsFollowing(response.data.following);
+      }
+    },
+    onError: (error) => {
+      console.error("Follow toggle error:", error);
+    }
+  });
 
+  const { mutateAsync: checkFollow } = useCheckFollowedStore({
+    onSuccess: (response) => {
+      console.log("Check follow response:", response);
+      if (response?.status === "success") {
+        setIsFollowing(response.data.following);
+      }
+      setIsCheckingFollow(false);
+    },
+    onError: (error) => {
+      console.error("Check follow error:", error);
+      setIsCheckingFollow(false);
+    }
+  });
+
+  // Debug logging
+  console.log("Current follow state:", { isFollowing, isCheckingFollow, isTogglingFollow });
 
   // ======== Merge API over your existing object (keep hardcoded when absent) ========
   const mergedStore = useMemo(() => {
@@ -99,13 +135,20 @@ export default function StoreDetailsScreen() {
     const avatar = fileUrl(fromApi.profile_image) || fallbackAvatar;
 
     // stats
-    const qtySold = typeof fromApi.total_sold === "number" ? fromApi.total_sold : 100; // KEEP hardcoded if missing
-    const followers = Array.isArray(fromApi.followers) ? fromApi.followers.length : 500; // KEEP hardcoded if array missing
+    const qtySold =
+      typeof fromApi.total_sold === "number" ? fromApi.total_sold : 100; // KEEP hardcoded if missing
+    const followers = Array.isArray(fromApi.followers)
+      ? fromApi.followers.length
+      : 500; // KEEP hardcoded if array missing
     const rating =
-      typeof fromApi.rating === "number" && fromApi.rating > 0 ? fromApi.rating : 4.7; // KEEP hardcoded if 0 or absent
+      typeof fromApi.rating === "number" && fromApi.rating > 0
+        ? fromApi.rating
+        : 4.7; // KEEP hardcoded if 0 or absent
 
     // social
-    const social_links = Array.isArray(fromApi.social_links) ? fromApi.social_links : [];
+    const social_links = Array.isArray(fromApi.social_links)
+      ? fromApi.social_links
+      : [];
 
     // addresses (just show link text in UI; keep hardcoded line if missing)
     const addresses = Array.isArray(fromApi.addresses) ? fromApi.addresses : [];
@@ -113,29 +156,34 @@ export default function StoreDetailsScreen() {
     // products mapping → your card expects: image, title/name, price text, store name/avatar, rating, etc.
     const productsFromApi = Array.isArray(fromApi.products)
       ? fromApi.products.map((p) => {
-        const mainImg = Array.isArray(p.images)
-          ? p.images.find((im) => im.is_main) || p.images[0]
-          : null;
-        const imgUrl = mainImg?.path ? fileUrl(mainImg.path) : null;
+          const mainImg = Array.isArray(p.images)
+            ? p.images.find((im) => im.is_main) || p.images[0]
+            : null;
+          const imgUrl = mainImg?.path ? fileUrl(mainImg.path) : null;
 
-        return {
-          id: String(p.id),
-          title: p.name || "Product",
-          name: p.name || "Product",
-          store: name,
-          store_image: avatar,
-          location: location || "Lagos, Nigeria",
-          rating: rating || 4.5,
-          // keep your price styling; if you need ₦ formatting, you can add it later
-          price: p.discount_price && Number(p.discount_price) > 0 ? `₦${p.discount_price}` : `₦${p.price}`,
-          originalPrice:
-            p.discount_price && Number(p.discount_price) > 0 ? `₦${p.price}` : undefined,
-          image: imgUrl,
-          tagImages: [], // not in API → keep empty (your demo still supports tags for DEMO items)
-          sponsored: false,
-          _api: p,
-        };
-      })
+          return {
+            id: String(p.id),
+            title: p.name || "Product",
+            name: p.name || "Product",
+            store: name,
+            store_image: avatar,
+            location: location || "Lagos, Nigeria",
+            rating: rating || 4.5,
+            // keep your price styling; if you need ₦ formatting, you can add it later
+            price:
+              p.discount_price && Number(p.discount_price) > 0
+                ? `₦${p.discount_price}`
+                : `₦${p.price}`,
+            originalPrice:
+              p.discount_price && Number(p.discount_price) > 0
+                ? `₦${p.price}`
+                : undefined,
+            image: imgUrl,
+            tagImages: [], // not in API → keep empty (your demo still supports tags for DEMO items)
+            sponsored: false,
+            _api: p,
+          };
+        })
       : [];
 
     return {
@@ -146,7 +194,8 @@ export default function StoreDetailsScreen() {
       location,
       cover,
       avatar,
-      theme_color: fromApi.theme_color || initialStore?.theme_color || COLOR.primary,
+      theme_color:
+        fromApi.theme_color || initialStore?.theme_color || COLOR.primary,
       qtySold,
       followers,
       rating,
@@ -159,89 +208,11 @@ export default function StoreDetailsScreen() {
     };
   }, [apiStore, initialStore, storeId]);
 
-  // ======== Products source (API first, else DEMO kept exactly) ========
-  const DEMO_PRODUCTS = [
-    {
-      id: "1",
-      title: "Dell Inspiron Laptop",
-      store: mergedStore?.name || "Sasha Stores",
-      store_image: mergedStore?.avatar || require("../../../assets/Ellipse 18.png"),
-      location: "Lagos, Nigeria",
-      rating: 4.5,
-      price: "₦2,000,000",
-      originalPrice: "₦3,000,000",
-      image: require("../../../assets/Frame 264.png"),
-      tagImages: [require("../../../assets/freedel.png"), require("../../../assets/bulk.png")],
-      sponsored: true,
-    },
-    {
-      id: "2",
-      title: "Dell Inspiron Laptop",
-      store: mergedStore?.name || "Sasha Stores",
-      store_image: mergedStore?.avatar || require("../../../assets/Ellipse 18.png"),
-      location: "Lagos, Nigeria",
-      rating: 4.5,
-      price: "₦2,000,000",
-      originalPrice: "₦3,000,000",
-      image: require("../../../assets/Frame 264 (1).png"),
-      tagImages: [require("../../../assets/freedel.png"), require("../../../assets/bulk.png")],
-      sponsored: true,
-    },
-    {
-      id: "3",
-      title: "Dell Inspiron Laptop",
-      store: mergedStore?.name || "Sasha Stores",
-      store_image: mergedStore?.avatar || require("../../../assets/Ellipse 18.png"),
-      location: "Lagos, Nigeria",
-      rating: 4.5,
-      price: "₦2,000,000",
-      originalPrice: "₦3,000,000",
-      image: require("../../../assets/Frame 264 (2).png"),
-      tagImages: [require("../../../assets/freedel.png"), require("../../../assets/bulk.png")],
-      sponsored: true,
-    },
-    {
-      id: "4",
-      title: "Dell Inspiron Laptop",
-      store: mergedStore?.name || "Sasha Stores",
-      store_image: mergedStore?.avatar || require("../../../assets/Ellipse 18.png"),
-      location: "Lagos, Nigeria",
-      rating: 4.5,
-      price: "₦2,000,000",
-      originalPrice: "₦3,000,000",
-      image: require("../../../assets/Frame 264 (3).png"),
-      tagImages: [require("../../../assets/freedel.png"), require("../../../assets/bulk.png")],
-      sponsored: true,
-    },
-  ];
+  // ======== Products source (API first, else empty state) ========
+  const productsSource = mergedStore?.productsFromApi || [];
 
-  const productsSource =
-    mergedStore?.productsFromApi?.length ? mergedStore.productsFromApi : DEMO_PRODUCTS;
-
-  // ======== Social Feed (unchanged; not in API) ========
-  const DEMO_POSTS = [
-    {
-      id: "1",
-      store: mergedStore?.name || "Sasha Stores",
-      avatar:
-        typeof mergedStore?.avatar === "number"
-          ? mergedStore.avatar
-          : mergedStore?.avatar ||
-          "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop",
-      location: mergedStore?.location || "Lagos, Nigeria",
-      timeAgo: "20 min ago",
-      images: [
-        "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=1200&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=1200&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1200&auto=format&fit=crop",
-      ],
-      caption: "Get this phone at a cheap price for a limited period",
-      likes: 500,
-      comments: 26,
-      shares: 26,
-    },
-  ];
-  const postsSource = DEMO_POSTS;
+  // ======== Social Feed (empty state when no posts) ========
+  const postsSource = [];
 
   // ======== Search in Products ========
   const [tab, setTab] = useState("Products");
@@ -271,43 +242,30 @@ export default function StoreDetailsScreen() {
     ? reviewsApiList.map(mapApiReviewToUi)
     : [];
 
-  const DEMO_REVIEWS = {
-    store: [
-      {
-        id: "rs1",
-        user: "Adam Sandler",
-        avatar:
-          "https://images.unsplash.com/photo-1502767089025-6572583495b0?q=80&w=200&auto=format&fit=crop",
-        rating: 4,
-        time: "07-16-25/05:33AM",
-        text: "The store is great",
-        replies: [],
-      },
-    ],
-    product: [
-      {
-        id: "rp1",
-        user: "Jacob Ryan",
-        avatar:
-          "https://images.unsplash.com/photo-1527980965255-d3b416303d12?q=80&w=200&auto=format&fit=crop",
-        rating: 4,
-        time: "07-16-25/05:33AM",
-        text: "Good quality and fast delivery.",
-        replies: [],
-      },
-    ],
-  };
-
   const [reviewScope, setReviewScope] = useState("store"); // "store" | "product"
-  const [reviewsStore, setReviewsStore] = useState(
-    apiReviewsUi.length ? apiReviewsUi : DEMO_REVIEWS.store
-  );
-  const [reviewsProduct, setReviewsProduct] = useState(DEMO_REVIEWS.product);
+  const [reviewsStore, setReviewsStore] = useState(apiReviewsUi);
+  const [reviewsProduct, setReviewsProduct] = useState([]);
 
   // If API reviews change, update local list while keeping replies feature
   useEffect(() => {
     if (apiReviewsUi.length) setReviewsStore(apiReviewsUi);
   }, [reviewsRes]); // eslint-disable-line
+
+  // Check follow status when component mounts
+  useEffect(() => {
+    if (storeId) {
+      checkFollow({ store_id: String(storeId) });
+    }
+  }, [storeId, checkFollow]);
+
+  const handleFollowToggle = async () => {
+    try {
+      await toggleFollow({ store_id: String(storeId) });
+    } catch (error) {
+      console.error("Follow toggle error:", error);
+      Alert.alert("Error", "Failed to update follow status. Please try again.");
+    }
+  };
 
   const activeReviews = reviewScope === "store" ? reviewsStore : reviewsProduct;
   const reviewCount = activeReviews.length;
@@ -323,7 +281,9 @@ export default function StoreDetailsScreen() {
       text,
     };
     const update = (arr) =>
-      arr.map((r) => (r.id === reviewId ? { ...r, replies: [...(r.replies || []), reply] } : r));
+      arr.map((r) =>
+        r.id === reviewId ? { ...r, replies: [...(r.replies || []), reply] } : r
+      );
     if (reviewScope === "store") setReviewsStore((p) => update(p));
     else setReviewsProduct((p) => update(p));
   };
@@ -404,7 +364,12 @@ export default function StoreDetailsScreen() {
         <ThemedText style={styles.reviewText}>{item.text}</ThemedText>
 
         <View style={styles.replyRow}>
-          <Ionicons name="return-down-back-outline" size={18} color={COLOR.text} style={{ marginRight: 8 }} />
+          <Ionicons
+            name="return-down-back-outline"
+            size={18}
+            color={COLOR.text}
+            style={{ marginRight: 8 }}
+          />
           <TextInput
             value={text}
             onChangeText={setText}
@@ -434,8 +399,8 @@ export default function StoreDetailsScreen() {
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={() =>
-        navigation.navigate('CategoryNavigator', {
-          screen: 'ProductDetails',
+        navigation.navigate("CategoryNavigator", {
+          screen: "ProductDetails",
           params: {
             productId: item.id,
             product: item,
@@ -446,7 +411,11 @@ export default function StoreDetailsScreen() {
       <View style={styles.card}>
         <View>
           {item?.image ? (
-            <Image source={toSrc(item.image)} style={styles.image} resizeMode="cover" />
+            <Image
+              source={toSrc(item.image)}
+              style={styles.image}
+              resizeMode="cover"
+            />
           ) : (
             <View style={[styles.image, { backgroundColor: "#eee" }]} />
           )}
@@ -460,15 +429,22 @@ export default function StoreDetailsScreen() {
         <View style={[styles.rowBetween, styles.grayStrip]}>
           <View style={styles.storeRow}>
             {item?.store_image ? (
-              <Image source={toSrc(item.store_image)} style={styles.storeAvatar} />
+              <Image
+                source={toSrc(item.store_image)}
+                style={styles.storeAvatar}
+              />
             ) : (
               <View style={[styles.storeAvatar, { backgroundColor: "#ddd" }]} />
             )}
-            <ThemedText style={styles.storeName}>{item?.store || mergedStore?.name || "Store"}</ThemedText>
+            <ThemedText style={styles.storeName}>
+              {item?.store || mergedStore?.name || "Store"}
+            </ThemedText>
           </View>
           <View style={styles.ratingRow}>
             <Ionicons name="star" color="#E53E3E" size={12} />
-            <ThemedText style={styles.ratingTxt}>{item?.rating ?? mergedStore?.rating ?? "4.5"}</ThemedText>
+            <ThemedText style={styles.ratingTxt}>
+              {item?.rating ?? mergedStore?.rating ?? "4.5"}
+            </ThemedText>
           </View>
         </View>
 
@@ -478,22 +454,38 @@ export default function StoreDetailsScreen() {
           </ThemedText>
 
           <View style={styles.priceRow}>
-            <ThemedText style={styles.price}>{item?.price || "₦2,000,000"}</ThemedText>
+            <ThemedText style={styles.price}>
+              {item?.price || "₦2,000,000"}
+            </ThemedText>
             {!!item?.originalPrice && (
-              <ThemedText style={styles.originalPrice}>{item.originalPrice}</ThemedText>
+              <ThemedText style={styles.originalPrice}>
+                {item.originalPrice}
+              </ThemedText>
             )}
           </View>
 
           <View style={styles.tagsRow}>
             {(item?.tagImages || []).map((img, i) => (
-              <Image key={i} source={toSrc(img)} style={styles.tagIcon} resizeMode="contain" />
+              <Image
+                key={i}
+                source={toSrc(img)}
+                style={styles.tagIcon}
+                resizeMode="contain"
+              />
             ))}
           </View>
 
           <View style={styles.rowBetween}>
             <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={13} color="#444" style={{ marginRight: 2 }} />
-              <ThemedText style={styles.location}>{item?.location || mergedStore?.location || "Lagos, Nigeria"}</ThemedText>
+              <Ionicons
+                name="location-outline"
+                size={13}
+                color="#444"
+                style={{ marginRight: 2 }}
+              />
+              <ThemedText style={styles.location}>
+                {item?.location || mergedStore?.location || "Lagos, Nigeria"}
+              </ThemedText>
             </View>
             <TouchableOpacity>
               <Image
@@ -504,7 +496,6 @@ export default function StoreDetailsScreen() {
           </View>
         </View>
       </View>
-
     </TouchableOpacity>
   );
 
@@ -521,7 +512,10 @@ export default function StoreDetailsScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }} edges={["top"]}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: COLOR.bg }}
+      edges={["top"]}
+    >
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Cover */}
         <View style={styles.coverWrap}>
@@ -532,7 +526,10 @@ export default function StoreDetailsScreen() {
           )}
 
           <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.circleBtn}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.circleBtn}
+            >
               <Ionicons name="chevron-back" size={20} color="#fff" />
             </TouchableOpacity>
             <View style={{ flexDirection: "row", gap: 8 }}>
@@ -540,7 +537,10 @@ export default function StoreDetailsScreen() {
                 <Ionicons name="search" size={18} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.circleBtn}>
-                <Image source={require("../../../assets/Vector (23).png")} style={styles.iconImg} />
+                <Image
+                  source={require("../../../assets/Vector (23).png")}
+                  style={styles.iconImg}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -555,9 +555,24 @@ export default function StoreDetailsScreen() {
         <View style={styles.statusRow}>
           <View style={styles.statusPill}>
             <Ionicons name="ellipse" size={8} color="#fff" />
-            <ThemedText style={styles.statusTxt}>Open Now · 07:00AM - 08:00PM</ThemedText>
-            <TouchableOpacity style={styles.followBtn}>
-              <ThemedText style={styles.followTxt}>Follow</ThemedText>
+            <ThemedText style={styles.statusTxt}>
+              Open Now · 07:00AM - 08:00PM
+            </ThemedText>
+            <TouchableOpacity 
+              style={[
+                styles.followBtn, 
+                isFollowing && styles.followBtnActive,
+                isTogglingFollow && styles.followBtnDisabled
+              ]} 
+              onPress={handleFollowToggle}
+              disabled={isTogglingFollow || isCheckingFollow}
+            >
+              <ThemedText style={[
+                styles.followTxt,
+                isFollowing && styles.followTxtActive
+              ]}>
+                {isCheckingFollow ? "..." : isFollowing ? "Following" : "Follow"}
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -565,8 +580,20 @@ export default function StoreDetailsScreen() {
         {/* Header content */}
         <View style={styles.headerContent}>
           <View style={styles.rowBetween}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
-              <ThemedText style={[styles.storeNameHeader, { fontSize: 16, fontWeight: 500, color: "#000" }]}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                flex: 1,
+              }}
+            >
+              <ThemedText
+                style={[
+                  styles.storeNameHeader,
+                  { fontSize: 16, fontWeight: 500, color: "#000" },
+                ]}
+              >
                 {mergedStore?.name || "Store"}
               </ThemedText>
             </View>
@@ -575,11 +602,15 @@ export default function StoreDetailsScreen() {
           {/* Contact + meta (use API when present; keep hardcoded when not) */}
           <View style={styles.metaRow}>
             <Ionicons name="mail-outline" size={16} color={COLOR.sub} />
-            <ThemedText style={styles.metaTxt}>{mergedStore?.email || "sashastores@gmail.com"}</ThemedText>
+            <ThemedText style={styles.metaTxt}>
+              {mergedStore?.email || "sashastores@gmail.com"}
+            </ThemedText>
           </View>
           <View style={styles.metaRow}>
             <Ionicons name="call-outline" size={16} color={COLOR.sub} />
-            <ThemedText style={styles.metaTxt}>{mergedStore?.phone || "070123456789"}</ThemedText>
+            <ThemedText style={styles.metaTxt}>
+              {mergedStore?.phone || "070123456789"}
+            </ThemedText>
           </View>
           <View style={styles.metaRow}>
             <Ionicons name="location-outline" size={16} color={COLOR.sub} />
@@ -587,28 +618,42 @@ export default function StoreDetailsScreen() {
               {mergedStore?.location || "Lagos, Nigeria"}
             </ThemedText>
             <ThemedText
-              style={[styles.metaTxt, { color: COLOR.primary, textDecorationLine: "underline" }]}
+              style={[
+                styles.metaTxt,
+                { color: COLOR.primary, textDecorationLine: "underline" },
+              ]}
             >
               View Store Addresses
             </ThemedText>
           </View>
 
           {/* Your tags block (not in API) — kept as-is */}
-          {!!initialStore?.tags && Array.isArray(initialStore.tags) && initialStore.tags.length > 0 && (
-            <View style={styles.tagsRow}>
-              <Ionicons name="call-outline" size={16} color={COLOR.sub} />
-              <ThemedText style={styles.metaTxt}>Category</ThemedText>
-              {initialStore.tags.map((t, i) => (
-                <View key={`${t}-${i}`} style={[styles.tag, i === 0 ? styles.tagBlue : styles.tagRed]}>
-                  <ThemedText
-                    style={[styles.tagTxt, i === 0 ? styles.tagTxtBlue : styles.tagTxtRed]}
+          {!!initialStore?.tags &&
+            Array.isArray(initialStore.tags) &&
+            initialStore.tags.length > 0 && (
+              <View style={styles.tagsRow}>
+                <Ionicons name="call-outline" size={16} color={COLOR.sub} />
+                <ThemedText style={styles.metaTxt}>Category</ThemedText>
+                {initialStore.tags.map((t, i) => (
+                  <View
+                    key={`${t}-${i}`}
+                    style={[
+                      styles.tag,
+                      i === 0 ? styles.tagBlue : styles.tagRed,
+                    ]}
                   >
-                    {t}
-                  </ThemedText>
-                </View>
-              ))}
-            </View>
-          )}
+                    <ThemedText
+                      style={[
+                        styles.tagTxt,
+                        i === 0 ? styles.tagTxtBlue : styles.tagTxtRed,
+                      ]}
+                    >
+                      {t}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            )}
         </View>
 
         {/* Stats card (API values with hardcoded fallbacks) */}
@@ -621,7 +666,9 @@ export default function StoreDetailsScreen() {
               <View>
                 <ThemedText style={styles.statLabel}>Qty Sold</ThemedText>
                 <ThemedText style={styles.statValue}>
-                  {typeof mergedStore?.qtySold === "number" ? mergedStore.qtySold : 100}
+                  {typeof mergedStore?.qtySold === "number"
+                    ? mergedStore.qtySold
+                    : 100}
                 </ThemedText>
               </View>
             </View>
@@ -635,7 +682,9 @@ export default function StoreDetailsScreen() {
               <View>
                 <ThemedText style={styles.statLabel}>Followers</ThemedText>
                 <ThemedText style={styles.statValue}>
-                  {typeof mergedStore?.followers === "number" ? mergedStore.followers : 500}
+                  {typeof mergedStore?.followers === "number"
+                    ? mergedStore.followers
+                    : 500}
                 </ThemedText>
               </View>
             </View>
@@ -657,17 +706,28 @@ export default function StoreDetailsScreen() {
 
           <View style={styles.statsBottom}>
             <Ionicons name="megaphone-outline" size={16} color="#fff" />
-            <ThemedText style={styles.announceTxt}>New arrivals coming tomorrow</ThemedText>
+            <ThemedText style={styles.announceTxt}>
+              New arrivals coming tomorrow
+            </ThemedText>
           </View>
         </View>
 
         {/* Social icons – images (kept as-is) */}
         <View style={styles.socialCard}>
           {[
-            { id: "wa", uri: "https://img.icons8.com/color/48/whatsapp--v1.png" },
-            { id: "ig", uri: "https://img.icons8.com/color/48/instagram-new--v1.png" },
+            {
+              id: "wa",
+              uri: "https://img.icons8.com/color/48/whatsapp--v1.png",
+            },
+            {
+              id: "ig",
+              uri: "https://img.icons8.com/color/48/instagram-new--v1.png",
+            },
             { id: "x", uri: "https://img.icons8.com/ios-filled/50/x.png" },
-            { id: "fb", uri: "https://img.icons8.com/color/48/facebook-new.png" },
+            {
+              id: "fb",
+              uri: "https://img.icons8.com/color/48/facebook-new.png",
+            },
           ].map((s) => (
             <TouchableOpacity key={s.id} style={styles.socialBtn}>
               <Image source={{ uri: s.uri }} style={styles.socialImg} />
@@ -678,7 +738,11 @@ export default function StoreDetailsScreen() {
         {/* Promo (kept) */}
         <View style={{ marginHorizontal: 16, marginTop: 12 }}>
           <View style={styles.promoWrap}>
-            <Image source={promoSrc} style={styles.promoImage} resizeMode="cover" />
+            <Image
+              source={promoSrc}
+              style={styles.promoImage}
+              resizeMode="cover"
+            />
           </View>
         </View>
 
@@ -708,25 +772,29 @@ export default function StoreDetailsScreen() {
             style={[styles.bigBtn, styles.bigBtnBlack]}
             onPress={async () => {
               try {
-                const storeName = mergedStore?.name || 'Store';
+                const storeName = mergedStore?.name || "Store";
                 const profileImage = mergedStore?.avatar;
 
-                const { chat_id } = await startChat({ storeId });  // <-- new hook
+                const { chat_id } = await startChat({ storeId }); // <-- new hook
 
-                navigation.navigate('ServiceNavigator', {
-                  screen: 'ChatDetails',
+                navigation.navigate("ServiceNavigator", {
+                  screen: "ChatDetails",
                   params: {
                     store: { id: storeId, name: storeName, profileImage },
-                    chat_id,                  // ChatDetails should use this id to fetch messages
-                    store_order_id: storeId,  // keep if your ChatDetails expects it
+                    chat_id, // ChatDetails should use this id to fetch messages
+                    store_order_id: storeId, // keep if your ChatDetails expects it
                   },
                 });
               } catch (e) {
                 // Fallback: open without chat_id; ChatDetails can lazy-create if you want
-                navigation.navigate('ServiceNavigator', {
-                  screen: 'ChatDetails',
+                navigation.navigate("ServiceNavigator", {
+                  screen: "ChatDetails",
                   params: {
-                    store: { id: storeId, name: mergedStore?.name || 'Store', profileImage: mergedStore?.avatar },
+                    store: {
+                      id: storeId,
+                      name: mergedStore?.name || "Store",
+                      profileImage: mergedStore?.avatar,
+                    },
                   },
                 });
               }
@@ -734,7 +802,7 @@ export default function StoreDetailsScreen() {
             disabled={creatingChat}
           >
             <ThemedText style={styles.bigBtnTxt}>
-              {creatingChat ? 'Opening...' : 'Chat'}
+              {creatingChat ? "Opening..." : "Chat"}
             </ThemedText>
           </TouchableOpacity>
 
@@ -757,7 +825,11 @@ export default function StoreDetailsScreen() {
               onPress={() => setTab(t)}
               style={[styles.tabItem, tab === t && styles.tabActive]}
             >
-              <ThemedText style={[styles.tabTxt, tab === t && styles.tabTxtActive]}>{t}</ThemedText>
+              <ThemedText
+                style={[styles.tabTxt, tab === t && styles.tabTxtActive]}
+              >
+                {t}
+              </ThemedText>
             </TouchableOpacity>
           ))}
         </View>
@@ -781,24 +853,52 @@ export default function StoreDetailsScreen() {
               </TouchableOpacity>
             </View>
 
-            <FlatList
-              data={products}
-              keyExtractor={(i) => String(i.id)}
-              numColumns={2}
-              columnWrapperStyle={{ justifyContent: "space-around", gap: 10 }}
-              contentContainerStyle={{ paddingBottom: 20 }}
-              renderItem={renderProduct}
-              scrollEnabled={false}
-            />
+            {products.length > 0 ? (
+              <FlatList
+                data={products}
+                keyExtractor={(i) => String(i.id)}
+                numColumns={2}
+                columnWrapperStyle={{ justifyContent: "space-around", gap: 10 }}
+                contentContainerStyle={{ paddingBottom: 20 }}
+                renderItem={renderProduct}
+                scrollEnabled={false}
+              />
+            ) : (
+              <View style={styles.emptyStateContainer}>
+                <Ionicons
+                  name="storefront-outline"
+                  size={64}
+                  color={COLOR.sub}
+                />
+                <ThemedText style={styles.emptyStateTitle}>
+                  No Products Available
+                </ThemedText>
+                <ThemedText style={styles.emptyStateText}>
+                  This store hasn't added any products yet. Check back later for
+                  new items.
+                </ThemedText>
+              </View>
+            )}
           </View>
         )}
 
-        {/* SOCIAL FEED tab (kept) */}
+        {/* SOCIAL FEED tab */}
         {tab === "Social Feed" && (
           <View style={{ paddingBottom: 20 }}>
-            {postsSource.map((p) => (
-              <PostCardLike key={p.id} item={p} />
-            ))}
+            {postsSource.length > 0 ? (
+              postsSource.map((p) => <PostCardLike key={p.id} item={p} />)
+            ) : (
+              <View style={styles.emptyStateContainer}>
+                <Ionicons name="images-outline" size={64} color={COLOR.sub} />
+                <ThemedText style={styles.emptyStateTitle}>
+                  No Social Posts
+                </ThemedText>
+                <ThemedText style={styles.emptyStateText}>
+                  This store hasn't shared any posts yet. Follow them to see
+                  updates.
+                </ThemedText>
+              </View>
+            )}
           </View>
         )}
 
@@ -808,11 +908,23 @@ export default function StoreDetailsScreen() {
             <View style={styles.revTabsCard}>
               <View style={styles.revTabsRow}>
                 {["store", "product"].map((key) => {
-                  const label = key === "store" ? "Store Reviews" : "Product Reviews";
+                  const label =
+                    key === "store" ? "Store Reviews" : "Product Reviews";
                   const active = reviewScope === key;
                   return (
-                    <TouchableOpacity key={key} onPress={() => setReviewScope(key)} style={styles.revTabBtn}>
-                      <ThemedText style={[styles.revTabTxt, active && styles.revTabTxtActive]}>{label}</ThemedText>
+                    <TouchableOpacity
+                      key={key}
+                      onPress={() => setReviewScope(key)}
+                      style={styles.revTabBtn}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.revTabTxt,
+                          active && styles.revTabTxtActive,
+                        ]}
+                      >
+                        {label}
+                      </ThemedText>
                       {active && <View style={styles.revTabUnderline} />}
                     </TouchableOpacity>
                   );
@@ -825,18 +937,27 @@ export default function StoreDetailsScreen() {
                   <ThemedText style={styles.ratingLeft}>
                     {Math.round(avgRating) || 0} Stars
                   </ThemedText>
-                  <ThemedText style={styles.ratingRight}>{reviewCount} Reviews</ThemedText>
+                  <ThemedText style={styles.ratingRight}>
+                    {reviewCount} Reviews
+                  </ThemedText>
                 </View>
               </View>
             </View>
 
             <View style={{ marginTop: 12 }}>
-              {activeReviews.map((rv) => (
-                <ReviewCard key={rv.id} item={rv} onReply={addReply} />
-              ))}
-              {!activeReviews.length && (
-                <View style={styles.noReviewsBox}>
-                  <ThemedText style={{ color: COLOR.sub }}>No reviews yet.</ThemedText>
+              {activeReviews.length > 0 ? (
+                activeReviews.map((rv) => (
+                  <ReviewCard key={rv.id} item={rv} onReply={addReply} />
+                ))
+              ) : (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons name="star-outline" size={64} color={COLOR.sub} />
+                  <ThemedText style={styles.emptyStateTitle}>
+                    No Reviews Yet
+                  </ThemedText>
+                  <ThemedText style={styles.emptyStateText}>
+                    Be the first to review this store and share your experience.
+                  </ThemedText>
                 </View>
               )}
             </View>
@@ -872,7 +993,10 @@ function PostCardLike({ item }) {
         <Ionicons name="ellipsis-vertical" size={18} color={COLOR.sub} />
       </View>
 
-      <Image source={toSrc(item.images?.[0])} style={[styles.postImage, { width: "100%" }]} />
+      <Image
+        source={toSrc(item.images?.[0])}
+        style={[styles.postImage, { width: "100%" }]}
+      />
 
       {item.caption ? (
         <View style={styles.captionPill}>
@@ -882,7 +1006,10 @@ function PostCardLike({ item }) {
 
       <View style={styles.actionsRow}>
         <View style={styles.actionsLeft}>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => setLiked((p) => !p)}>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => setLiked((p) => !p)}
+          >
             <Ionicons
               name={liked ? "heart" : "heart-outline"}
               size={25}
@@ -893,12 +1020,16 @@ function PostCardLike({ item }) {
 
           <View style={styles.actionBtn}>
             <Ionicons name="chatbubble-outline" size={25} color={COLOR.text} />
-            <ThemedText style={styles.actionCount}>{item.comments || 0}</ThemedText>
+            <ThemedText style={styles.actionCount}>
+              {item.comments || 0}
+            </ThemedText>
           </View>
 
           <View style={styles.actionBtn}>
             <Ionicons name="arrow-redo-outline" size={25} color={COLOR.text} />
-            <ThemedText style={styles.actionCount}>{item.shares || 0}</ThemedText>
+            <ThemedText style={styles.actionCount}>
+              {item.shares || 0}
+            </ThemedText>
           </View>
         </View>
 
@@ -931,8 +1062,15 @@ function ReviewSheet({ visible, onClose, onSubmit }) {
   }, [visible]);
 
   const Star = ({ i }) => (
-    <TouchableOpacity onPress={() => setRating(i)} style={{ paddingHorizontal: 6 }}>
-      <Ionicons name={i <= rating ? "star" : "star-outline"} size={28} color={COLOR.primary} />
+    <TouchableOpacity
+      onPress={() => setRating(i)}
+      style={{ paddingHorizontal: 6 }}
+    >
+      <Ionicons
+        name={i <= rating ? "star" : "star-outline"}
+        size={28}
+        color={COLOR.primary}
+      />
     </TouchableOpacity>
   );
 
@@ -943,18 +1081,32 @@ function ReviewSheet({ visible, onClose, onSubmit }) {
   ];
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.modalOverlay}
       >
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          activeOpacity={1}
+          onPress={onClose}
+        />
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <ThemedText style={styles.sheetTitle}>Leave a review</ThemedText>
             <TouchableOpacity
-              style={{ borderColor: "#000", borderWidth: 1.2, borderRadius: 20, padding: 2 }}
+              style={{
+                borderColor: "#000",
+                borderWidth: 1.2,
+                borderRadius: 20,
+                padding: 2,
+              }}
               onPress={onClose}
             >
               <Ionicons name="close" size={18} color={COLOR.text} />
@@ -963,7 +1115,9 @@ function ReviewSheet({ visible, onClose, onSubmit }) {
 
           <View style={styles.revBox}>
             <View style={styles.ratingRowLg}>
-              {[1, 2, 3, 4, 5].map((i) => <Star i={i} key={i} />)}
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star i={i} key={i} />
+              ))}
             </View>
           </View>
 
@@ -1044,7 +1198,11 @@ const styles = StyleSheet.create({
   },
 
   headerContent: { paddingHorizontal: 16, paddingBottom: 8 },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  rowBetween: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   followBtn: {
     backgroundColor: "#E53E3E",
     paddingHorizontal: 22,
@@ -1052,10 +1210,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 30,
+    marginLeft: 10,
     marginTop: 1,
   },
+  followBtnActive: {
+    backgroundColor: "#2ECC71",
+  },
+  followBtnDisabled: {
+    opacity: 0.6,
+  },
   followTxt: { color: "#fff", fontWeight: "400", fontSize: 12 },
+  followTxtActive: { color: "#fff" },
 
   statusRow: { marginTop: 12, marginBottom: 8, marginLeft: 60 },
   statusPill: {
@@ -1068,15 +1233,23 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     color: COLOR.success,
   },
-  statusTxt: { color: "#008000", fontSize: 12, fontWeight: "700" },
+  statusTxt: { color: "#008000", fontSize: 10, fontWeight: "700" },
 
   metaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
   metaTxt: { color: "#000", fontSize: 13 },
 
   tagsRow: { flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" },
   tag: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8 },
-  tagBlue: { backgroundColor: "#C4C6FF", borderWidth: 1, borderColor: "#3D71FF" },
-  tagRed: { backgroundColor: "#FFE7E6", borderColor: "#FFE7E6", borderWidth: 1 },
+  tagBlue: {
+    backgroundColor: "#C4C6FF",
+    borderWidth: 1,
+    borderColor: "#3D71FF",
+  },
+  tagRed: {
+    backgroundColor: "#FFE7E6",
+    borderColor: "#FFE7E6",
+    borderWidth: 1,
+  },
   tagTxt: { fontWeight: "700", fontSize: 10 },
   tagTxtBlue: { color: "#3D71FF" },
   tagTxtRed: { color: COLOR.primary },
@@ -1096,14 +1269,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "stretch",
   },
-  statCol: { flex: 1, alignItems: "center", gap: 8, flexDirection: "row", justifyContent: "center" },
+  statCol: {
+    flex: 1,
+    alignItems: "center",
+    gap: 8,
+    flexDirection: "row",
+    justifyContent: "center",
+  },
   statLabel: { color: COLOR.sub, fontSize: 11 },
   statValue: { color: COLOR.text, fontSize: 16, fontWeight: "800" },
   vline: { width: 1, backgroundColor: "#EEE", marginVertical: 4 },
   statIconWrap: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: "#fff",
-    alignItems: "center", justifyContent: "center",
+    alignItems: "center",
+    justifyContent: "center",
   },
   statIconImg: { width: 20, height: 20, resizeMode: "contain" },
 
@@ -1151,7 +1333,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 6,
   },
-  tabItem: { flex: 1, height: 36, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  tabItem: {
+    flex: 1,
+    height: 36,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   tabActive: { backgroundColor: COLOR.primary },
   tabTxt: { color: COLOR.text, fontWeight: "700", fontSize: 11 },
   tabTxtActive: { color: "#fff" },
@@ -1200,7 +1388,12 @@ const styles = StyleSheet.create({
   },
   sponsoredText: { color: "white", fontSize: 10, fontWeight: "600" },
 
-  grayStrip: { backgroundColor: "#F2F2F2", width: "100%", paddingHorizontal: 8, paddingVertical: 5 },
+  grayStrip: {
+    backgroundColor: "#F2F2F2",
+    width: "100%",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
   storeRow: { flexDirection: "row", alignItems: "center" },
   storeAvatar: { width: 20, height: 20, borderRadius: 12, marginRight: 6 },
   storeName: { fontSize: 12, color: "#E53E3E", fontWeight: "400" },
@@ -1211,7 +1404,11 @@ const styles = StyleSheet.create({
   productTitle: { fontSize: 13, fontWeight: "500", marginVertical: 4 },
   priceRow: { flexDirection: "row", alignItems: "center" },
   price: { color: "#F44336", fontWeight: "700", fontSize: 14, marginRight: 6 },
-  originalPrice: { color: "#999", fontSize: 10, textDecorationLine: "line-through" },
+  originalPrice: {
+    color: "#999",
+    fontSize: 10,
+    textDecorationLine: "line-through",
+  },
 
   tagsRow: { flexDirection: "row", marginTop: 3, gap: 3 },
   tagIcon: { width: 70, height: 20, borderRadius: 50 },
@@ -1235,7 +1432,12 @@ const styles = StyleSheet.create({
   feedAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
   feedStoreName: { fontSize: 14, fontWeight: "700", color: COLOR.text },
   metaText: { fontSize: 12, color: COLOR.sub, marginTop: 2 },
-  postImage: { height: 300, resizeMode: "cover", borderTopRightRadius: 30, borderTopLeftRadius: 30 },
+  postImage: {
+    height: 300,
+    resizeMode: "cover",
+    borderTopRightRadius: 30,
+    borderTopLeftRadius: 30,
+  },
   captionPill: {
     marginTop: 10,
     backgroundColor: COLOR.pill,
@@ -1245,19 +1447,52 @@ const styles = StyleSheet.create({
   },
   captionText: { color: COLOR.text, fontSize: 13 },
 
-  actionsRow: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  actionsRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   actionsLeft: { flexDirection: "row", alignItems: "center" },
   actionBtn: { flexDirection: "row", alignItems: "center", marginRight: 14 },
   actionCount: { marginLeft: 6, fontSize: 12, color: COLOR.text },
   actionsRight: { flexDirection: "row", alignItems: "center" },
-  visitBtn: { backgroundColor: COLOR.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  visitBtn: {
+    backgroundColor: COLOR.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
   visitBtnText: { color: "#fff", fontSize: 12, fontWeight: "700" },
 
   /* Modals (review) */
-  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
-  sheet: { backgroundColor: "#fff", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  sheetHandle: { alignSelf: "center", width: 68, height: 6, borderRadius: 999, backgroundColor: "#D8DCE2", marginBottom: 6 },
-  sheetHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  sheet: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    width: 68,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: "#D8DCE2",
+    marginBottom: 6,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+  },
   sheetTitle: { fontSize: 18, fontWeight: "700", color: COLOR.text },
 
   revTabsCard: {
@@ -1268,14 +1503,34 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     ...shadow(4),
   },
-  revTabsRow: { flexDirection: "row", paddingHorizontal: 12, paddingTop: 12, gap: 20 },
+  revTabsRow: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    gap: 20,
+  },
   revTabBtn: { paddingBottom: 10 },
   revTabTxt: { color: COLOR.sub, fontWeight: "700" },
   revTabTxtActive: { color: COLOR.text },
-  revTabUnderline: { height: 3, backgroundColor: COLOR.primary, borderRadius: 999, marginTop: 6 },
+  revTabUnderline: {
+    height: 3,
+    backgroundColor: COLOR.primary,
+    borderRadius: 999,
+    marginTop: 6,
+  },
 
-  ratingBlock: { marginTop: 8, paddingHorizontal: 12, paddingVertical: 14, borderTopWidth: 1, borderColor: COLOR.line },
-  ratingMetaRow: { marginTop: 10, flexDirection: "row", justifyContent: "space-between" },
+  ratingBlock: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderColor: COLOR.line,
+  },
+  ratingMetaRow: {
+    marginTop: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
   ratingLeft: { color: COLOR.text, fontWeight: "700" },
   ratingRight: { color: COLOR.primary, fontWeight: "700" },
 
@@ -1287,7 +1542,11 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
   },
-  reviewHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  reviewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   reviewAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
   reviewName: { color: COLOR.text, fontWeight: "700", marginBottom: 2 },
   reviewTime: { color: COLOR.sub, fontSize: 11 },
@@ -1395,5 +1654,29 @@ const styles = StyleSheet.create({
   },
   sendReviewTxt: { color: "#fff", fontWeight: "700" },
 
-  storeNameHeader: { /* kept */ },
+  storeNameHeader: {
+    /* kept */
+  },
+
+  // Empty state styles
+  emptyStateContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLOR.text,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: COLOR.sub,
+    textAlign: "center",
+    lineHeight: 20,
+  },
 });

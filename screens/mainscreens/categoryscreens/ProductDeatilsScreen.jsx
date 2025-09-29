@@ -523,11 +523,11 @@ const ProductDetailsScreen = () => {
             </TouchableOpacity>
             <ThemedText style={styles.headerTitle}>Product Details</ThemedText>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[styles.headerIcon, { marginRight: 10 }]}
               >
                 <Ionicons name="ellipsis-vertical" size={20} color="#000" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
               <TouchableOpacity 
                 style={styles.headerIcon}
                 onPress={handleHeartPress}
