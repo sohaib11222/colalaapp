@@ -9,6 +9,7 @@ import {
   TextInput,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +17,10 @@ import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
 
 const { width } = Dimensions.get("window");
+
+
+import { useGetFollowedStores } from "../../../config/api.config";
+
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
@@ -108,21 +113,47 @@ export default function FollowedStoresScreen() {
     review: "Review",
   });
 
+  // API Integration
+  const { data: followedStoresRes, isLoading, error } = useGetFollowedStores();
+  const apiStores = followedStoresRes?.data || [];
+
+  // Map API data to component format
+  const mapApiStoreToComponent = (apiStore) => ({
+    id: String(apiStore.store_id),
+    name: apiStore.store_name,
+    cover: apiStore.banner_image,
+    avatar: apiStore.profile_image,
+    tags: apiStore.categories?.map(cat => cat.title) || ["Electronics", "Phones"], // Use actual categories from API
+    rating: 4.5, // Default rating since not provided in API
+    email: apiStore.store_email,
+    phone: apiStore.store_phone,
+    followed_at: apiStore.followed_at,
+  });
+
+  // Use API data if available, otherwise fallback to dummy data
+  const allStores = useMemo(() => {
+    if (apiStores.length > 0) {
+      return apiStores.map(mapApiStoreToComponent);
+    }
+    return INITIAL_FOLLOWED;
+  }, [apiStores]);
+
   const visibleData = useMemo(() => {
-    if (!query.trim()) return INITIAL_FOLLOWED;
+    if (!query.trim()) return allStores;
     const q = query.toLowerCase();
-    return INITIAL_FOLLOWED.filter(
+    return allStores.filter(
       (s) =>
         s.name.toLowerCase().includes(q) ||
         s.tags.some((t) => t.toLowerCase().includes(q))
     );
-  }, [query]);
+  }, [query, allStores]);
 
   const onFilterPress = (key) => {
     setFilters((prev) => ({
       ...prev,
       [key]:
-        prev[key] === (key === "location" ? "Lagos" : key === "category" ? "Phones" : "4.5+")
+        prev[key] ===
+        (key === "location" ? "Lagos" : key === "category" ? "Phones" : "4.5+")
           ? key === "location"
             ? "Location"
             : key === "category"
@@ -164,10 +195,16 @@ export default function FollowedStoresScreen() {
           {item.tags.map((tag, idx) => (
             <View
               key={tag}
-              style={[styles.tagBase, idx === 0 ? styles.tagBlue : styles.tagRed]}
+              style={[
+                styles.tagBase,
+                idx === 0 ? styles.tagBlue : styles.tagRed,
+              ]}
             >
               <ThemedText
-                style={[styles.tagTextBase, idx === 0 ? styles.tagTextBlue : styles.tagTextRed]}
+                style={[
+                  styles.tagTextBase,
+                  idx === 0 ? styles.tagTextBlue : styles.tagTextRed,
+                ]}
               >
                 {tag}
               </ThemedText>
@@ -197,7 +234,9 @@ export default function FollowedStoresScreen() {
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() =>
-              navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigation.navigate("Home")
             }
             style={styles.iconBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -230,36 +269,58 @@ export default function FollowedStoresScreen() {
 
       {/* Filters row (3 pills) */}
       <View style={styles.filtersRow}>
-        <FilterPill label={filters.location} onPress={() => onFilterPress("location")} />
-        <FilterPill label={filters.category} onPress={() => onFilterPress("category")} />
-        <FilterPill label={filters.review} onPress={() => onFilterPress("review")} />
+        <FilterPill
+          label={filters.location}
+          onPress={() => onFilterPress("location")}
+        />
+        <FilterPill
+          label={filters.category}
+          onPress={() => onFilterPress("category")}
+        />
+        <FilterPill
+          label={filters.review}
+          onPress={() => onFilterPress("review")}
+        />
       </View>
 
       {/* Results label */}
-      <ThemedText style={styles.resultCount}>Search Results ({visibleData.length})</ThemedText>
+      <ThemedText style={styles.resultCount}>
+        Search Results ({visibleData.length})
+      </ThemedText>
 
       {/* Grid */}
-      <FlatList
-        data={visibleData}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        renderItem={renderStore}
-        columnWrapperStyle={{ gap: CARD_GAP }}
-        contentContainerStyle={{
-          paddingHorizontal: SCREEN_PADDING,
-          paddingBottom: 24,
-          paddingTop: 8,
-          gap: CARD_GAP,
-        }}
-        showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: COLOR.bg }}
-        ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <ThemedText style={styles.emptyTitle}>No followed stores</ThemedText>
-            <ThemedText style={styles.emptySub}>Search or explore to follow stores.</ThemedText>
-          </View>
-        }
-      />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLOR.primary} />
+          <ThemedText style={styles.loadingText}>Loading followed stores...</ThemedText>
+        </View>
+      ) : (
+        <FlatList
+          data={visibleData}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          renderItem={renderStore}
+          columnWrapperStyle={{ gap: CARD_GAP }}
+          contentContainerStyle={{
+            paddingHorizontal: SCREEN_PADDING,
+            paddingBottom: 24,
+            paddingTop: 8,
+            gap: CARD_GAP,
+          }}
+          showsVerticalScrollIndicator={false}
+          style={{ backgroundColor: COLOR.bg }}
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <ThemedText style={styles.emptyTitle}>
+                No followed stores
+              </ThemedText>
+              <ThemedText style={styles.emptySub}>
+                Search or explore to follow stores.
+              </ThemedText>
+            </View>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -397,8 +458,16 @@ const styles = StyleSheet.create({
 
   tagsRow: { flexDirection: "row", gap: 8, marginTop: 8, marginBottom: 10 },
   tagBase: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  tagBlue: { backgroundColor: "#E9F0FF", borderWidth: 1, borderColor: "#3D71FF" },
-  tagRed: { backgroundColor: "#FFE7E6", borderWidth: 1, borderColor: COLOR.primary },
+  tagBlue: {
+    backgroundColor: "#E9F0FF",
+    borderWidth: 1,
+    borderColor: "#3D71FF",
+  },
+  tagRed: {
+    backgroundColor: "#FFE7E6",
+    borderWidth: 1,
+    borderColor: COLOR.primary,
+  },
   tagTextBase: { fontSize: 12, fontWeight: "600" },
   tagTextBlue: { color: "#3D71FF" },
   tagTextRed: { color: COLOR.primary },
@@ -415,6 +484,19 @@ const styles = StyleSheet.create({
   emptyWrap: { alignItems: "center", marginTop: 40 },
   emptyTitle: { fontWeight: "700", color: COLOR.text, fontSize: 16 },
   emptySub: { color: COLOR.sub, marginTop: 6, fontSize: 12 },
+
+  // Loading styles
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  loadingText: {
+    color: COLOR.sub,
+    marginTop: 12,
+    fontSize: 14,
+  },
 });
 
 /* --------- tiny shadow helper --------- */

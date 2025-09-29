@@ -1324,8 +1324,6 @@ const styles = StyleSheet.create({
   proceedBtnDisabled: {
     backgroundColor: "#ccc",
   },
-
-  /* inputs */
   input: {
     height: 60,
     borderRadius: 15,
@@ -1337,11 +1335,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   disabledInput: {
-    backgroundColor: "#f5f5f5",
-    color: "#999",
+    backgroundColor: "#b4bfb7",
+    color: "#999999",
     borderColor: "#e0e0e0",
   },
-
   rowBtn: {
     height: 56,
     borderRadius: 12,

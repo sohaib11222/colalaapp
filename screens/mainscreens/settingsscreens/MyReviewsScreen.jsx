@@ -1,5 +1,5 @@
 // screens/MyReviewsScreen.jsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -11,11 +11,16 @@ import {
   KeyboardAvoidingView,
   TextInput,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
+
+
+import { useUserReview } from "../../../config/api.config";
+
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
@@ -122,7 +127,11 @@ const Stars = ({ value = 0, size = 14, color = COLOR.primary }) => (
 const StarsEditable = ({ value, onChange, size = 28 }) => (
   <View style={{ flexDirection: "row", alignSelf: "center" }}>
     {[1, 2, 3, 4, 5].map((i) => (
-      <TouchableOpacity key={i} onPress={() => onChange(i)} style={{ paddingHorizontal: 6 }}>
+      <TouchableOpacity
+        key={i}
+        onPress={() => onChange(i)}
+        style={{ paddingHorizontal: 6 }}
+      >
         <Ionicons
           name={i <= value ? "star" : "star-outline"}
           size={size}
@@ -141,18 +150,25 @@ const Capsule = ({ left, onRightPress, rightText = "View Store" }) => (
         {"rating" in left ? (
           <>
             <ThemedText style={styles.capsuleTitle}>{left.name}</ThemedText>
-            <ThemedText style={styles.capsuleSub}>{left.rating} Stars</ThemedText>
+            <ThemedText style={styles.capsuleSub}>
+              {left.rating} Stars
+            </ThemedText>
           </>
         ) : (
           <>
             <ThemedText style={styles.capsuleTitle}>{left.title}</ThemedText>
-            <ThemedText style={[styles.capsuleSub, { color: COLOR.primary }]}>{left.price}</ThemedText>
+            <ThemedText style={[styles.capsuleSub, { color: COLOR.primary }]}>
+              {left.price}
+            </ThemedText>
           </>
         )}
       </View>
     </View>
 
-    <TouchableOpacity onPress={onRightPress} style={{ paddingHorizontal: 4, paddingVertical: 6 }}>
+    <TouchableOpacity
+      onPress={onRightPress}
+      style={{ paddingHorizontal: 4, paddingVertical: 6 }}
+    >
       <ThemedText style={styles.capsuleLink}>{rightText}</ThemedText>
     </TouchableOpacity>
   </View>
@@ -163,7 +179,11 @@ const Gallery = ({ images = [] }) => {
   return (
     <View style={styles.galleryRow}>
       {images.slice(0, 3).map((u, i) => (
-        <Image key={`${u}-${i}`} source={{ uri: u }} style={styles.galleryImg} />
+        <Image
+          key={`${u}-${i}`}
+          source={{ uri: u }}
+          style={styles.galleryImg}
+        />
       ))}
     </View>
   );
@@ -173,7 +193,11 @@ const Gallery = ({ images = [] }) => {
 const ReviewCard = ({ item, type = "store", onPress, onPressRight }) => {
   const isStore = type === "store";
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.card}>
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={styles.card}
+    >
       {/* Header */}
       <View style={styles.cardTop}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -194,9 +218,17 @@ const ReviewCard = ({ item, type = "store", onPress, onPressRight }) => {
 
       {/* Bottom capsule */}
       {isStore ? (
-        <Capsule left={item.store} rightText="View Store" onRightPress={onPressRight} />
+        <Capsule
+          left={item.store}
+          rightText="View Store"
+          onRightPress={onPressRight}
+        />
       ) : (
-        <Capsule left={item.product} rightText="View product" onRightPress={onPressRight} />
+        <Capsule
+          left={item.product}
+          rightText="View product"
+          onRightPress={onPressRight}
+        />
       )}
     </TouchableOpacity>
   );
@@ -207,14 +239,91 @@ export default function MyReviewsScreen() {
   const navigation = useNavigation();
   const [tab, setTab] = useState("store"); // 'store' | 'product'
 
-  // keep editable copies
-  const [storeReviews, setStoreReviews] = useState(INITIAL_STORE_REVIEWS);
-  const [productReviews, setProductReviews] = useState(INITIAL_PRODUCT_REVIEWS);
+  // API Integration
+  const { data: userReviewRes, isLoading, error } = useUserReview();
+  const apiStoreReviews = userReviewRes?.data?.store_reviews || [];
+  const apiProductReviews = userReviewRes?.data?.product_reviews || [];
+
+  // Debug logging
+  console.log("API Response:", userReviewRes);
+  console.log("Store Reviews from API:", apiStoreReviews);
+  console.log("Product Reviews from API:", apiProductReviews);
+
+  // Map API data to component format
+  const mapApiStoreReviewToComponent = (apiReview) => ({
+    id: String(apiReview.id),
+    user: apiReview.user?.full_name || "User",
+    avatar: apiReview.user?.profile_picture || AV,
+    rating: apiReview.rating || 0,
+    time: apiReview.created_at?.slice(0, 16)?.replace("T", " ") || "",
+    text: apiReview.comment || "",
+    store: { 
+      name: "Store", // Store name not provided in API
+      rating: 4.5, 
+      image: P1 
+    },
+    gallery: apiReview.images || [],
+  });
+
+  const mapApiProductReviewToComponent = (apiReview) => ({
+    id: String(apiReview.id),
+    user: apiReview.user?.full_name || "User",
+    avatar: apiReview.user?.profile_picture || AV,
+    rating: apiReview.rating || 0,
+    time: apiReview.created_at?.slice(0, 16)?.replace("T", " ") || "",
+    text: apiReview.comment || "",
+    product: { 
+      name: "Product", // Product name not provided in API
+      rating: 4.5, 
+      image: P1 
+    },
+    gallery: apiReview.images || [],
+  });
+
+  // Use API data if available, otherwise fallback to dummy data
+  const allStoreReviews = useMemo(() => {
+    if (apiStoreReviews.length > 0) {
+      const mapped = apiStoreReviews.map(mapApiStoreReviewToComponent);
+      console.log("Mapped Store Reviews:", mapped);
+      return mapped;
+    }
+    console.log("Using dummy store reviews");
+    return INITIAL_STORE_REVIEWS;
+  }, [apiStoreReviews]);
+
+  const allProductReviews = useMemo(() => {
+    if (apiProductReviews.length > 0) {
+      const mapped = apiProductReviews.map(mapApiProductReviewToComponent);
+      console.log("Mapped Product Reviews:", mapped);
+      return mapped;
+    }
+    console.log("Using dummy product reviews");
+    return INITIAL_PRODUCT_REVIEWS;
+  }, [apiProductReviews]);
+
+  // keep editable copies - initialize with API data
+  const [storeReviews, setStoreReviews] = useState(allStoreReviews);
+  const [productReviews, setProductReviews] = useState(allProductReviews);
+
+  // Update state when API data changes
+  useEffect(() => {
+    setStoreReviews(allStoreReviews);
+  }, [allStoreReviews]);
+
+  useEffect(() => {
+    setProductReviews(allProductReviews);
+  }, [allProductReviews]);
 
   const data = useMemo(
     () => (tab === "store" ? storeReviews : productReviews),
     [tab, storeReviews, productReviews]
   );
+
+  // Debug current data being displayed
+  console.log("Current tab:", tab);
+  console.log("Current data being displayed:", data);
+  console.log("Store reviews state:", storeReviews);
+  console.log("Product reviews state:", productReviews);
 
   // view/edit modals state
   const [activeReview, setActiveReview] = useState(null); // the review object
@@ -255,22 +364,33 @@ export default function MyReviewsScreen() {
   const handleSaveEdit = () => {
     if (!activeReview) return;
     const apply = (arr) =>
-      arr.map((r) => (r.id === activeReview.id ? { ...r, rating: editRating, body: editText } : r));
+      arr.map((r) =>
+        r.id === activeReview.id
+          ? { ...r, rating: editRating, body: editText }
+          : r
+      );
     if (activeType === "store") setStoreReviews(apply);
     else setProductReviews(apply);
     setEditVisible(false);
     // also refresh what's shown in the view modal if user reopens it
-    setActiveReview((r) => (r ? { ...r, rating: editRating, body: editText } : r));
+    setActiveReview((r) =>
+      r ? { ...r, rating: editRating, body: editText } : r
+    );
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }} edges={["top"]}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: COLOR.bg }}
+      edges={["top"]}
+    >
       {/* Header (white, no radius) */}
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() =>
-              navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigation.navigate("Home")
             }
             style={styles.iconBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -291,19 +411,33 @@ export default function MyReviewsScreen() {
       <View style={styles.tabsWrap}>
         <TouchableOpacity
           onPress={() => setTab("store")}
-          style={[styles.tabBtn, tab === "store" ? styles.tabActive : styles.tabInactive]}
+          style={[
+            styles.tabBtn,
+            tab === "store" ? styles.tabActive : styles.tabInactive,
+          ]}
         >
-          <ThemedText style={[styles.tabTxt, tab === "store" ? styles.tabTxtActive : styles.tabTxtInactive]}>
+          <ThemedText
+            style={[
+              styles.tabTxt,
+              tab === "store" ? styles.tabTxtActive : styles.tabTxtInactive,
+            ]}
+          >
             Store Reviews
           </ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => setTab("product")}
-          style={[styles.tabBtn, tab === "product" ? styles.tabActive : styles.tabInactive]}
+          style={[
+            styles.tabBtn,
+            tab === "product" ? styles.tabActive : styles.tabInactive,
+          ]}
         >
           <ThemedText
-            style={[styles.tabTxt, tab === "product" ? styles.tabTxtActive : styles.tabTxtInactive]}
+            style={[
+              styles.tabTxt,
+              tab === "product" ? styles.tabTxtActive : styles.tabTxtInactive,
+            ]}
           >
             Product Reviews
           </ThemedText>
@@ -311,41 +445,75 @@ export default function MyReviewsScreen() {
       </View>
 
       {/* List */}
-      <FlatList
-        data={data}
-        keyExtractor={(i) => String(i.id)}
-        contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 18 }}
-        renderItem={({ item }) => (
-          <ReviewCard
-            item={item}
-            type={tab}
-            onPress={() => openView(item, tab)}
-            onPressRight={() => {
-              if (tab === "store") {
-                navigation.navigate("ServiceNavigator", {
-                  screen: "StoreDetails",
-                  params: { store: { name: item?.store?.name, rating: item?.store?.rating } },
-                });
-              } else {
-                // navigation.navigate("ProductDetails", { id: ... })
-              }
-            }}
-          />
-        )}
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLOR.primary} />
+          <ThemedText style={styles.loadingText}>Loading reviews...</ThemedText>
+        </View>
+      ) : (
+        <FlatList
+          data={data}
+          keyExtractor={(i) => String(i.id)}
+          contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 18 }}
+          renderItem={({ item }) => (
+            <ReviewCard
+              item={item}
+              type={tab}
+              onPress={() => openView(item, tab)}
+              onPressRight={() => {
+                if (tab === "store") {
+                  navigation.navigate("ServiceNavigator", {
+                    screen: "StoreDetails",
+                    params: {
+                      store: {
+                        name: item?.store?.name,
+                        rating: item?.store?.rating,
+                      },
+                    },
+                  });
+                } else {
+                  // navigation.navigate("ProductDetails", { id: ... })
+                }
+              }}
+            />
+          )}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="star-outline" size={64} color={COLOR.sub} />
+              <ThemedText style={styles.emptyTitle}>
+                No {tab === "store" ? "Store" : "Product"} Reviews
+              </ThemedText>
+              <ThemedText style={styles.emptyText}>
+                You haven't reviewed any {tab === "store" ? "stores" : "products"} yet.
+              </ThemedText>
+            </View>
+          }
+        />
+      )}
 
       {/* ===== View Modal (My review) ===== */}
-      <Modal visible={viewVisible} transparent animationType="slide" onRequestClose={() => setViewVisible(false)}>
+      <Modal
+        visible={viewVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setViewVisible(false)}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.modalOverlay}
         >
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setViewVisible(false)} />
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setViewVisible(false)}
+          />
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <ThemedText style={[styles.sheetTitle, {marginLeft:150}]}>My review</ThemedText>
+              <ThemedText style={[styles.sheetTitle, { marginLeft: 150 }]}>
+                My review
+              </ThemedText>
               <TouchableOpacity
                 style={styles.closeBtn}
                 onPress={() => setViewVisible(false)}
@@ -364,13 +532,18 @@ export default function MyReviewsScreen() {
               <View style={styles.viewCard}>
                 <View style={styles.cardTop}>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Image source={{ uri: activeReview.avatar }} style={styles.avatar} />
+                    <Image
+                      source={{ uri: activeReview.avatar }}
+                      style={styles.avatar}
+                    />
                     <View>
                       <ThemedText style={styles.name}>Chris Pine</ThemedText>
                       <Stars value={activeReview.rating} />
                     </View>
                   </View>
-                  <ThemedText style={styles.time}>{activeReview.time}</ThemedText>
+                  <ThemedText style={styles.time}>
+                    {activeReview.time}
+                  </ThemedText>
                 </View>
 
                 <Gallery images={activeReview.gallery} />
@@ -384,13 +557,19 @@ export default function MyReviewsScreen() {
                 style={[styles.modalBtn, styles.modalBtnLight]}
                 onPress={openEditFromView}
               >
-                <ThemedText style={[styles.modalBtnText, styles.modalBtnLightTxt]}>Edit Review</ThemedText>
+                <ThemedText
+                  style={[styles.modalBtnText, styles.modalBtnLightTxt]}
+                >
+                  Edit Review
+                </ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnDanger]}
                 onPress={handleDelete}
               >
-                <ThemedText style={styles.modalBtnText}>Delete Review</ThemedText>
+                <ThemedText style={styles.modalBtnText}>
+                  Delete Review
+                </ThemedText>
               </TouchableOpacity>
             </View>
           </View>
@@ -398,17 +577,29 @@ export default function MyReviewsScreen() {
       </Modal>
 
       {/* ===== Edit Modal (Leave a review) ===== */}
-      <Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => setEditVisible(false)}>
+      <Modal
+        visible={editVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditVisible(false)}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.modalOverlay}
         >
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setEditVisible(false)} />
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setEditVisible(false)}
+          />
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
               <ThemedText style={styles.sheetTitle}>Leave a review</ThemedText>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setEditVisible(false)}>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={() => setEditVisible(false)}
+              >
                 <Ionicons name="close" size={18} color={COLOR.text} />
               </TouchableOpacity>
             </View>
@@ -516,7 +707,11 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   tabActive: { backgroundColor: COLOR.primary },
-  tabInactive: { backgroundColor: "#fff", borderWidth: 1, borderColor: COLOR.line },
+  tabInactive: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLOR.line,
+  },
   tabTxt: { fontWeight: "400", fontSize: 11 },
   tabTxtActive: { color: "#fff" },
   tabTxtInactive: { color: COLOR.text },
@@ -560,13 +755,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
   },
-  capsuleImg: { width: 28, height: 28, borderRadius: 8, backgroundColor: COLOR.light },
+  capsuleImg: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: COLOR.light,
+  },
   capsuleTitle: { color: COLOR.text, fontWeight: "600" },
   capsuleSub: { color: COLOR.sub, fontSize: 12, marginTop: 2 },
   capsuleLink: { color: COLOR.primary, fontWeight: "600", fontSize: 12 },
 
   /* ===== Modals ===== */
-  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
   sheet: {
     backgroundColor: "#fff",
     paddingHorizontal: 16,
@@ -589,7 +793,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 6,
   },
-  sheetTitle: { fontSize: 18, fontWeight: "700", color: COLOR.text, marginLeft:130
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLOR.text,
+    marginLeft: 130,
   },
   closeBtn: {
     borderColor: "#000",
@@ -675,4 +883,37 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   sendBtnTxt: { color: "#fff", fontWeight: "400" },
+
+  // Loading and empty state styles
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  loadingText: {
+    color: COLOR.sub,
+    marginTop: 12,
+    fontSize: 14,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLOR.text,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLOR.sub,
+    textAlign: "center",
+    lineHeight: 20,
+  },
 });
