@@ -65,6 +65,8 @@ const API = {
   Support_Ticket_Details: (ticketId) => `${BASE_URL}/buyer/support/tickets/${ticketId}`,
   Support_Ticket_Message: `${BASE_URL}/buyer/support/messages`,
   My_Points: `${BASE_URL}/my-points`,
+  Get_Post_Comments: (postId) => `${BASE_URL}/posts/${postId}/comments`,
+  All_Brands: `${BASE_URL}/brands`,
 };
 
 export default API;
@@ -778,4 +780,20 @@ export const useMyPoints = (options) =>
     ...options,
   });
 
+
+
+
+export const useGetPostComments = (postId, options) =>
+  useQuery({
+    queryKey: ["postComments", postId],
+    queryFn: () => http.get(API.Get_Post_Comments(postId)),
+    ...options,
+  });
+
+export const useAllBrands = (options) =>
+  useQuery({
+    queryKey: ["allBrands"],
+    queryFn: () => http.get(API.All_Brands),
+    ...options,
+  });
 

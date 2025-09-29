@@ -21,6 +21,7 @@ import {
   usePosts,
   useTogglePostLike,
   useAddPostComment,
+  useGetPostComments
 } from "../../config/api.config";
 
 /* -------------------- THEME -------------------- */
@@ -107,7 +108,7 @@ const FeedHeader = ({ navigation }) => (
 );
 
 /* -------------------- POST CARD (UI unchanged) -------------------- */
-const PostCard = ({ item, onOpenComments, onOpenOptions, onToggleLike }) => {
+const PostCard = ({ item, onOpenComments, onOpenOptions, onToggleLike, isLastItem, navigation }) => {
   const [liked, setLiked] = useState(item._liked ?? false);
   const [likeCount, setLikeCount] = useState(item.likes);
 
@@ -144,10 +145,14 @@ const PostCard = ({ item, onOpenComments, onOpenOptions, onToggleLike }) => {
   };
 
   return (
-    <View style={styles.postCard}>
+    <View style={[styles.postCard, isLastItem && styles.postCardLast]}>
       {/* Top bar */}
       <View style={styles.postTop}>
-        <Image source={{ uri: item.avatar }} style={styles.avatar} />
+        <Image 
+          source={{ uri: item.avatar }} 
+          style={styles.avatar}
+          defaultSource={require("../../assets/Ellipse 18.png")}
+        />
         <View style={{ flex: 1 }}>
           <ThemedText style={styles.storeName}>{item.store}</ThemedText>
           <ThemedText style={styles.metaText}>
@@ -229,7 +234,17 @@ const PostCard = ({ item, onOpenComments, onOpenOptions, onToggleLike }) => {
         </View>
 
         <View style={styles.actionsRight}>
-          <TouchableOpacity style={styles.visitBtn}>
+          <TouchableOpacity 
+            style={styles.visitBtn}
+            onPress={() => {
+              if (item.storeId && navigation) {
+                navigation.navigate("ServiceNavigator", {
+                  screen: "StoreDetails",
+                  params: { storeId: item.storeId }
+                });
+              }
+            }}
+          >
             <ThemedText style={styles.visitBtnText}>Visit Store</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={{ marginLeft: 10 }}>
@@ -254,7 +269,36 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
     avatar: "https://via.placeholder.com/100",
   };
 
-  const [comments, setComments] = useState([]);
+  // Fetch comments from API
+  const { data: commentsData, isLoading: commentsLoading, error: commentsError } = useGetPostComments(post?.id, {
+    enabled: visible && !!post?.id,
+  });
+
+  // Process API comments data
+  const apiComments = useMemo(() => {
+    if (!commentsData?.data?.data) return [];
+    
+    return commentsData.data.data.map((comment) => ({
+      id: String(comment.id),
+      user: comment.user?.full_name || "Unknown",
+      time: timeAgo(comment.created_at),
+      avatar: comment.user?.profile_picture 
+        ? absUrl(
+            comment.user.profile_picture.startsWith("/storage")
+              ? comment.user.profile_picture
+              : `/storage/${comment.user.profile_picture}`
+          )
+        : currentUser.avatar,
+      body: comment.body || "",
+      likes: 0,
+      replies: comment.replies || [],
+    }));
+  }, [commentsData]);
+
+  const [localComments, setLocalComments] = useState([]);
+  
+  // Combine API comments with local comments
+  const comments = [...apiComments, ...localComments];
 
   const startReply = (c) => {
     setReplyTo({ commentId: c.id, username: c.user });
@@ -277,19 +321,18 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
         id: String(created?.id ?? `c-${Date.now()}`),
         user: created?.user?.full_name ?? currentUser.name,
         time: "Just now",
-        avatar:
-          created?.user?.profile_picture
-            ? absUrl(
-                created.user.profile_picture.startsWith("/storage")
-                  ? created.user.profile_picture
-                  : `/storage/${created.user.profile_picture}`
-              )
-            : currentUser.avatar,
+        avatar: created?.user?.profile_picture
+          ? absUrl(
+              created.user.profile_picture.startsWith("/storage")
+                ? created.user.profile_picture
+                : `/storage/${created.user.profile_picture}`
+            )
+          : currentUser.avatar,
         body: created?.body ?? trimmed,
         likes: 0,
         replies: [],
       };
-      setComments((prev) => [...prev, newComment]);
+      setLocalComments((prev) => [...prev, newComment]);
       setText("");
       setReplyTo(null);
     } catch {}
@@ -306,7 +349,11 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.modalOverlay}
       >
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          activeOpacity={1}
+          onPress={onClose}
+        />
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
@@ -327,34 +374,64 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
             </TouchableOpacity>
           </View>
 
-          <FlatList
-            data={comments}
-            keyExtractor={(i) => i.id}
-            style={{ maxHeight: 420 }}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
+          {commentsLoading ? (
+            <View style={styles.commentsLoadingContainer}>
+              <ActivityIndicator size="large" color={COLOR.primary} />
+              <ThemedText style={styles.commentsLoadingText}>Loading comments...</ThemedText>
+            </View>
+          ) : commentsError ? (
+            <View style={styles.commentsErrorContainer}>
+              <Ionicons name="alert-circle-outline" size={48} color={COLOR.primary} />
+              <ThemedText style={styles.commentsErrorText}>
+                Failed to load comments. Please try again.
+              </ThemedText>
+            </View>
+          ) : (
+            <FlatList
+              data={comments}
+              keyExtractor={(i) => i.id}
+              style={{ maxHeight: 420 }}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
               <View style={{ paddingBottom: 4 }}>
                 {/* main comment */}
                 <View style={styles.commentRow}>
-                  <Image source={{ uri: item.avatar }} style={styles.commentAvatar} />
+                  <Image
+                    source={{ uri: item.avatar }}
+                    style={styles.commentAvatar}
+                  />
                   <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                      <ThemedText style={styles.commentName}>{item.user}</ThemedText>
-                      <ThemedText style={styles.commentTime}>  {item.time}</ThemedText>
+                    <View
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                    >
+                      <ThemedText style={styles.commentName}>
+                        {item.user}
+                      </ThemedText>
+                      <ThemedText style={styles.commentTime}>
+                        {" "}
+                        {item.time}
+                      </ThemedText>
                     </View>
-                    <ThemedText style={styles.commentBody}>{item.body}</ThemedText>
+                    <ThemedText style={styles.commentBody}>
+                      {item.body}
+                    </ThemedText>
 
                     <View style={styles.commentMetaRow}>
                       <TouchableOpacity onPress={() => startReply(item)}>
                         <ThemedText style={styles.replyText}>Reply</ThemedText>
                       </TouchableOpacity>
-                      <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <View
+                        style={{ flexDirection: "row", alignItems: "center" }}
+                      >
                         <Ionicons
                           name="chatbubble-ellipses-outline"
                           size={14}
                           color={COLOR.text}
                         />
-                        <ThemedText style={styles.commentLikeCount}>  {item.likes}</ThemedText>
+                        <ThemedText style={styles.commentLikeCount}>
+                          {" "}
+                          {item.likes}
+                        </ThemedText>
                       </View>
                     </View>
                   </View>
@@ -365,13 +442,28 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
                   <View style={styles.repliesWrap}>
                     {item.replies.map((r) => (
                       <View key={r.id} style={styles.replyContainer}>
-                        <Image source={{ uri: r.avatar }} style={styles.commentAvatar} />
+                        <Image
+                          source={{ uri: r.avatar }}
+                          style={styles.commentAvatar}
+                        />
                         <View style={{ flex: 1 }}>
-                          <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            <ThemedText style={styles.commentName}>{r.user}</ThemedText>
-                            <ThemedText style={styles.commentTime}>  {r.time}</ThemedText>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                            }}
+                          >
+                            <ThemedText style={styles.commentName}>
+                              {r.user}
+                            </ThemedText>
+                            <ThemedText style={styles.commentTime}>
+                              {" "}
+                              {r.time}
+                            </ThemedText>
                           </View>
-                          <ThemedText style={styles.commentBody}>{r.body}</ThemedText>
+                          <ThemedText style={styles.commentBody}>
+                            {r.body}
+                          </ThemedText>
                         </View>
                       </View>
                     ))}
@@ -380,6 +472,7 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
               </View>
             )}
           />
+          )}
 
           {/* Replying chip */}
           {replyTo ? (
@@ -399,7 +492,9 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
               ref={inputRef}
               value={text}
               onChangeText={setText}
-              placeholder={replyTo ? `Reply to ${replyTo.username}` : "Type a message"}
+              placeholder={
+                replyTo ? `Reply to ${replyTo.username}` : "Type a message"
+              }
               placeholderTextColor={COLOR.sub}
               style={styles.input}
             />
@@ -414,7 +509,7 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
 };
 
 /* -------------------- OPTIONS SHEET (UI unchanged) -------------------- */
-const OptionsSheet = ({ visible, onClose }) => {
+const OptionsSheet = ({ visible, onClose, onHidePost }) => {
   const Row = ({ icon, label, danger, onPress }) => (
     <TouchableOpacity
       style={[styles.optionRow, danger && styles.optionRowDanger]}
@@ -422,7 +517,9 @@ const OptionsSheet = ({ visible, onClose }) => {
     >
       <View style={styles.optionLeft}>
         {icon}
-        <ThemedText style={[styles.optionLabel, danger && { color: COLOR.danger }]}>
+        <ThemedText
+          style={[styles.optionLabel, danger && { color: COLOR.danger }]}
+        >
           {label}
         </ThemedText>
       </View>
@@ -430,9 +527,18 @@ const OptionsSheet = ({ visible, onClose }) => {
   );
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <View style={styles.modalOverlay}>
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          activeOpacity={1}
+          onPress={onClose}
+        />
         <View style={[styles.sheet, { backgroundColor: "#F9F9F9" }]}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
@@ -454,22 +560,42 @@ const OptionsSheet = ({ visible, onClose }) => {
           </View>
 
           <Row
-            icon={<Image source={require("../../assets/Vector (16).png")} style={styles.profileImage} />}
+            icon={
+              <Image
+                source={require("../../assets/Vector (16).png")}
+                style={styles.profileImage}
+              />
+            }
             label="Share this post"
             onPress={onClose}
           />
           <Row
-            icon={<Image source={require("../../assets/Vector (17).png")} style={styles.profileImage} />}
+            icon={
+              <Image
+                source={require("../../assets/Vector (17).png")}
+                style={styles.profileImage}
+              />
+            }
             label="Follow User"
             onPress={onClose}
           />
           <Row
-            icon={<Image source={require("../../assets/Vector (18).png")} style={styles.profileImage} />}
+            icon={
+              <Image
+                source={require("../../assets/Vector (18).png")}
+                style={styles.profileImage}
+              />
+            }
             label="Hide Post"
-            onPress={onClose}
+            onPress={onHidePost}
           />
           <Row
-            icon={<Image source={require("../../assets/Vector (19).png")} style={styles.profileImage} />}
+            icon={
+              <Image
+                source={require("../../assets/Vector (19).png")}
+                style={styles.profileImage}
+              />
+            }
             label="Report Post"
             danger
             onPress={onClose}
@@ -496,6 +622,9 @@ export default function FeedScreen() {
 
   // local per-post overrides (liked state, like count, comments count)
   const [postOverrides, setPostOverrides] = useState({}); // id -> { liked, likes, comments }
+  
+  // hidden posts state
+  const [hiddenPosts, setHiddenPosts] = useState(new Set());
 
   // mutations (from api.config hooks)
   const likeMutation = useTogglePostLike();
@@ -528,7 +657,10 @@ export default function FeedScreen() {
 
   // map API -> UI shape used by PostCard (no UI changes)
   const POSTS = useMemo(() => {
-    return apiItems.map((p) => {
+    console.log('Filtering posts, hidden posts:', Array.from(hiddenPosts));
+    const filtered = apiItems.filter((p) => !hiddenPosts.has(String(p.id)));
+    console.log('Original posts count:', apiItems.length, 'Filtered posts count:', filtered.length);
+    return filtered.map((p) => {
       const media = Array.isArray(p.media_urls) ? p.media_urls : [];
       const mediaSorted = [...media].sort(
         (a, b) => (a.position ?? 0) - (b.position ?? 0)
@@ -545,7 +677,9 @@ export default function FeedScreen() {
 
       const overrides = postOverrides[p.id] || {};
       const likes =
-        typeof overrides.likes === "number" ? overrides.likes : Number(p.likes_count ?? 0);
+        typeof overrides.likes === "number"
+          ? overrides.likes
+          : Number(p.likes_count ?? 0);
       const commentsCount =
         typeof overrides.comments === "number"
           ? overrides.comments
@@ -554,6 +688,7 @@ export default function FeedScreen() {
       return {
         id: String(p.id),
         store: p.user?.full_name ?? "Unknown",
+        storeId: p.user?.store?.id ?? p.user_id,
         avatar,
         location: "Lagos, Nigeria",
         timeAgo: timeAgo(p.created_at),
@@ -566,7 +701,7 @@ export default function FeedScreen() {
         _liked: overrides.liked,
       };
     });
-  }, [apiItems, postOverrides]);
+  }, [apiItems, postOverrides, hiddenPosts]);
 
   const nextPageUrl = postsPage?.next_page_url;
 
@@ -577,6 +712,16 @@ export default function FeedScreen() {
   const openOptions = (post) => {
     setActivePost(post);
     setOptionsVisible(true);
+  };
+
+  const handleHidePost = (postId) => {
+    console.log('Hiding post with ID:', postId);
+    setHiddenPosts(prev => {
+      const newSet = new Set([...prev, postId]);
+      console.log('Updated hidden posts:', Array.from(newSet));
+      return newSet;
+    });
+    setOptionsVisible(false);
   };
 
   const loadMore = () => {
@@ -597,17 +742,28 @@ export default function FeedScreen() {
           keyExtractor={(it) => it.id}
           ListHeaderComponent={() => <FeedHeader navigation={navigation} />}
           contentContainerStyle={{ paddingBottom: 32 }}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <PostCard
               item={item}
               onOpenComments={openComments}
               onOpenOptions={openOptions}
               onToggleLike={handleToggleLike}
+              isLastItem={index === POSTS.length - 1}
+              navigation={navigation}
             />
           )}
           showsVerticalScrollIndicator={false}
           onEndReachedThreshold={0.3}
           onEndReached={loadMore}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="newspaper-outline" size={64} color={COLOR.sub} />
+              <ThemedText style={styles.emptyTitle}>No Posts Available</ThemedText>
+              <ThemedText style={styles.emptySubtext}>
+                There are no posts to show at the moment. Check back later for updates!
+              </ThemedText>
+            </View>
+          }
           ListFooterComponent={
             isFetching && nextPageUrl ? (
               <View style={{ paddingVertical: 16 }}>
@@ -627,6 +783,7 @@ export default function FeedScreen() {
       <OptionsSheet
         visible={optionsVisible}
         onClose={() => setOptionsVisible(false)}
+        onHidePost={() => handleHidePost(activePost?.id)}
       />
     </View>
   );
@@ -652,7 +809,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: "#fff", fontSize: 24, fontWeight: "600" },
   headerIcons: { flexDirection: "row" },
-  icon: { backgroundColor: "#fff", padding: 6, borderRadius: 30, marginLeft: 8 },
+  icon: {
+    backgroundColor: "#fff",
+    padding: 6,
+    borderRadius: 30,
+    marginLeft: 8,
+  },
   searchContainer: {
     marginTop: 20,
     backgroundColor: "white",
@@ -667,6 +829,7 @@ const styles = StyleSheet.create({
 
   /* Post card */
   postCard: {
+    marginBottom: 0,
     backgroundColor: "#fff",
     marginHorizontal: 14,
     marginTop: 14,
@@ -676,6 +839,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
+  },
+  postCardLast: {
+    marginBottom: 30,
   },
   postTop: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   avatar: { width: 55, height: 55, borderRadius: 40, marginRight: 10 },
@@ -851,4 +1017,56 @@ const styles = StyleSheet.create({
 
   // If your PNGs are already colored, remove tintColor.
   iconImg: { width: 22, height: 22, resizeMode: "contain" },
+
+  // Comments loading and error states
+  commentsLoadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  commentsLoadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
+  },
+  commentsErrorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  commentsErrorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.primary,
+    textAlign: "center",
+    lineHeight: 24,
+  },
+
+  // Empty state styles
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+    minHeight: 300,
+  },
+  emptyTitle: {
+    marginTop: 20,
+    fontSize: 20,
+    color: COLOR.text,
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  emptySubtext: {
+    marginTop: 12,
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
+    lineHeight: 22,
+  },
 });

@@ -23,6 +23,9 @@ const cardWidth = (width - 48) / 2;
 const HOST = "https://colala.hmstech.xyz";
 const absUrl = (u) => (u?.startsWith("http") ? u : `${HOST}${u || ""}`);
 
+import { useAllBrands } from "../../../config/api.config";
+import { useStores } from "../../../config/api.config";
+
 /* ------------ THEME FOR SHEETS (matches ServiceStoresScreen) ------------ */
 const COLOR = {
   primary: "#E53E3E",
@@ -123,9 +126,31 @@ const ProductsListScreen = () => {
     page
   );
 
+  // API calls for filters
+  const { data: storesData, isLoading: storesLoading } = useStores();
+  const { data: brandsData, isLoading: brandsLoading } = useAllBrands();
+
   const pageObj = data?.data;
   const apiItems = Array.isArray(pageObj?.data) ? pageObj.data : [];
   const nextPageUrl = pageObj?.next_page_url;
+
+  // Process API data for filters
+  const apiStores = storesData?.data || [];
+  const apiBrands = brandsData?.data || [];
+
+  // Create filter options from API data
+  const storeOptions = apiStores.map(store => ({
+    id: store.id,
+    name: store.store_name,
+    location: store.store_location,
+    profileImage: store.profile_image ? absUrl(`/storage/${store.profile_image}`) : null,
+  }));
+
+  const brandOptions = apiBrands.map(brand => ({
+    id: brand.id,
+    name: brand.name,
+    logo: brand.logo ? absUrl(`/storage/${brand.logo}`) : null,
+  }));
 
   // map API -> your card model (unchanged)
   const allProducts = useMemo(() => {
@@ -467,11 +492,27 @@ const ProductsListScreen = () => {
           <ThemedText>Failed to load products</ThemedText>
         </View>
       ) : allProducts.length === 0 ? (
-        <View style={{ padding: 24, alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-          <ThemedText style={{ color: '#888', textAlign: 'center', fontSize: 16, marginBottom: 8 }}>
+        <View
+          style={{
+            padding: 24,
+            alignItems: "center",
+            justifyContent: "center",
+            flex: 1,
+          }}
+        >
+          <ThemedText
+            style={{
+              color: "#888",
+              textAlign: "center",
+              fontSize: 16,
+              marginBottom: 8,
+            }}
+          >
             No products found
           </ThemedText>
-          <ThemedText style={{ color: '#666', textAlign: 'center', fontSize: 14 }}>
+          <ThemedText
+            style={{ color: "#666", textAlign: "center", fontSize: 14 }}
+          >
             There are no products available in this category at the moment.
           </ThemedText>
         </View>
@@ -500,7 +541,9 @@ const ProductsListScreen = () => {
           {newArrivals.length > 0 && (
             <>
               <View style={styles.sectionHeader}>
-                <ThemedText style={styles.sectionTitle}>New Arrivals</ThemedText>
+                <ThemedText style={styles.sectionTitle}>
+                  New Arrivals
+                </ThemedText>
               </View>
               <FlatList
                 horizontal
@@ -628,53 +671,42 @@ const ProductsListScreen = () => {
           />
         </View>
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-          <ThemedText style={sheetStyles.groupTitle}>Popular</ThemedText>
-          {POPULAR_STORES.map((name) => (
-            <TouchableOpacity
-              key={name}
-              style={sheetStyles.storeRow}
-              onPress={() => {
-                setPicked((p) => ({ ...p, Store: name }));
-                closeSheet();
-              }}
-            >
-              <Image
-                source={require("../../../assets/Ellipse 18.png")}
-                style={sheetStyles.avatar}
-              />
-              <View>
-                <ThemedText style={sheetStyles.listMain}>{name}</ThemedText>
-                <ThemedText style={sheetStyles.listSub}>
-                  5,000 products
-                </ThemedText>
-              </View>
-            </TouchableOpacity>
-          ))}
-
-          <ThemedText style={[sheetStyles.groupTitle, { marginTop: 14 }]}>
-            All Stores
-          </ThemedText>
-          {ALL_STORES.map((name) => (
-            <TouchableOpacity
-              key={name}
-              style={sheetStyles.storeRow}
-              onPress={() => {
-                setPicked((p) => ({ ...p, Store: name }));
-                closeSheet();
-              }}
-            >
-              <Image
-                source={require("../../../assets/Ellipse 18.png")}
-                style={sheetStyles.avatar}
-              />
-              <View>
-                <ThemedText style={sheetStyles.listMain}>{name}</ThemedText>
-                <ThemedText style={sheetStyles.listSub}>
-                  5,000 products
-                </ThemedText>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {storesLoading ? (
+            <View style={sheetStyles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLOR.primary} />
+              <ThemedText style={sheetStyles.loadingText}>Loading stores...</ThemedText>
+            </View>
+          ) : storeOptions.length === 0 ? (
+            <View style={sheetStyles.emptyContainer}>
+              <Ionicons name="storefront-outline" size={48} color={COLOR.sub} />
+              <ThemedText style={sheetStyles.emptyText}>No stores available</ThemedText>
+            </View>
+          ) : (
+            <>
+              <ThemedText style={sheetStyles.groupTitle}>All Stores</ThemedText>
+              {storeOptions.map((store) => (
+                <TouchableOpacity
+                  key={store.id}
+                  style={sheetStyles.storeRow}
+                  onPress={() => {
+                    setPicked((p) => ({ ...p, Store: store.name }));
+                    closeSheet();
+                  }}
+                >
+                  <Image
+                    source={store.profileImage ? { uri: store.profileImage } : require("../../../assets/Ellipse 18.png")}
+                    style={sheetStyles.avatar}
+                  />
+                  <View>
+                    <ThemedText style={sheetStyles.listMain}>{store.name}</ThemedText>
+                    <ThemedText style={sheetStyles.listSub}>
+                      {store.location}
+                    </ThemedText>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
         </ScrollView>
       </BottomSheet>
 
@@ -698,19 +730,39 @@ const ProductsListScreen = () => {
           />
         </View>
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-          {SERVICES.map((s) => (
-            <TouchableOpacity
-              key={s}
-              style={sheetStyles.simpleRow}
-              onPress={() => {
-                setPicked((p) => ({ ...p, Brand: s }));
-                closeSheet();
-              }}
-            >
-              <ThemedText style={sheetStyles.listMain}>{s}</ThemedText>
-              <Ionicons name="chevron-forward" size={18} color={COLOR.text} />
-            </TouchableOpacity>
-          ))}
+          {brandsLoading ? (
+            <View style={sheetStyles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLOR.primary} />
+              <ThemedText style={sheetStyles.loadingText}>Loading brands...</ThemedText>
+            </View>
+          ) : brandOptions.length === 0 ? (
+            <View style={sheetStyles.emptyContainer}>
+              <Ionicons name="pricetag-outline" size={48} color={COLOR.sub} />
+              <ThemedText style={sheetStyles.emptyText}>No brands available</ThemedText>
+            </View>
+          ) : (
+            brandOptions.map((brand) => (
+              <TouchableOpacity
+                key={brand.id}
+                style={sheetStyles.simpleRow}
+                onPress={() => {
+                  setPicked((p) => ({ ...p, Brand: brand.name }));
+                  closeSheet();
+                }}
+              >
+                <View style={sheetStyles.brandRow}>
+                  {brand.logo && (
+                    <Image
+                      source={{ uri: brand.logo }}
+                      style={sheetStyles.brandLogo}
+                    />
+                  )}
+                  <ThemedText style={sheetStyles.listMain}>{brand.name}</ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={COLOR.text} />
+              </TouchableOpacity>
+            ))
+          )}
         </ScrollView>
       </BottomSheet>
 
@@ -1146,5 +1198,45 @@ const sheetStyles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLOR.sub,
     marginLeft: "auto",
+  },
+
+  // Loading and empty states
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
+  },
+
+  // Brand row styles
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  brandLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 12,
   },
 });
