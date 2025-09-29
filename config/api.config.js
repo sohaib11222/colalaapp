@@ -37,6 +37,7 @@ const API = {
   SEND_CHAT_MESSAGE: (chatId) => `${BASE_URL}/buyer/chats/${chatId}/send`,
   SUPPORT_TICKETS: `${BASE_URL}/buyer/support/tickets`,        // GET (index), POST (create)
   SUPPORT_TICKET_ID: (id) => `${BASE_URL}/buyer/support/tickets/${id}`,
+  SERVICES: `${BASE_URL}/seller/service`,
 
 
   Get_All_Products: `${BASE_URL}/buyer/product/get-all`,
@@ -555,6 +556,14 @@ export const useServicesDetail = (serviceId, options) =>
   useQuery({
     queryKey: ["servicesDetail", serviceId],
     queryFn: () => http.get(API.Services_Detail(serviceId)),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useServices = (options) =>
+  useQuery({
+    queryKey: ["services"],
+    queryFn: () => http.get(API.SERVICES),
     staleTime: 60 * 1000,
     ...options,
   });
