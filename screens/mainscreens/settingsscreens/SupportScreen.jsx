@@ -9,6 +9,7 @@ import {
   FlatList,
   Platform,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -200,48 +201,34 @@ export default function SupportScreen() {
               style={styles.ticketCard}
               onPress={() => navigation.navigate("SupportDetails", { ticketId: item.id })}
             >
-              <View style={styles.ticketHeader}>
-                <View style={styles.ticketInfo}>
-                  <ThemedText style={styles.ticketSubject} numberOfLines={1}>
-                    {item.subject}
-                  </ThemedText>
-                  <ThemedText style={styles.ticketCategory}>
-                    {item.category}
-                  </ThemedText>
-                </View>
-                <View style={styles.ticketMeta}>
-                  <View style={[
-                    styles.statusBadge,
-                    item.status === "open" ? styles.statusOpen : styles.statusClosed
-                  ]}>
+              <View style={styles.ticketContent}>
+                <View style={styles.ticketLeft}>
+                  <Image
+                    source={require("../../../assets/Ellipse 18.png")}
+                    style={styles.ticketAvatar}
+                  />
+                  <View style={styles.ticketInfo}>
+                    <ThemedText style={styles.ticketSubject} numberOfLines={1}>
+                      {item.subject}
+                    </ThemedText>
                     <ThemedText style={[
-                      styles.statusText,
-                      item.status === "open" ? styles.statusTextOpen : styles.statusTextClosed
+                      styles.ticketStatus,
+                      item.status === "open" ? styles.statusPending : styles.statusResolved
                     ]}>
-                      {item.status}
+                      {item.status === "open" ? "Pending" : "Resolved"}
                     </ThemedText>
                   </View>
+                </View>
+                <View style={styles.ticketRight}>
+                  <ThemedText style={styles.ticketDate}>
+                    {item.createdAt}
+                  </ThemedText>
                   {item.unreadCount > 0 && (
                     <View style={styles.unreadBadge}>
                       <ThemedText style={styles.unreadText}>{item.unreadCount}</ThemedText>
                     </View>
                   )}
                 </View>
-              </View>
-              
-              <ThemedText style={styles.ticketDescription} numberOfLines={2}>
-                {item.description}
-              </ThemedText>
-              
-              <View style={styles.ticketFooter}>
-                <ThemedText style={styles.ticketDate}>
-                  {item.createdAt}
-                </ThemedText>
-                {item.lastMessage && (
-                  <ThemedText style={styles.lastMessage} numberOfLines={1}>
-                    Last: {item.lastMessage}
-                  </ThemedText>
-                )}
               </View>
             </TouchableOpacity>
           )}
@@ -311,7 +298,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: "#fff",
-    fontSize: 24,
+    fontSize: 16,
     marginLeft: -180,
     fontWeight: "700",
     // fontStyle: "italic",
@@ -338,7 +325,7 @@ const styles = StyleSheet.create({
     ...shadow(3),
     marginTop: 20,
   },
-  searchInput: { flex: 1, color: COLOR.text, fontSize: 14 },
+  searchInput: { flex: 1, color: COLOR.text, fontSize: 12  },
   searchIconBtn: {
     width: 34,
     height: 34,
@@ -370,7 +357,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLOR.line,
   },
-  tabText: { fontSize: 12, fontWeight: "600" },
+  tabText: { fontSize: 10, fontWeight: "600" },
   tabTextActive: { color: "#fff" },
   tabTextInactive: { color: COLOR.sub },
 
@@ -401,7 +388,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
+    fontSize: 14,
     color: COLOR.sub,
     textAlign: "center",
   },
@@ -501,15 +488,47 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   ticketDate: {
-    fontSize: 12,
+    fontSize: 10,
     color: COLOR.sub,
   },
   lastMessage: {
-    fontSize: 12,
+    fontSize: 10,
     color: COLOR.sub,
     fontStyle: "italic",
     flex: 1,
     textAlign: "right",
     marginLeft: 8,
+  },
+
+  // New styles for updated design
+  ticketContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  ticketLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  ticketAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  ticketStatus: {
+    fontSize: 12,
+    fontWeight: "500",
+    textTransform: "capitalize",
+  },
+  statusPending: {
+    color: "#F59E0B",
+  },
+  statusResolved: {
+    color: "#10B981",
+  },
+  ticketRight: {
+    alignItems: "flex-end",
   },
 });
