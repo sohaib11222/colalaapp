@@ -65,7 +65,11 @@ export default function ChatDetailsScreen() {
   const navigation = useNavigation();
   const { params } = useRoute();
   const store = params?.store || {};
-  const chatId = params?.chat_id;
+  const route = useRoute();
+  const chatId =
+    route.params?.chat_id ??
+    route.params?.chatId ??
+    null;
 
   // Debug logging to see what data is received
   console.log("ChatDetailsScreen received params:", {
@@ -82,7 +86,7 @@ export default function ChatDetailsScreen() {
         <ThemedText style={styles.errorText}>
           Chat information not available. Please try again.
         </ThemedText>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.retryButton}
           onPress={() => navigation.goBack()}
         >
@@ -108,10 +112,10 @@ export default function ChatDetailsScreen() {
   const apiMsgs = apiRes?.data?.messages || [];
   const storeData = apiRes?.data?.store || {};
   const disputeData = apiRes?.data?.dispute || null;
-  
+
   const mappedApi = useMemo(() => {
     if (!apiMsgs || !Array.isArray(apiMsgs)) return [];
-    
+
     const sorted = [...apiMsgs].sort(
       (a, b) => new Date(a.created_at) - new Date(b.created_at)
     );

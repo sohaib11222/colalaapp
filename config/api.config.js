@@ -41,8 +41,6 @@ const API = {
   SERVICES: `${BASE_URL}/seller/service`,
   SEARCH: `${BASE_URL}/search`,
   STORE_REVIEWS: (id) => `${BASE_URL}/buyer/stores/${id}/reviews`,
-
-
   Get_All_Products: `${BASE_URL}/buyer/product/get-all`,
   Edit_Profile: `${BASE_URL}/auth/edit-profile`,
   Services_Categories: `${BASE_URL}/service-categories`,
@@ -59,14 +57,16 @@ const API = {
   Create_Dispute: `${BASE_URL}/faqs/dispute`,
   All_Disputes: `${BASE_URL}/faqs/dispute/all`,
   Dispute_Details: `${BASE_URL}/faqs/dispute/details`,
-
   // Support Tickets
   Support_Tickets: `${BASE_URL}/buyer/support/tickets`,
   Support_Ticket_Details: (ticketId) => `${BASE_URL}/buyer/support/tickets/${ticketId}`,
   Support_Ticket_Message: `${BASE_URL}/buyer/support/messages`,
+  // add to API:
+  START_CHAT: (storeId) => `${BASE_URL}/buyer/chats/start/${storeId}`,
   My_Points: `${BASE_URL}/my-points`,
   Get_Post_Comments: (postId) => `${BASE_URL}/posts/${postId}/comments`,
   All_Brands: `${BASE_URL}/brands`,
+
 };
 
 export default API;
@@ -773,6 +773,43 @@ export const fileUrl = (p) => {
 };
 
 
+function findChatIdForStoreInCache(queryClient, storeId) {
+  const cache = queryClient.getQueryData(['chats']); // whatever key you used in useChats
+  const list = cache?.data || [];
+  const match = list.find(c =>
+    String(c.store_id ?? c.store?.id ?? c.store_order_id ?? '') === String(storeId)
+  );
+  return match?.chat_id || null;
+}
+
+/**
+ * useEnsureChat
+ * - First checks the chats cache to see if a thread with this store already exists.
+ * - If not, calls the API to create/get one, and returns the chat_id.
+ *
+ * Server assumptions:
+ * - POST /chats { store_id } -> { status, data: { chat_id, ... } }
+ *   (If your API uses another route, just swap the URL.)
+ */
+export const useStartChat = () => {
+  return useMutation({
+    mutationFn: async ({ storeId }) => {
+      if (!storeId) throw new Error('storeId is required');
+
+      // use axios instance so interceptors add Authorization
+      const res = await http.post(API.START_CHAT(storeId)); // POST, no body needed for this endpoint
+
+      // backend returns: { status, data: { id, store_id, ... }, message }
+      const chatId = res?.data?.id;
+      if (!chatId) throw new Error('Chat ID missing in response');
+      return { chat_id: chatId, store_id: res?.data?.store_id, raw: res };
+    },
+  });
+};
+
+
+
+
 export const useMyPoints = (options) =>
   useQuery({
     queryKey: ["myPoints"],
@@ -796,4 +833,3 @@ export const useAllBrands = (options) =>
     queryFn: () => http.get(API.All_Brands),
     ...options,
   });
-
