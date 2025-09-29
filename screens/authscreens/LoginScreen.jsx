@@ -27,8 +27,8 @@ const LoginScreen = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   // controlled inputs
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('hmstech11@gmail.com');
+  const [password, setPassword] = useState('newpassword123');
 
   // mutation
   const login = useLogin({
