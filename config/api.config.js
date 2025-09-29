@@ -38,6 +38,7 @@ const API = {
   SUPPORT_TICKETS: `${BASE_URL}/buyer/support/tickets`,        // GET (index), POST (create)
   SUPPORT_TICKET_ID: (id) => `${BASE_URL}/buyer/support/tickets/${id}`,
   SERVICES: `${BASE_URL}/seller/service`,
+  SEARCH: `${BASE_URL}/search`,
 
 
   Get_All_Products: `${BASE_URL}/buyer/product/get-all`,
@@ -567,3 +568,13 @@ export const useServices = (options) =>
     staleTime: 60 * 1000,
     ...options,
   });
+
+export const useSearch = (type, q, options) =>
+  useQuery({
+    enabled: !!type && !!q,                       // only when a tab & query selected
+    queryKey: ['search', type, q],
+    queryFn: () => http.get(API.SEARCH, { type, q }),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
