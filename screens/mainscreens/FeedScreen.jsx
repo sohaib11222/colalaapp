@@ -93,17 +93,20 @@ const FeedHeader = ({ navigation }) => (
     </View>
 
     {/* Search */}
-    <View style={styles.searchContainer}>
-      <TextInput
-        placeholder="Search any product, shop or category"
-        placeholderTextColor="#888"
-        style={styles.searchInput}
-      />
-      <Image
-        source={require("../../assets/camera-icon.png")}
-        style={styles.iconImg}
-      />
-    </View>
+      <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => navigation.navigate('AuthNavigator', { screen: 'Search' })}
+              style={styles.searchContainer}>
+              <TextInput
+                placeholder="Search any product, shop or category"
+                placeholderTextColor="#888"
+                style={styles.searchInput}
+                editable={false}                // stop editing
+                showSoftInputOnFocus={false}    // stop keyboard
+                pointerEvents="none"            // let TouchableOpacity catch taps
+              />
+              <Image source={require('../../assets/camera-icon.png')} style={styles.iconImg} />
+            </TouchableOpacity>
   </View>
 );
 
@@ -128,28 +131,35 @@ const PostCard = ({ item, onOpenComments, onOpenOptions, onToggleLike, isLastIte
     setActiveIdx(Math.round(x / carouselW));
   };
 
-  const handleLikePress = async () => {
-    // optimistic
-    setLiked((p) => !p);
-    setLikeCount((c) => (liked ? Math.max(0, c - 1) : c + 1));
-    try {
-      const res = await onToggleLike?.(item.id);
-      if (res && typeof res.liked === "boolean") setLiked(res.liked);
-      if (res && typeof res.likes_count === "number")
-        setLikeCount(res.likes_count);
-    } catch {
-      // rollback if failed
-      setLiked((p) => !p);
-      setLikeCount((c) => (liked ? c + 1 : Math.max(0, c - 1)));
+const handleLikePress = async () => {
+  const nextLiked = !liked;
+
+  // Optimistic update
+  setLiked(nextLiked);
+  setLikeCount((c) => (nextLiked ? c + 1 : Math.max(0, c - 1)));
+
+  try {
+    const res = await onToggleLike?.(item.id);
+    if (res && typeof res.liked === "boolean") {
+      setLiked(res.liked);
     }
-  };
+    if (res && typeof res.likes_count === "number") {
+      setLikeCount(res.likes_count);
+    }
+  } catch {
+    // Rollback if failed
+    setLiked(!nextLiked);
+    setLikeCount((c) => (!nextLiked ? c + 1 : Math.max(0, c - 1)));
+  }
+};
+
 
   return (
     <View style={[styles.postCard, isLastItem && styles.postCardLast]}>
       {/* Top bar */}
       <View style={styles.postTop}>
-        <Image 
-          source={{ uri: item.avatar }} 
+        <Image
+          source={{ uri: item.avatar }}
           style={styles.avatar}
           defaultSource={require("../../assets/Ellipse 18.png")}
         />
@@ -234,7 +244,7 @@ const PostCard = ({ item, onOpenComments, onOpenOptions, onToggleLike, isLastIte
         </View>
 
         <View style={styles.actionsRight}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.visitBtn}
             onPress={() => {
               if (item.storeId && navigation) {
@@ -277,17 +287,17 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
   // Process API comments data
   const apiComments = useMemo(() => {
     if (!commentsData?.data?.data) return [];
-    
+
     return commentsData.data.data.map((comment) => ({
       id: String(comment.id),
       user: comment.user?.full_name || "Unknown",
       time: timeAgo(comment.created_at),
-      avatar: comment.user?.profile_picture 
+      avatar: comment.user?.profile_picture
         ? absUrl(
-            comment.user.profile_picture.startsWith("/storage")
-              ? comment.user.profile_picture
-              : `/storage/${comment.user.profile_picture}`
-          )
+          comment.user.profile_picture.startsWith("/storage")
+            ? comment.user.profile_picture
+            : `/storage/${comment.user.profile_picture}`
+        )
         : currentUser.avatar,
       body: comment.body || "",
       likes: 0,
@@ -296,7 +306,7 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
   }, [commentsData]);
 
   const [localComments, setLocalComments] = useState([]);
-  
+
   // Combine API comments with local comments
   const comments = [...apiComments, ...localComments];
 
@@ -323,10 +333,10 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
         time: "Just now",
         avatar: created?.user?.profile_picture
           ? absUrl(
-              created.user.profile_picture.startsWith("/storage")
-                ? created.user.profile_picture
-                : `/storage/${created.user.profile_picture}`
-            )
+            created.user.profile_picture.startsWith("/storage")
+              ? created.user.profile_picture
+              : `/storage/${created.user.profile_picture}`
+          )
           : currentUser.avatar,
         body: created?.body ?? trimmed,
         likes: 0,
@@ -335,7 +345,7 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
       setLocalComments((prev) => [...prev, newComment]);
       setText("");
       setReplyTo(null);
-    } catch {}
+    } catch { }
   };
 
   return (
@@ -393,85 +403,85 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
               style={{ maxHeight: 420 }}
               showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
-              <View style={{ paddingBottom: 4 }}>
-                {/* main comment */}
-                <View style={styles.commentRow}>
-                  <Image
-                    source={{ uri: item.avatar }}
-                    style={styles.commentAvatar}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <View
-                      style={{ flexDirection: "row", alignItems: "center" }}
-                    >
-                      <ThemedText style={styles.commentName}>
-                        {item.user}
-                      </ThemedText>
-                      <ThemedText style={styles.commentTime}>
-                        {" "}
-                        {item.time}
-                      </ThemedText>
-                    </View>
-                    <ThemedText style={styles.commentBody}>
-                      {item.body}
-                    </ThemedText>
-
-                    <View style={styles.commentMetaRow}>
-                      <TouchableOpacity onPress={() => startReply(item)}>
-                        <ThemedText style={styles.replyText}>Reply</ThemedText>
-                      </TouchableOpacity>
+                <View style={{ paddingBottom: 4 }}>
+                  {/* main comment */}
+                  <View style={styles.commentRow}>
+                    <Image
+                      source={{ uri: item.avatar }}
+                      style={styles.commentAvatar}
+                    />
+                    <View style={{ flex: 1 }}>
                       <View
                         style={{ flexDirection: "row", alignItems: "center" }}
                       >
-                        <Ionicons
-                          name="chatbubble-ellipses-outline"
-                          size={14}
-                          color={COLOR.text}
-                        />
-                        <ThemedText style={styles.commentLikeCount}>
+                        <ThemedText style={styles.commentName}>
+                          {item.user}
+                        </ThemedText>
+                        <ThemedText style={styles.commentTime}>
                           {" "}
-                          {item.likes}
+                          {item.time}
                         </ThemedText>
                       </View>
-                    </View>
-                  </View>
-                </View>
+                      <ThemedText style={styles.commentBody}>
+                        {item.body}
+                      </ThemedText>
 
-                {/* replies kept for parity (not used) */}
-                {item.replies?.length ? (
-                  <View style={styles.repliesWrap}>
-                    {item.replies.map((r) => (
-                      <View key={r.id} style={styles.replyContainer}>
-                        <Image
-                          source={{ uri: r.avatar }}
-                          style={styles.commentAvatar}
-                        />
-                        <View style={{ flex: 1 }}>
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                            }}
-                          >
-                            <ThemedText style={styles.commentName}>
-                              {r.user}
-                            </ThemedText>
-                            <ThemedText style={styles.commentTime}>
-                              {" "}
-                              {r.time}
-                            </ThemedText>
-                          </View>
-                          <ThemedText style={styles.commentBody}>
-                            {r.body}
+                      <View style={styles.commentMetaRow}>
+                        <TouchableOpacity onPress={() => startReply(item)}>
+                          <ThemedText style={styles.replyText}>Reply</ThemedText>
+                        </TouchableOpacity>
+                        <View
+                          style={{ flexDirection: "row", alignItems: "center" }}
+                        >
+                          <Ionicons
+                            name="chatbubble-ellipses-outline"
+                            size={14}
+                            color={COLOR.text}
+                          />
+                          <ThemedText style={styles.commentLikeCount}>
+                            {" "}
+                            {item.likes}
                           </ThemedText>
                         </View>
                       </View>
-                    ))}
+                    </View>
                   </View>
-                ) : null}
-              </View>
-            )}
-          />
+
+                  {/* replies kept for parity (not used) */}
+                  {item.replies?.length ? (
+                    <View style={styles.repliesWrap}>
+                      {item.replies.map((r) => (
+                        <View key={r.id} style={styles.replyContainer}>
+                          <Image
+                            source={{ uri: r.avatar }}
+                            style={styles.commentAvatar}
+                          />
+                          <View style={{ flex: 1 }}>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                              }}
+                            >
+                              <ThemedText style={styles.commentName}>
+                                {r.user}
+                              </ThemedText>
+                              <ThemedText style={styles.commentTime}>
+                                {" "}
+                                {r.time}
+                              </ThemedText>
+                            </View>
+                            <ThemedText style={styles.commentBody}>
+                              {r.body}
+                            </ThemedText>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              )}
+            />
           )}
 
           {/* Replying chip */}
@@ -622,7 +632,7 @@ export default function FeedScreen() {
 
   // local per-post overrides (liked state, like count, comments count)
   const [postOverrides, setPostOverrides] = useState({}); // id -> { liked, likes, comments }
-  
+
   // hidden posts state
   const [hiddenPosts, setHiddenPosts] = useState(new Set());
 
@@ -669,10 +679,10 @@ export default function FeedScreen() {
       const avatarRaw = p.user?.profile_picture;
       const avatar = avatarRaw
         ? absUrl(
-            avatarRaw.startsWith("/storage")
-              ? avatarRaw
-              : `/storage/${avatarRaw}`
-          )
+          avatarRaw.startsWith("/storage")
+            ? avatarRaw
+            : `/storage/${avatarRaw}`
+        )
         : "https://via.placeholder.com/100";
 
       const overrides = postOverrides[p.id] || {};
@@ -698,7 +708,7 @@ export default function FeedScreen() {
         likes,
         comments: commentsCount,
         shares: Number(p.shares_count ?? 0),
-        _liked: overrides.liked,
+        _liked: typeof overrides.liked === "boolean" ? overrides.liked : !!p.is_liked,  // ✅ use API is_liked
       };
     });
   }, [apiItems, postOverrides, hiddenPosts]);

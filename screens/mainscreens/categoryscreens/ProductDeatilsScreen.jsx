@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Modal,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
@@ -78,6 +79,18 @@ const ProductDetailsScreen = () => {
       console.log("Error toggling saved status:", error);
     },
   });
+
+  const updateCart = (newQty) => {
+  if (!product) return;
+  const payload = {
+    product_id: product.id,
+    qty: newQty,
+  };
+  if (selectedVariant?.id) {
+    payload.variant_id = selectedVariant.id;
+  }
+  addToCartMutation.mutate(payload);
+};
 
   // Check saved status when component mounts
   useEffect(() => {
@@ -324,7 +337,7 @@ const ProductDetailsScreen = () => {
 
     addToCartMutation.mutate(payload);
   };
-  const socialIconMap: Record<string, string> = {
+  const socialIconMap= {
     whatsapp: "https://img.icons8.com/color/48/whatsapp--v1.png",
     instagram: "https://img.icons8.com/color/48/instagram-new--v1.png",
     x: "https://img.icons8.com/ios-filled/50/x.png",
@@ -1015,17 +1028,22 @@ const ProductDetailsScreen = () => {
                   </View>
 
                   <View style={styles.socialCard}>
-  {product.store?.social_links?.map((s) => (
-    <TouchableOpacity
-      key={s.id}
-      style={styles.socialBox}
-      onPress={() => Linking.openURL(s.url)}
-    >
-      <Image source={{ uri: s.icon }} style={styles.socialImg} />
-    </TouchableOpacity>
-  ))}
-</View>
-
+                    {product.store?.social_links?.length ? (
+                      product.store.social_links.map((s) => (
+                        <TouchableOpacity
+                          key={s.id}
+                          style={styles.socialBox}
+                          onPress={() => Linking.openURL(s.url)}
+                        >
+                          <Image source={{ uri: s.icon }} style={styles.socialImgSm} />
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      <ThemedText style={{ color: '#888', fontSize: 12 }}>
+                        No social links yet
+                      </ThemedText>
+                    )}
+                  </View>
 
 
 
@@ -1333,35 +1351,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-socialCard: {
-  flexDirection: 'row',
-  // justifyContent: 'space-evenly',
-  alignItems: 'center',
-  paddingVertical: 4,
-  paddingHorizontal: 12,
-  borderWidth: 1,
-  borderColor: '#CDCDCD',
-  borderRadius: 10,
-  marginHorizontal: 10,
-  marginVertical: 10,
-  backgroundColor: '#fff',
-  gap: 10,
-},
-
-socialBox: {
-  padding: 2,
-  borderRadius: 10,
-  backgroundColor: '#f9f9f9',
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-
-socialImg: {
-  width: 30,
-  height: 30,
-  resizeMode: 'contain',
-},
-
   contactBtn: {
     borderColor: "#ccc",
     borderRadius: 15,
@@ -1506,6 +1495,28 @@ socialImg: {
     width: Dimensions.get('window').width,
     height: Dimensions.get('window').height,
   },
+    socialCard: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    gap: 10,
+    padding: 12,
+  },
+  socialBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  socialImgSm: {
+    width: 22,
+    height: 22,
+    resizeMode: "contain",
+  },
+
   imageViewerNav: {
     position: "absolute",
     top: "50%",

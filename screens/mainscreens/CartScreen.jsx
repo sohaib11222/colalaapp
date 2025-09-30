@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+   RefreshControl,   // ⬅️ add this
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -37,6 +38,7 @@ export default function CartScreen() {
 
   const [agree, setAgree] = useState(false);
   const [stores, setStores] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);  // ⬅️ new
 
   // mutations
   const updateItem = useUpdateCartItem({
@@ -113,7 +115,14 @@ export default function CartScreen() {
   }, [stores, perStore]);
 
   const canCheckout = agree && totals.items > 0;
-
+const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();   // ⬅️ refetch data from API
+    } finally {
+      setRefreshing(false);
+    }
+  };
   if (isLoading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg, alignItems: "center", justifyContent: "center" }}>
@@ -154,6 +163,9 @@ export default function CartScreen() {
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={   // ⬅️ added
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLOR.primary} />
+        }
       >
         {stores.map((store) => (
           <View key={store.id} style={styles.storeSection}>
