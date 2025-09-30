@@ -873,25 +873,61 @@ const ProductDetailsScreen = () => {
               <View style={styles.divider} />
 
               {/* CONTACT BUTTONS */}
-              <View style={styles.contactRow}>
-                <TouchableOpacity style={styles.contactBtn}>
-                  <Ionicons name="logo-whatsapp" size={20} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.contactBtn}>
-                  <Ionicons name="call-outline" size={20} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.contactBtn}>
-                  <Ionicons name="chatbubble-outline" size={20} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.revealBtn}
-                  onPress={() => setShowPhone((s) => !s)}
-                >
-                  <ThemedText style={{ color: "#fff", fontSize: 12 }}>
-                    {showPhone ? storePhoneNumber : "Reveal Phone Number"}
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
+             <View style={styles.contactRow}>
+  {/* WhatsApp */}
+  <TouchableOpacity
+    style={styles.contactBtn}
+    onPress={() => {
+      if (storePhoneNumber) {
+        const phone = storePhoneNumber.replace(/\D/g, ""); // clean digits
+        Linking.openURL(`https://wa.me/${phone}`).catch(err =>
+          console.log("WhatsApp error:", err)
+        );
+      }
+    }}
+  >
+    <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+  </TouchableOpacity>
+
+  {/* Call */}
+  <TouchableOpacity
+    style={styles.contactBtn}
+    onPress={() => {
+      if (storePhoneNumber) {
+        Linking.openURL(`tel:${storePhoneNumber}`).catch(err =>
+          console.log("Call error:", err)
+        );
+      }
+    }}
+  >
+    <Ionicons name="call-outline" size={20} color="#000" />
+  </TouchableOpacity>
+
+  {/* SMS */}
+  <TouchableOpacity
+    style={styles.contactBtn}
+    onPress={() => {
+      if (storePhoneNumber) {
+        Linking.openURL(`sms:${storePhoneNumber}`).catch(err =>
+          console.log("SMS error:", err)
+        );
+      }
+    }}
+  >
+    <Ionicons name="chatbubble-outline" size={20} color="#000" />
+  </TouchableOpacity>
+
+  {/* Reveal Number */}
+  <TouchableOpacity
+    style={styles.revealBtn}
+    onPress={() => setShowPhone((s) => !s)}
+  >
+    <ThemedText style={{ color: "#fff", fontSize: 12 }}>
+      {showPhone ? storePhoneNumber : "Reveal Phone Number"}
+    </ThemedText>
+  </TouchableOpacity>
+</View>
+
 
               <TouchableOpacity
                 style={styles.checkoutBtn}

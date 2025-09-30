@@ -6,6 +6,13 @@
     "plugins": [
       "expo-font",
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c028f1e0-ecf6-46f9-bb14-705f0bb591f7"
+      }
+    },
+    "icon": "./assets/mainimage.png"
   }
 }
