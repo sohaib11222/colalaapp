@@ -122,60 +122,60 @@ export default function StoresScreen() {
   const renderStore = ({ item, index }) => {
     const totalItems = filtered.length;
     const isLastTwo = index >= totalItems - 2;
-    
+
     return (
-    <View style={[styles.card, isLastTwo ? styles.cardLastTwo : styles.cardRegular]}>
-      {/* full-bleed cover image */}
-      <Image source={{ uri: item.cover }} style={styles.cover} />
+      <View style={[styles.card, isLastTwo ? styles.cardLastTwo : styles.cardRegular]}>
+        {/* full-bleed cover image */}
+        <Image source={{ uri: item.cover }} style={styles.cover} />
 
-      {/* overlapping avatar */}
-      <Image
-        source={{ uri: item.avatar }}
-        style={[styles.avatar, { top: COVER_HEIGHT - AVATAR_SIZE / 2 }]}
-      />
+        {/* overlapping avatar */}
+        <Image
+          source={{ uri: item.avatar }}
+          style={[styles.avatar, { top: COVER_HEIGHT - AVATAR_SIZE / 2 }]}
+        />
 
-      {/* content */}
-      <View style={[styles.content, { paddingTop: AVATAR_SIZE / 2 + 6 }]}>
-        <View style={styles.rowBetween}>
-          <ThemedText numberOfLines={1} style={styles.storeName}>
-            {item.name}
-          </ThemedText>
+        {/* content */}
+        <View style={[styles.content, { paddingTop: AVATAR_SIZE / 2 + 6 }]}>
+          <View style={styles.rowBetween}>
+            <ThemedText numberOfLines={1} style={styles.storeName}>
+              {item.name}
+            </ThemedText>
 
-          <View style={styles.rating}>
-            <Ionicons name="star" size={10} color={COLOR.primary} />
-            <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
-          </View>
-        </View>
-
-        <View style={styles.tagsRow}>
-          {item.tags.map((tag, idx) => (
-            <View
-              key={`${item.id}-${tag}`}
-              style={[styles.tagBase, idx === 0 ? styles.tagBlue : styles.tagRed]}
-            >
-              <ThemedText
-                style={[styles.tagTextBase, idx === 0 ? styles.tagTextBlue : styles.tagTextRed]}
-              >
-                {tag}
-              </ThemedText>
+            <View style={styles.rating}>
+              <Ionicons name="star" size={10} color={COLOR.primary} />
+              <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
             </View>
-          ))}
+          </View>
+
+          <View style={styles.tagsRow}>
+            {item.tags.map((tag, idx) => (
+              <View
+                key={`${item.id}-${tag}`}
+                style={[styles.tagBase, idx === 0 ? styles.tagBlue : styles.tagRed]}
+              >
+                <ThemedText
+                  style={[styles.tagTextBase, idx === 0 ? styles.tagTextBlue : styles.tagTextRed]}
+                >
+                  {tag}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={styles.cta}
+            onPress={() =>
+              navigation.navigate("ServiceNavigator", {
+                screen: "StoreDetails",
+                params: { store: item, storeId: item._api?.id || item.id },
+              })
+            }
+
+          >
+            <ThemedText style={styles.ctaText}>Go to Shop</ThemedText>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={styles.cta}
-          onPress={() =>
-            navigation.navigate("ServiceNavigator", {
-              screen: "StoreDetails",
-              params: { store: item, storeId: item._api?.id || item.id },
-            })
-          }
-
-        >
-          <ThemedText style={styles.ctaText}>Go to Shop</ThemedText>
-        </TouchableOpacity>
       </View>
-    </View>
     );
   };
 
@@ -220,18 +220,20 @@ export default function StoresScreen() {
         </View>
 
         {/* Search */}
-        <View style={styles.searchContainer}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('AuthNavigator', { screen: 'Search' })}
+          style={styles.searchContainer}>
           <TextInput
             placeholder="Search any product, shop or category"
             placeholderTextColor="#888"
             style={styles.searchInput}
-            value={query}
-            onChangeText={setQuery}
+            editable={false}                // stop editing
+            showSoftInputOnFocus={false}    // stop keyboard
+            pointerEvents="none"            // let TouchableOpacity catch taps
           />
-          <Image
-            source={require('../../../assets/camera-icon.png')}
-            style={styles.iconImg}
-          />         </View>
+          <Image source={require('../../../assets/camera-icon.png')} style={styles.iconImg} />
+        </TouchableOpacity>
       </View>
 
       {/* Filters (UI only; values are placeholders) */}

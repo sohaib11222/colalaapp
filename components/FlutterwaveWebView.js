@@ -35,6 +35,8 @@ const FlutterwaveWebView = ({ route, navigation }) => {
                         });
                         console.log('✅ Payment confirmation response:', responseData);
                         Alert.alert('Success', 'Payment confirmed!');
+                        //navigate back to home screen
+                        navigation.navigate('MainNavigator', { screen: 'Home' });
                     }
                 } catch (error) {
                     console.warn('⚠️ Server responded with error:', error);

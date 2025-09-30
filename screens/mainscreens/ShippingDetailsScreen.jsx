@@ -147,6 +147,7 @@ export default function ShippingDetailsScreen() {
   });
 
   const updateQty = (sid, iid, delta) => {
+    console.log("Update qty etc", { sid, iid, delta });
     setStores((prev) => {
       const next = prev.map((s) => {
         if (s.id !== sid) return s;

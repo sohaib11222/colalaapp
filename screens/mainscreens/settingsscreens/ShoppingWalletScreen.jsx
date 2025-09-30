@@ -272,7 +272,6 @@ export default function ShoppingWalletScreen() {
     </SafeAreaView>
   );
 }
-
 /* --------- tiny components --------- */
 const TabBtn = ({ label, active, onPress }) => (
   <TouchableOpacity onPress={onPress} style={[styles.tabBtn, active ? styles.tabActive : styles.tabInactive]}>
