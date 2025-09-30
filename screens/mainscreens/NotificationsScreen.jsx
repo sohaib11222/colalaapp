@@ -1,16 +1,21 @@
 // screens/NotificationsScreen.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   FlatList,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import ThemedText from "../../components/ThemedText"; // ← adjust path if needed
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import ThemedText from "../../components/ThemedText";
+
+const BASE_URL = "https://colala.hmstech.xyz/api";
 
 /* ---- THEME ---- */
 const COLOR = {
@@ -22,66 +27,65 @@ const COLOR = {
   line: "#ECEDEF",
 };
 
-const INITIAL = [
-  {
-    id: "1",
-    title: "Subscription Renewal",
-    body:
-      "Your Pro plan is set to renew on March 1st, 2025. No action is needed.",
-    time: "23/02/23 - 08:22 AM",
-    unread: true,
-  },
-  {
-    id: "2",
-    title: "Your weekly report is ready",
-    body:
-      "View your performance and analytics for the week of Aug 18–24.",
-    time: "23/02/24 - 11:00 AM",
-    unread: true,
-  },
-  {
-    id: "3",
-    title: "Security Alert",
-    body:
-      "A new login to your account was detected from a device in London, UK.",
-    time: "23/02/24 - 01:05 PM",
-    unread: true,
-  },
-  {
-    id: "4",
-    title: "New Message",
-    body:
-      "A customer just sent you a message, click to view",
-    time: "23/02/25 - 02:22 AM",
-    unread: true,
-    linkText: "click to view",
-  },
-  {
-    id: "5",
-    title: "System Maintenance",
-    body:
-      "We will be undergoing scheduled maintenance on Sunday.",
-    time: "23/02/24 - 09:15 PM",
-    unread: false,
-  },
-  {
-    id: "6",
-    title: "New Feature: AI Assist",
-    body:
-      "Try our new AI assistant to help you write faster and more…",
-    time: "23/02/24 - 05:40 PM",
-    unread: false,
-  },
-];
-
 export default function NotificationsScreen() {
   const navigation = useNavigation();
-  const [items, setItems] = useState(INITIAL);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const markRead = (id) =>
-    setItems((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
-    );
+  const fetchNotifications = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("auth_token");
+      const res = await fetch(`${BASE_URL}/notifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      const json = await res.json();
+      if (json.status === "success") {
+        const mapped = json.data.map((n) => ({
+          id: String(n.id),
+          title: n.title,
+          body: n.content,
+          time: new Date(n.created_at).toLocaleString(),
+          unread: n.is_read === 0,
+        }));
+        setItems(mapped);
+      } else {
+        Alert.alert("Error", json.message || "Failed to load notifications");
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Could not load notifications.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const markRead = async (id) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      await fetch(`${BASE_URL}/notifications/mark-as-read/${id}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      // Optimistically update state
+      setItems((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
+      );
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Failed to mark as read.");
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -106,18 +110,9 @@ export default function NotificationsScreen() {
             {item.time}
           </ThemedText>
         </View>
-
-        {/* Body preview (with inline link style if provided) */}
-        {item.linkText ? (
-          <ThemedText style={styles.body}>
-            {item.body.replace(item.linkText, "")}
-            <ThemedText style={{ color: COLOR.primary }}>{item.linkText}</ThemedText>
-          </ThemedText>
-        ) : (
-          <ThemedText style={styles.body} numberOfLines={2}>
-            {item.body}
-          </ThemedText>
-        )}
+        <ThemedText style={styles.body} numberOfLines={2}>
+          {item.body}
+        </ThemedText>
       </View>
     </TouchableOpacity>
   );
@@ -129,7 +124,9 @@ export default function NotificationsScreen() {
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() =>
-              navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigation.navigate("Home")
             }
             style={styles.backBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -141,18 +138,24 @@ export default function NotificationsScreen() {
             Notifications
           </ThemedText>
 
-          <View style={{ width: 40, height: 40 }} />{/* spacer */}
+          <View style={{ width: 40, height: 40 }} /> {/* spacer */}
         </View>
       </View>
 
-      <FlatList
-        data={items}
-        keyExtractor={(i) => i.id}
-        contentContainerStyle={{ padding: 12, paddingBottom: 24 }}
-        renderItem={renderItem}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={COLOR.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(i) => i.id}
+          contentContainerStyle={{ padding: 12, paddingBottom: 24 }}
+          renderItem={renderItem}
+          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
     borderColor: COLOR.line,
     alignItems: "center",
     justifyContent: "center",
-    zIndex:5
+    zIndex: 5,
   },
   headerTitle: {
     position: "absolute",

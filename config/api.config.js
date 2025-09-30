@@ -42,6 +42,11 @@ const API = {
   SEARCH: `${BASE_URL}/search`,
   STORE_REVIEWS: (id) => `${BASE_URL}/buyer/stores/${id}/reviews`,
   Get_All_Products: `${BASE_URL}/buyer/product/get-all`,
+
+
+
+
+
   Edit_Profile: `${BASE_URL}/auth/edit-profile`,
   Services_Categories: `${BASE_URL}/service-categories`,
   Services_By_Category: (categoryId) => `${BASE_URL}/service-categories/${categoryId}`,
@@ -66,7 +71,7 @@ const API = {
   My_Points: `${BASE_URL}/my-points`,
   Get_Post_Comments: (postId) => `${BASE_URL}/posts/${postId}/comments`,
   All_Brands: `${BASE_URL}/brands`,
-
+  User_Review: `${BASE_URL}/user-reviews`,
 };
 
 export default API;
@@ -831,5 +836,13 @@ export const useAllBrands = (options) =>
   useQuery({
     queryKey: ["allBrands"],
     queryFn: () => http.get(API.All_Brands),
+    ...options,
+  });
+
+
+export const useUserReview = (options) =>
+  useQuery({
+    queryKey: ["userReview"],
+    queryFn: () => http.get(API.User_Review),
     ...options,
   });

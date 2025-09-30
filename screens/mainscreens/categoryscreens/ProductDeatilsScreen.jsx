@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Modal,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
@@ -41,7 +42,7 @@ const ProductDetailsScreen = () => {
   // State for saved status
   const [isSaved, setIsSaved] = useState(false);
   const [isCheckingSaved, setIsCheckingSaved] = useState(true);
-  
+
   // State for image viewer
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
@@ -78,6 +79,18 @@ const ProductDetailsScreen = () => {
       console.log("Error toggling saved status:", error);
     },
   });
+
+  const updateCart = (newQty) => {
+  if (!product) return;
+  const payload = {
+    product_id: product.id,
+    qty: newQty,
+  };
+  if (selectedVariant?.id) {
+    payload.variant_id = selectedVariant.id;
+  }
+  addToCartMutation.mutate(payload);
+};
 
   // Check saved status when component mounts
   useEffect(() => {
@@ -131,27 +144,40 @@ const ProductDetailsScreen = () => {
     ...raw,
     store: raw.store
       ? {
-          name: raw.store.store_name,
-          location: raw.store.store_location,
-          rating: 4.5, // Default rating since not in API
-          followers: 0, // Default value since not in API
-          sold: 0, // Default value since not in API
-          categories: [], // Default empty array since not in API
-          social: {
-            whatsapp: null,
-            instagram: null,
-            x: null,
-            facebook: null,
-          },
-          logo: raw.store.profile_image
-            ? { uri: `${HOST}/storage/${raw.store.profile_image}` }
-            : require("../../../assets/Ellipse 18.png"),
-          background: raw.store.banner_image
-            ? { uri: `${HOST}/storage/${raw.store.banner_image}` }
-            : require("../../../assets/Rectangle 30.png"),
-        }
+        id: raw.store.id,
+        name: raw.store.store_name,
+        location: raw.store.store_location,
+        rating: 4.5, // or pull from API if you add it later
+        followers: raw.store.followers_count ?? 0,
+        sold: Number(raw.store.sold_items_sum_qty ?? 0),
+
+        // map category titles if you later include them
+        categories: [],
+
+        // build a consistent social array from social_links
+        social_links: (raw.store.social_links || []).map((link) => ({
+          id: link.id,
+          type: link.type,
+          url: link.url,
+          icon:
+            {
+              whatsapp: "https://img.icons8.com/color/48/whatsapp--v1.png",
+              instagram: "https://img.icons8.com/color/48/instagram-new--v1.png",
+              x: "https://img.icons8.com/ios-filled/50/x.png",
+              facebook: "https://img.icons8.com/color/48/facebook-new.png",
+            }[link.type] || null,
+        })),
+
+        logo: raw.store.profile_image
+          ? { uri: `${HOST}/storage/${raw.store.profile_image}` }
+          : require("../../../assets/Ellipse 18.png"),
+        background: raw.store.banner_image
+          ? { uri: `${HOST}/storage/${raw.store.banner_image}` }
+          : require("../../../assets/Rectangle 30.png"),
+      }
       : null,
   };
+
 
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState("Overview");
@@ -176,15 +202,29 @@ const ProductDetailsScreen = () => {
 
   const selectedVariant = isVariantSelectionComplete
     ? variations.find(
-        (v) =>
-          (!hasColor || v.color === selectedColor) &&
-          (!hasSize || v.size === selectedSize)
-      )
+      (v) =>
+        (!hasColor || v.color === selectedColor) &&
+        (!hasSize || v.size === selectedSize)
+    )
     : null;
 
-  const increment = () => setQuantity((q) => q + 1);
-  const decrement = () => setQuantity((q) => (q > 1 ? q - 1 : q));
-
+  const increment = () => {
+    setQuantity((q) => {
+      const newQty = q + 1;
+      updateCart(newQty);
+      return newQty;
+    });
+  };
+  const decrement = () => {
+    setQuantity((q) => {
+      if (q > 1) {
+        const newQty = q - 1;
+        updateCart(newQty);
+        return newQty;
+      }
+      return q;
+    });
+  };
   // const matchedVariant = product?.variations?.find(
   //   v =>
   //     (!selectedColor || v.color === selectedColor) &&
@@ -244,7 +284,7 @@ const ProductDetailsScreen = () => {
     Math.round(
       (reviews.reduce((s, r) => s + (r.rating || 0), 0) /
         (reviews.length || 1)) *
-        2
+      2
     ) / 2;
 
   const addToCartMutation = useAddToCart({
@@ -297,6 +337,13 @@ const ProductDetailsScreen = () => {
 
     addToCartMutation.mutate(payload);
   };
+  const socialIconMap= {
+    whatsapp: "https://img.icons8.com/color/48/whatsapp--v1.png",
+    instagram: "https://img.icons8.com/color/48/instagram-new--v1.png",
+    x: "https://img.icons8.com/ios-filled/50/x.png",
+    facebook: "https://img.icons8.com/color/48/facebook-new.png",
+  };
+
 
   const handleSendReply = (reviewId) => {
     const text = (replyInputs[reviewId] || "").trim();
@@ -330,8 +377,8 @@ const ProductDetailsScreen = () => {
             i < Math.floor(value)
               ? "star"
               : value > i && value < i + 1
-              ? "star-half"
-              : "star-outline"
+                ? "star-half"
+                : "star-outline"
           }
           size={size}
           color="#E53E3E"
@@ -405,9 +452,8 @@ const ProductDetailsScreen = () => {
                 <Ionicons name="return-down-back" size={18} color="#111" />
                 <TextInput
                   style={styles.replyInput}
-                  placeholder={`Reply as ${
-                    product?.store?.store_name ?? "Store"
-                  }...`}
+                  placeholder={`Reply as ${product?.store?.store_name ?? "Store"
+                    }...`}
                   placeholderTextColor="#888"
                   value={replyInputs[rv.id] ?? ""}
                   onChangeText={(t) =>
@@ -523,12 +569,12 @@ const ProductDetailsScreen = () => {
             </TouchableOpacity>
             <ThemedText style={styles.headerTitle}>Product Details</ThemedText>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[styles.headerIcon, { marginRight: 10 }]}
               >
                 <Ionicons name="ellipsis-vertical" size={20} color="#000" />
-              </TouchableOpacity>
-              <TouchableOpacity 
+              </TouchableOpacity> */}
+              <TouchableOpacity
                 style={styles.headerIcon}
                 onPress={handleHeartPress}
                 disabled={isToggling || isCheckingSaved}
@@ -536,10 +582,10 @@ const ProductDetailsScreen = () => {
                 {isToggling || isCheckingSaved ? (
                   <ActivityIndicator size="small" color="#000" />
                 ) : (
-                  <Ionicons 
-                    name={isSaved ? "heart" : "heart-outline"} 
-                    size={22} 
-                    color={isSaved ? "#E53E3E" : "#000"} 
+                  <Ionicons
+                    name={isSaved ? "heart" : "heart-outline"}
+                    size={22}
+                    color={isSaved ? "#E53E3E" : "#000"}
                   />
                 )}
               </TouchableOpacity>
@@ -564,7 +610,7 @@ const ProductDetailsScreen = () => {
                 onMomentumScrollEnd={(event) => {
                   const index = Math.round(
                     event.nativeEvent.contentOffset.x /
-                      event.nativeEvent.layoutMeasurement.width
+                    event.nativeEvent.layoutMeasurement.width
                   );
                   setCurrentImageIndex(index);
                 }}
@@ -687,8 +733,8 @@ const ProductDetailsScreen = () => {
                     selectedVariant?.discount_price
                       ? selectedVariant?.price
                       : !selectedVariant && product?.discount_price
-                      ? product?.price
-                      : null
+                        ? product?.price
+                        : null
                   ) ? (
                     <ThemedText style={styles.originalPrice}>
                       {toNaira(
@@ -827,31 +873,67 @@ const ProductDetailsScreen = () => {
               <View style={styles.divider} />
 
               {/* CONTACT BUTTONS */}
-              <View style={styles.contactRow}>
-                <TouchableOpacity style={styles.contactBtn}>
-                  <Ionicons name="logo-whatsapp" size={20} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.contactBtn}>
-                  <Ionicons name="call-outline" size={20} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.contactBtn}>
-                  <Ionicons name="chatbubble-outline" size={20} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.revealBtn}
-                  onPress={() => setShowPhone((s) => !s)}
-                >
-                  <ThemedText style={{ color: "#fff", fontSize: 12 }}>
-                    {showPhone ? storePhoneNumber : "Reveal Phone Number"}
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
+             <View style={styles.contactRow}>
+  {/* WhatsApp */}
+  <TouchableOpacity
+    style={styles.contactBtn}
+    onPress={() => {
+      if (storePhoneNumber) {
+        const phone = storePhoneNumber.replace(/\D/g, ""); // clean digits
+        Linking.openURL(`https://wa.me/${phone}`).catch(err =>
+          console.log("WhatsApp error:", err)
+        );
+      }
+    }}
+  >
+    <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+  </TouchableOpacity>
+
+  {/* Call */}
+  <TouchableOpacity
+    style={styles.contactBtn}
+    onPress={() => {
+      if (storePhoneNumber) {
+        Linking.openURL(`tel:${storePhoneNumber}`).catch(err =>
+          console.log("Call error:", err)
+        );
+      }
+    }}
+  >
+    <Ionicons name="call-outline" size={20} color="#000" />
+  </TouchableOpacity>
+
+  {/* SMS */}
+  <TouchableOpacity
+    style={styles.contactBtn}
+    onPress={() => {
+      if (storePhoneNumber) {
+        Linking.openURL(`sms:${storePhoneNumber}`).catch(err =>
+          console.log("SMS error:", err)
+        );
+      }
+    }}
+  >
+    <Ionicons name="chatbubble-outline" size={20} color="#000" />
+  </TouchableOpacity>
+
+  {/* Reveal Number */}
+  <TouchableOpacity
+    style={styles.revealBtn}
+    onPress={() => setShowPhone((s) => !s)}
+  >
+    <ThemedText style={{ color: "#fff", fontSize: 12 }}>
+      {showPhone ? storePhoneNumber : "Reveal Phone Number"}
+    </ThemedText>
+  </TouchableOpacity>
+</View>
+
 
               <TouchableOpacity
                 style={styles.checkoutBtn}
                 onPress={() => {
                   navigation.navigate("ServiceNavigator", {
-                    screen: "Shipping",
+                    screen: "Cart",
                     params: {
                       stores: [
                         {
@@ -875,7 +957,7 @@ const ProductDetailsScreen = () => {
                   });
                 }}
               >
-                <ThemedText style={styles.checkoutText}>Checkout</ThemedText>
+                <ThemedText style={styles.checkoutText}>Cart</ThemedText>
               </TouchableOpacity>
 
               <View style={{ paddingHorizontal: 16, marginBottom: 30 }}>
@@ -981,44 +1063,25 @@ const ProductDetailsScreen = () => {
                     </ThemedText>
                   </View>
 
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      paddingHorizontal: 5,
-                      marginVertical: 10,
-                      paddingVertical: 5,
-                      marginHorizontal: 10,
-                      gap: 7,
-                      borderRadius: 10,
-                      borderColor: "#CDCDCD",
-                      borderWidth: 1,
-                    }}
-                  >
-                    <TouchableOpacity style={styles.socialBox}>
-                      <Image
-                        source={product.store?.social?.whatsapp}
-                        style={styles.socialImgLg}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialBox}>
-                      <Image
-                        source={product.store?.social?.instagram}
-                        style={styles.socialImgSm}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialBox}>
-                      <Image
-                        source={product.store?.social?.x}
-                        style={styles.socialImgXs}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialBox}>
-                      <Image
-                        source={product.store?.social?.facebook}
-                        style={styles.socialImgSm}
-                      />
-                    </TouchableOpacity>
+                  <View style={styles.socialCard}>
+                    {product.store?.social_links?.length ? (
+                      product.store.social_links.map((s) => (
+                        <TouchableOpacity
+                          key={s.id}
+                          style={styles.socialBox}
+                          onPress={() => Linking.openURL(s.url)}
+                        >
+                          <Image source={{ uri: s.icon }} style={styles.socialImgSm} />
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      <ThemedText style={{ color: '#888', fontSize: 12 }}>
+                        No social links yet
+                      </ThemedText>
+                    )}
                   </View>
+
+
 
                   <View
                     style={{
@@ -1130,7 +1193,7 @@ const ProductDetailsScreen = () => {
               >
                 <Ionicons name="close" size={30} color="#fff" />
               </TouchableOpacity>
-              
+
               <ScrollView
                 horizontal
                 pagingEnabled
@@ -1160,7 +1223,7 @@ const ProductDetailsScreen = () => {
                       <Ionicons name="chevron-back" size={30} color="#fff" />
                     </TouchableOpacity>
                   )}
-                  
+
                   {viewerImageIndex < getAllImages().length - 1 && (
                     <TouchableOpacity
                       style={[styles.imageViewerNav, styles.imageViewerNavRight]}
@@ -1468,6 +1531,28 @@ const styles = StyleSheet.create({
     width: Dimensions.get('window').width,
     height: Dimensions.get('window').height,
   },
+    socialCard: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    gap: 10,
+    padding: 12,
+  },
+  socialBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  socialImgSm: {
+    width: 22,
+    height: 22,
+    resizeMode: "contain",
+  },
+
   imageViewerNav: {
     position: "absolute",
     top: "50%",
@@ -1497,3 +1582,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+

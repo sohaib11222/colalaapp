@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -14,32 +14,55 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native'; // <-- changed
+import { useNavigation } from '@react-navigation/native';
 import ThemedText from '../../components/ThemedText';
-import { useLogin, setAuthToken } from '../../config/api.config'; // <-- our hook & token helper
+import { useLogin, setAuthToken } from '../../config/api.config';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
 
 const { height } = Dimensions.get('window');
 
 const LoginScreen = () => {
   const navigation = useNavigation();
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [checkingToken, setCheckingToken] = useState(true); // loading flag
 
   // controlled inputs
   const [email, setEmail] = useState('hmstech11@gmail.com');
   const [password, setPassword] = useState('newpassword123');
 
+  // ---- Check token on mount ----
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        const token = await AsyncStorage.getItem("auth_token");
+        if (token) {
+          // token exists → skip login
+          navigation.replace("MainNavigator");
+          return;
+        }
+      } catch (e) {
+        console.log("Error reading token:", e);
+      } finally {
+        setCheckingToken(false);
+      }
+    };
+    checkToken();
+  }, []);
+
   // mutation
   const login = useLogin({
     onSuccess: async (res) => {
-      // API shape you shared:
-      // { status: "success", data: { user: {...}, token: "..." }, message: "user login successfully" }
       const token = res?.data?.token;
       const user  = res?.data?.user;
-      if (token) await setAuthToken(token);
-      // optionally persist user:
-      await AsyncStorage.setItem('auth_user', JSON.stringify(user));
+
+      if (token) {
+        await setAuthToken(token); // saves in api client
+        await AsyncStorage.setItem("auth_token", token); // persist token
+      }
+      if (user) {
+        await AsyncStorage.setItem('auth_user', JSON.stringify(user));
+      }
+
       navigation.replace('MainNavigator');
     },
     onError: (err) => {
@@ -58,6 +81,15 @@ const LoginScreen = () => {
     }
     login.mutate({ email: email.trim(), password });
   };
+
+  // ---- While checking token ----
+  if (checkingToken) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <ActivityIndicator size="large" color="#D5232C" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -83,7 +115,6 @@ const LoginScreen = () => {
               <Image
                 source={require('../../assets/sms.png')}
                 style={styles.iconImg}
-                accessibilityLabel="Email icon"
               />
               <TextInput
                 placeholder="Enter email address"
@@ -103,7 +134,6 @@ const LoginScreen = () => {
               <Image
                 source={require('../../assets/lock.png')}
                 style={styles.iconImg}
-                accessibilityLabel="Password icon"
               />
               <TextInput
                 placeholder="Enter password"
@@ -118,13 +148,11 @@ const LoginScreen = () => {
               />
               <TouchableOpacity
                 onPress={() => setPasswordVisible((v) => !v)}
-                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 style={styles.iconButton}
               >
                 <Image
                   source={require('../../assets/eye.png')}
                   style={styles.iconImg}
-                  accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
                 />
               </TouchableOpacity>
             </View>
@@ -190,6 +218,7 @@ const LoginScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#D5232C' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
   topImage: { width: '100%', height: 400, resizeMode: 'cover' },
 
   card: {
