@@ -1,5 +1,5 @@
 // screens/services/ServiceStoresScreen.jsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,15 +13,16 @@ import {
   SafeAreaView,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
 
 import { useServicesByCategory } from "../../../config/api.config";
-
 import { useAllBrands } from "../../../config/api.config";
 import { useStores } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 /* ------------ THEME ------------ */
@@ -131,6 +132,12 @@ export default function ServiceStoresScreen() {
   // API calls for filters
   const { data: storesData, isLoading: storesLoading } = useStores();
   const { data: brandsData, isLoading: brandsLoading } = useAllBrands();
+  
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   // Helper function for URLs
   const HOST = "https://colala.hmstech.xyz";
@@ -201,6 +208,23 @@ export default function ServiceStoresScreen() {
   const openSheet = (key) => setSheet(key);
   const closeSheet = () => setSheet(null);
   const clearPick = (key) => setPicked((p) => ({ ...p, [key]: null }));
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch all queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['servicesByCategory', categoryId] }),
+        queryClient.invalidateQueries({ queryKey: ['stores'] }),
+        queryClient.invalidateQueries({ queryKey: ['allBrands'] }),
+      ]);
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient, categoryId]);
 
   /* ------------ STORE CARDS ------------ */
   const stores = useMemo(() => {
@@ -282,6 +306,14 @@ export default function ServiceStoresScreen() {
         </View>
       </View>
 
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading...</ThemedText>
+        </View>
+      )}
+
       {/* Filters grid */}
       <View style={styles.filterContainer}>
         {filtersOrder.map((label) => {
@@ -362,6 +394,16 @@ export default function ServiceStoresScreen() {
           keyExtractor={(item) => item.id}
           columnWrapperStyle={{ justifyContent: "space-between" }}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLOR.primary]}
+              tintColor={COLOR.primary}
+              title="Pull to refresh"
+              titleColor={COLOR.sub}
+            />
+          }
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Image source={item.image} style={styles.cardImage} />
@@ -1014,5 +1056,22 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     marginRight: 12,
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

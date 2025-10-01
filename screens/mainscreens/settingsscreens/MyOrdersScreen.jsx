@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   SafeAreaView,
   View,
@@ -7,11 +7,13 @@ import {
   FlatList,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
 import { useOrders } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 /* ---------- THEME ---------- */
 const COLOR = {
@@ -28,12 +30,29 @@ const currency = (n) => `₦${Number(n || 0).toLocaleString()}`;
 
 export default function MyOrdersScreen() {
   const navigation = useNavigation();
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch first page (pagination optional)
   const { data, isLoading, isError, refetch } = useOrders(1);
 
   // API returns: { status, data: { data: [orders], ...pagination } }
   const orders = Array.isArray(data?.data?.data) ? data.data.data : [];
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch orders query
+      await queryClient.invalidateQueries({ queryKey: ['orders', 1] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
@@ -58,6 +77,14 @@ export default function MyOrdersScreen() {
         </View>
       </View>
 
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading orders...</ThemedText>
+        </View>
+      )}
+
       {/* Loading / Error states (compact, UI unchanged) */}
       {isLoading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -77,6 +104,16 @@ export default function MyOrdersScreen() {
           data={orders}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLOR.primary]}
+              tintColor={COLOR.primary}
+              title="Pull to refresh"
+              titleColor={COLOR.sub}
+            />
+          }
           renderItem={({ item }) => {
             const orderId = item?.order_no || `Ord-${item?.id}`;
             const storesCount = Array.isArray(item?.store_orders)
@@ -206,5 +243,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLOR.primary,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

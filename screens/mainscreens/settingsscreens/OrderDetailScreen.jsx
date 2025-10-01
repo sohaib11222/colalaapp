@@ -9,6 +9,7 @@ import {
   Platform,
   Modal,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
@@ -537,7 +538,18 @@ export default function SingleOrderDetailsScreen() {
     route.params?.order?.order_no; // accept order_no as id fallback
 
   // Fetch order details
-  const { data, isLoading, isError } = useOrderDetails(paramOrderId);
+  const { data, isLoading, isError, refetch, isFetching } = useOrderDetails(paramOrderId);
+
+  // Refresh functionality
+  const handleRefresh = async () => {
+    try {
+      console.log("Refreshing order details...");
+      await refetch();
+      console.log("Order details refreshed successfully");
+    } catch (error) {
+      console.error("Error refreshing order details:", error);
+    }
+  };
 
   // Transform API → UI expected structure without changing UI
   const apiOrder = data?.data;
@@ -642,8 +654,9 @@ export default function SingleOrderDetailsScreen() {
             <View style={{ width: 40, height: 40 }} />
           </View>
         </View>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLOR.primary} />
+          <ThemedText style={styles.loadingText}>Loading order details...</ThemedText>
         </View>
       </SafeAreaView>
     );
@@ -695,7 +708,17 @@ export default function SingleOrderDetailsScreen() {
         })}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+      <ScrollView 
+        contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={handleRefresh}
+            tintColor={COLOR.primary}
+            colors={[COLOR.primary]}
+          />
+        }
+      >
         {visibleStores.map((s) => (
           <StoreBlock
             key={s.id}
@@ -734,6 +757,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: COLOR.line,
+  },
+
+  /* Loading */
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
   },
   headerRow: {
     height: 44,

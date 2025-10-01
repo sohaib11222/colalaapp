@@ -12,6 +12,7 @@ import {
   StatusBar,
   ActivityIndicator,
   ScrollView,
+  RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import ThemedText from "../../../components/ThemedText";
@@ -122,7 +123,18 @@ export default function ChatListScreen({ navigation }) {
   const [q, setQ] = useState("");
 
   // Fetch chats with error handling
-  const { data, isLoading, error } = useChats();
+  const { data, isLoading, error, refetch, isFetching } = useChats();
+
+  // Refresh functionality
+  const handleRefresh = async () => {
+    try {
+      console.log("Refreshing chats...");
+      await refetch();
+      console.log("Chats refreshed successfully");
+    } catch (error) {
+      console.error("Error refreshing chats:", error);
+    }
+  };
 
   // Map API → UI model with proper error handling
   const apiChats = useMemo(() => {
@@ -307,6 +319,14 @@ export default function ChatListScreen({ navigation }) {
               scrollEnabled={true}
               bounces={true}
               alwaysBounceVertical={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isFetching}
+                  onRefresh={handleRefresh}
+                  tintColor={COLOR.primary}
+                  colors={[COLOR.primary]}
+                />
+              }
               keyboardShouldPersistTaps="handled"
               removeClippedSubviews={true}
               maxToRenderPerBatch={10}
