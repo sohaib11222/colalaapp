@@ -12,15 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCart } from '../config/api.config';
 
-// keep same prop for backward-compat, but we'll override with stored user when found
 const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Nigeria' } }) => {
   const navigation = useNavigation();
-  const { data: cartData } = useCart();
-
-  // Calculate total cart items count
-  const cartCount = cartData?.data?.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0;
 
   const [user, setUser] = useState({
     name: propUser.name,
@@ -28,9 +22,12 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
     avatar: null,
   });
 
+  const [cartQuantity, setCartQuantity] = useState(0);
+
   const HOST = 'https://colala.hmstech.xyz';
   const toAbs = (u) => (u?.startsWith('http') ? u : `${HOST}/storage/${u || ''}`);
 
+  // Load stored user
   const loadUser = async () => {
     try {
       const raw = await AsyncStorage.getItem('auth_user');
@@ -46,13 +43,43 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
       const location = locParts.length ? locParts.join(', ') : propUser.location;
 
       const avatar =
-        u?.profile_picture
-          ? { uri: toAbs(u.profile_picture) }
-          : null;
+        u?.profile_picture ? { uri: toAbs(u.profile_picture) } : null;
 
       setUser({ name, location, avatar });
     } catch (e) {
-      // fail silently; keep defaults
+      console.log("⚠️ Failed to load user:", e);
+    }
+  };
+
+  // Fetch cart quantity from API
+  const fetchCartQuantity = async () => {
+    try {
+      // Adjust key if you store token differently
+      const token = await AsyncStorage.getItem('auth_token');
+      if (!token) {
+        console.log("⚠️ No token found in AsyncStorage");
+        return;
+      }
+
+      const response = await fetch(
+        'https://colala.hmstech.xyz/api/buyer/cart-quantity',
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
+
+      const json = await response.json();
+      console.log("✅ Cart quantity response:", json);
+
+      if (json?.status === 'success') {
+        setCartQuantity(parseInt(json.data?.quantity || 0));
+      }
+    } catch (err) {
+      console.log("❌ Error fetching cart quantity:", err.message);
     }
   };
 
@@ -60,10 +87,17 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
     loadUser();
   }, []);
 
-  // reload when screen regains focus (e.g., after login)
+  // 🔥 Single focus effect
   useFocusEffect(
     useCallback(() => {
       loadUser();
+
+      console.log("Screen focused, setting 3s timer to fetch cart...");
+      const timer = setTimeout(() => {
+        fetchCartQuantity();
+      }, 2000);
+
+      return () => clearTimeout(timer);
     }, [])
   );
 
@@ -74,9 +108,7 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
         <View style={styles.userSection}>
           <Image
             source={
-              user.avatar
-                ? user.avatar
-                : require('../assets/Avatar 1.png')
+              user.avatar ? user.avatar : require('../assets/Avatar 1.png')
             }
             style={styles.profileImage}
           />
@@ -89,8 +121,9 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
           </View>
         </View>
 
-        {/* Icons (now images) */}
+        {/* Icons */}
         <View style={styles.iconRow}>
+          {/* Cart Icon */}
           <TouchableOpacity
             onPress={() =>
               navigation.navigate('ServiceNavigator', { screen: 'Cart' })
@@ -104,14 +137,17 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
                 source={require('../assets/cart-icon.png')}
                 style={styles.iconImg}
               />
-              {cartCount > 0 && (
+              {cartQuantity > 0 && (
                 <View style={styles.cartBadge}>
-                  <Text style={styles.cartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
+                  <Text style={styles.cartBadgeText}>
+                    {cartQuantity > 99 ? "99+" : cartQuantity}
+                  </Text>
                 </View>
               )}
             </View>
           </TouchableOpacity>
 
+          {/* Notifications Icon */}
           <TouchableOpacity
             onPress={() =>
               navigation.navigate('ServiceNavigator', { screen: 'Notifications' })
@@ -129,22 +165,21 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
       </View>
 
       {/* Search Bar */}
-      {/* <View style={styles.searchContainer}> */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate('AuthNavigator', { screen: 'Search' })}
-          style={styles.searchContainer}>
-          <TextInput
-            placeholder="Search any product, shop or category"
-            placeholderTextColor="#888"
-            style={styles.searchInput}
-            editable={false}                // stop editing
-            showSoftInputOnFocus={false}    // stop keyboard
-            pointerEvents="none"            // let TouchableOpacity catch taps
-          />
-          <Image source={require('../assets/camera-icon.png')} style={styles.iconImg} />
-        </TouchableOpacity>
-      {/* </View> */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => navigation.navigate('AuthNavigator', { screen: 'Search' })}
+        style={styles.searchContainer}
+      >
+        <TextInput
+          placeholder="Search any product, shop or category"
+          placeholderTextColor="#888"
+          style={styles.searchInput}
+          editable={false}
+          showSoftInputOnFocus={false}
+          pointerEvents="none"
+        />
+        <Image source={require('../assets/camera-icon.png')} style={styles.iconImg} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -168,19 +203,15 @@ const styles = StyleSheet.create({
   profileImage: { width: 60, height: 60, borderRadius: 21, marginRight: 10 },
   greeting: { color: 'white', fontSize: 14, fontWeight: '500', marginBottom: 5 },
   locationRow: { flexDirection: 'row', alignItems: 'center' },
-  location: { color: 'white', fontSize: 10, fontWeight: 500 },
+  location: { color: 'white', fontSize: 10, fontWeight: '500' },
 
   iconRow: { flexDirection: 'row' },
   iconButton: { marginLeft: 9 },
   iconPill: { backgroundColor: '#fff', padding: 6, borderRadius: 25 },
 
-  // If your PNGs are already colored, remove tintColor.
   iconImg: { width: 22, height: 22, resizeMode: 'contain' },
 
-  // Cart count badge
-  cartIconContainer: {
-    position: 'relative',
-  },
+  cartIconContainer: { position: 'relative' },
   cartBadge: {
     position: 'absolute',
     top: -6,
@@ -210,5 +241,4 @@ const styles = StyleSheet.create({
     height: 57,
   },
   searchInput: { flex: 1, fontSize: 14, color: '#333' },
-  cameraIcon: { marginLeft: 8 },
 });

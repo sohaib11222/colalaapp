@@ -13,7 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
-import { useGetAllProducts, useAddToCart } from "../config/api.config";
+import { useGetTopSelling, useAddToCart } from "../config/api.config";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
@@ -84,7 +84,7 @@ const dummyProducts = [
 
 const TopSellingSection = () => {
   const navigation = useNavigation();
-  const { data: apiData, isLoading, error } = useGetAllProducts();
+  const { data: apiData, isLoading, error } = useGetTopSelling();
 
   // Helper function to format price
   const formatPrice = (price) => {
@@ -141,6 +141,10 @@ const TopSellingSection = () => {
   const handleViewAllPress = () => {
     navigation.navigate("CategoryNavigator", {
       screen: "ProductsList",
+      params: {
+        isTopSelling: true,
+        categoryTitle: "Top Selling Products"
+      }
     });
   };
 

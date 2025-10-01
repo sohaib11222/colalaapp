@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Platform,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -34,7 +36,18 @@ const SettingsScreen = () => {
   const [user, setUser] = useState(null);
   
   // Wallet balance hook
-  const { data: walletData, isLoading: walletLoading } = useWalletBalance();
+  const { data: walletData, isLoading: walletLoading, refetch, isFetching } = useWalletBalance();
+
+  // Refresh functionality
+  const handleRefresh = async () => {
+    try {
+      console.log("Refreshing settings...");
+      await refetch();
+      console.log("Settings refreshed successfully");
+    } catch (error) {
+      console.error("Error refreshing settings:", error);
+    }
+  };
 
   // Load user data from AsyncStorage
   useEffect(() => {
@@ -158,6 +171,52 @@ const SettingsScreen = () => {
       navigation.navigate("SettingsNavigator", {
         screen: "FAQs",
       });
+
+    if (key === "logout") {
+      handleLogout();
+    }
+
+    if (key === "deleteAccount") {
+      handleDeleteAccount();
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      console.log("Logging out user...");
+      
+      // Clear all stored data
+      await AsyncStorage.multiRemove([
+        'auth_token',
+        'auth_user',
+        'user_data',
+        'cart_data',
+        'saved_items',
+        'followed_stores'
+      ]);
+      
+      console.log("User data cleared successfully");
+      
+      // Navigate to login screen or reset navigation stack
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AuthNavigator' }],
+      });
+      
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Even if there's an error, try to navigate to login
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AuthNavigator' }],
+      });
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    // TODO: Implement delete account functionality
+    console.log("Delete account functionality not implemented yet");
+    alert("Delete account functionality will be implemented soon.");
   };
 
   return (
@@ -278,7 +337,25 @@ const SettingsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: 28 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={handleRefresh}
+            tintColor={COLOR.primary}
+            colors={[COLOR.primary]}
+          />
+        }
+      >
+        {/* Loading indicator for user data */}
+        {!user && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLOR.primary} />
+            <ThemedText style={styles.loadingText}>Loading user data...</ThemedText>
+          </View>
+        )}
+
         {/* Edit Profile */}
         <TouchableOpacity
           style={styles.primaryBtn}
@@ -393,6 +470,21 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
+  },
+
+  /* Loading */
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+    minHeight: 200,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
   },
 
   headerRow: {

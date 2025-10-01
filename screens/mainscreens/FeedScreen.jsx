@@ -13,6 +13,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ThemedText from "../../components/ThemedText";
@@ -625,7 +626,7 @@ export default function FeedScreen() {
 
   // pagination
   const [page, setPage] = useState(1);
-  const { data, isLoading, isFetching } = usePosts(page);
+  const { data, isLoading, isFetching, refetch } = usePosts(page);
 
   const postsPage = data?.data?.posts;
   const apiItems = Array.isArray(postsPage?.data) ? postsPage.data : [];
@@ -639,6 +640,18 @@ export default function FeedScreen() {
   // mutations (from api.config hooks)
   const likeMutation = useTogglePostLike();
   const addCommentMutation = useAddPostComment();
+
+  // Refresh functionality
+  const handleRefresh = async () => {
+    try {
+      console.log("Refreshing feed...");
+      setPage(1); // Reset to first page
+      await refetch();
+      console.log("Feed refreshed successfully");
+    } catch (error) {
+      console.error("Error refreshing feed:", error);
+    }
+  };
 
   const handleToggleLike = async (postId) => {
     const res = await likeMutation.mutateAsync(postId);
@@ -743,8 +756,9 @@ export default function FeedScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       {isLoading && !POSTS.length ? (
-        <View style={{ padding: 16 }}>
-          <ActivityIndicator />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLOR.primary} />
+          <ThemedText style={styles.loadingText}>Loading posts...</ThemedText>
         </View>
       ) : (
         <FlatList
@@ -752,6 +766,14 @@ export default function FeedScreen() {
           keyExtractor={(it) => it.id}
           ListHeaderComponent={() => <FeedHeader navigation={navigation} />}
           contentContainerStyle={{ paddingBottom: 32 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching}
+              onRefresh={handleRefresh}
+              tintColor={COLOR.primary}
+              colors={[COLOR.primary]}
+            />
+          }
           renderItem={({ item, index }) => (
             <PostCard
               item={item}
@@ -765,6 +787,14 @@ export default function FeedScreen() {
           showsVerticalScrollIndicator={false}
           onEndReachedThreshold={0.3}
           onEndReached={loadMore}
+          ListFooterComponent={() => 
+            isFetching && POSTS.length > 0 ? (
+              <View style={styles.footerLoading}>
+                <ActivityIndicator size="small" color={COLOR.primary} />
+                <ThemedText style={styles.footerLoadingText}>Loading more posts...</ThemedText>
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="newspaper-outline" size={64} color={COLOR.sub} />
@@ -773,13 +803,6 @@ export default function FeedScreen() {
                 There are no posts to show at the moment. Check back later for updates!
               </ThemedText>
             </View>
-          }
-          ListFooterComponent={
-            isFetching && nextPageUrl ? (
-              <View style={{ paddingVertical: 16 }}>
-                <ActivityIndicator />
-              </View>
-            ) : null
           }
         />
       )}
@@ -802,6 +825,31 @@ export default function FeedScreen() {
 /* -------------------- STYLES (unchanged) -------------------- */
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#fff" },
+
+  /* Loading */
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
+  },
+  footerLoading: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  footerLoadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: COLOR.sub,
+  },
 
   /* Header */
   header: {

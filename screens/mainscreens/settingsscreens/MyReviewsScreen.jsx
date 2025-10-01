@@ -19,7 +19,7 @@ import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
 
 
-import { useUserReview } from "../../../config/api.config";
+import { useUserReview, fileUrl } from "../../../config/api.config";
 
 
 /* -------------------- THEME -------------------- */
@@ -248,58 +248,119 @@ export default function MyReviewsScreen() {
   console.log("API Response:", userReviewRes);
   console.log("Store Reviews from API:", apiStoreReviews);
   console.log("Product Reviews from API:", apiProductReviews);
+  console.log("API Error Details:", error);
 
   // Map API data to component format
-  const mapApiStoreReviewToComponent = (apiReview) => ({
-    id: String(apiReview.id),
-    user: apiReview.user?.full_name || "User",
-    avatar: apiReview.user?.profile_picture || AV,
-    rating: apiReview.rating || 0,
-    time: apiReview.created_at?.slice(0, 16)?.replace("T", " ") || "",
-    text: apiReview.comment || "",
-    store: { 
-      name: "Store", // Store name not provided in API
-      rating: 4.5, 
-      image: P1 
-    },
-    gallery: apiReview.images || [],
-  });
+  const mapApiStoreReviewToComponent = (apiReview) => {
+    const profilePicture = apiReview.user?.profile_picture;
+    const avatarUrl = profilePicture ? fileUrl(profilePicture) : AV;
+    
+    console.log("Store Review Mapping:", {
+      id: apiReview.id,
+      user: apiReview.user?.full_name,
+      profilePicture: profilePicture,
+      avatarUrl: avatarUrl,
+      originalAvatar: AV
+    });
+    
+    return {
+      id: String(apiReview.id),
+      user: apiReview.user?.full_name || "User",
+      avatar: avatarUrl,
+      rating: apiReview.rating || 0,
+      time: apiReview.created_at ? new Date(apiReview.created_at).toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit', 
+        year: '2-digit'
+      }) + '/' + new Date(apiReview.created_at).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }) : "",
+      body: apiReview.comment || "",
+      store: { 
+        name: "Store", // Store name not provided in API
+        rating: 4.5, 
+        image: P1 
+      },
+      gallery: apiReview.images ? apiReview.images.map(img => fileUrl(img)) : [],
+    };
+  };
 
-  const mapApiProductReviewToComponent = (apiReview) => ({
-    id: String(apiReview.id),
-    user: apiReview.user?.full_name || "User",
-    avatar: apiReview.user?.profile_picture || AV,
-    rating: apiReview.rating || 0,
-    time: apiReview.created_at?.slice(0, 16)?.replace("T", " ") || "",
-    text: apiReview.comment || "",
-    product: { 
-      name: "Product", // Product name not provided in API
-      rating: 4.5, 
-      image: P1 
-    },
-    gallery: apiReview.images || [],
-  });
+  const mapApiProductReviewToComponent = (apiReview) => {
+    const profilePicture = apiReview.user?.profile_picture;
+    const avatarUrl = profilePicture ? fileUrl(profilePicture) : AV;
+    
+    console.log("Product Review Mapping:", {
+      id: apiReview.id,
+      user: apiReview.user?.full_name,
+      profilePicture: profilePicture,
+      avatarUrl: avatarUrl,
+      originalAvatar: AV
+    });
+    
+    return {
+      id: String(apiReview.id),
+      user: apiReview.user?.full_name || "User",
+      avatar: avatarUrl,
+      rating: apiReview.rating || 0,
+      time: apiReview.created_at ? new Date(apiReview.created_at).toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit', 
+        year: '2-digit'
+      }) + '/' + new Date(apiReview.created_at).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }) : "",
+      body: apiReview.comment || "",
+      product: { 
+        title: "Product", // Product name not provided in API
+        price: "₦0", 
+        image: P1 
+      },
+      gallery: apiReview.images ? apiReview.images.map(img => fileUrl(img)) : [],
+    };
+  };
 
   // Use API data if available, otherwise fallback to dummy data
   const allStoreReviews = useMemo(() => {
-    if (apiStoreReviews.length > 0) {
-      const mapped = apiStoreReviews.map(mapApiStoreReviewToComponent);
-      console.log("Mapped Store Reviews:", mapped);
-      return mapped;
+    if (!isLoading && !error) {
+      if (apiStoreReviews.length > 0) {
+        const mapped = apiStoreReviews.map(mapApiStoreReviewToComponent);
+        console.log("Mapped Store Reviews:", mapped);
+        return mapped;
+      } else {
+        console.log("No store reviews from API, returning empty array");
+        return [];
+      }
+    }
+    if (error) {
+      console.log("API Error, using dummy store reviews:", error);
+      return INITIAL_STORE_REVIEWS;
     }
     console.log("Using dummy store reviews");
     return INITIAL_STORE_REVIEWS;
-  }, [apiStoreReviews]);
+  }, [apiStoreReviews, isLoading, error]);
 
   const allProductReviews = useMemo(() => {
-    if (apiProductReviews.length > 0) {
-      const mapped = apiProductReviews.map(mapApiProductReviewToComponent);
-      console.log("Mapped Product Reviews:", mapped);
-      return mapped;
+    if (!isLoading && !error) {
+      if (apiProductReviews.length > 0) {
+        const mapped = apiProductReviews.map(mapApiProductReviewToComponent);
+        console.log("Mapped Product Reviews:", mapped);
+        return mapped;
+      } else {
+        console.log("No product reviews from API, returning empty array");
+        return [];
+      }
+    }
+    if (error) {
+      console.log("API Error, using dummy product reviews:", error);
+      return INITIAL_PRODUCT_REVIEWS;
     }
     console.log("Using dummy product reviews");
     return INITIAL_PRODUCT_REVIEWS;
-  }, [apiProductReviews]);
+  }, [apiProductReviews, isLoading, error]);
 
   // keep editable copies - initialize with API data
   const [storeReviews, setStoreReviews] = useState(allStoreReviews);
@@ -449,6 +510,19 @@ export default function MyReviewsScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLOR.primary} />
           <ThemedText style={styles.loadingText}>Loading reviews...</ThemedText>
+        </View>
+      ) : error ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color={COLOR.sub} />
+          <ThemedText style={styles.emptyTitle}>
+            API Endpoint Not Found
+          </ThemedText>
+          <ThemedText style={styles.emptyText}>
+            The reviews endpoint is not available on the server. Showing sample data instead.
+          </ThemedText>
+          <ThemedText style={[styles.emptyText, { marginTop: 8, fontSize: 12 }]}>
+            Error: {error?.message || 'Unknown error'}
+          </ThemedText>
         </View>
       ) : (
         <FlatList

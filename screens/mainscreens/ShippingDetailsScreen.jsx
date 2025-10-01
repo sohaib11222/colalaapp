@@ -25,6 +25,8 @@ import {
   useAddresses,
   useUpdateCartItem,
   useDeleteCartItem,
+  fileUrl,
+  useStartChat,
 } from "../../config/api.config";
 
 /* ---------- THEME ---------- */
@@ -50,6 +52,9 @@ export default function ShippingDetailsScreen() {
   const incomingStores = Array.isArray(route?.params?.stores)
     ? route.params.stores
     : [];
+    
+  console.log("ShippingDetailsScreen - Incoming stores:", incomingStores);
+  console.log("ShippingDetailsScreen - Route params:", route?.params);
 
   // hydrate local state for this screen (adds coupon/points/expanded/addresses/UI-only stuff)
   const [stores, setStores] = useState(
@@ -62,13 +67,24 @@ export default function ShippingDetailsScreen() {
           points: "",
           selectedAddressId: null, // we’ll set first address below when addresses load
           addresses: [], // injected from GET /buyer/addresses
-          items: (s.items || []).map((it) => ({
-            id: String(it.id), // CART ITEM ID (used by CART_ITEM endpoint)
-            title: it.title,
-            price: Number(it.price || 0),
-            qty: Number(it.qty || 1),
-            image: PRODUCT_IMG, // product image is NOT in cart API -> stays hardcoded
-          })),
+          items: (s.items || []).map((it) => {
+            console.log("ShippingDetailsScreen - Mapping item:", {
+              id: it.id,
+              title: it.title,
+              price: it.price,
+              image: it.image,
+              product: it.product
+            });
+            
+            return {
+              id: String(it.id), // CART ITEM ID (used by CART_ITEM endpoint)
+              title: it.title,
+              price: Number(it.price || 0),
+              qty: Number(it.qty || 1),
+              image: it.image || PRODUCT_IMG, // Use API image if available, fallback to default
+              product: it.product, // Keep product info for navigation
+            };
+          }),
         }))
       : // fallback demo (only used if user enters from elsewhere)
         [
@@ -137,6 +153,56 @@ export default function ShippingDetailsScreen() {
   /* ---------- Payment modal + chosen method ---------- */
   const [payOpen, setPayOpen] = useState(false);
   const [payMethod, setPayMethod] = useState(""); // 'flutterwave' | 'wallet'
+
+  // Chat functionality
+  const { mutate: startChat, isPending: creatingChat } = useStartChat();
+
+  // Handle start chat
+  const handleStartChat = (store) => {
+    try {
+      const storeId = store.id;
+      console.log("Starting chat with store ID:", storeId);
+      
+      startChat(
+        { storeId },
+        {
+          onSuccess: (data) => {
+            console.log("Chat created successfully:", data);
+            const { chat_id } = data;
+            
+            navigation.navigate("ServiceNavigator", {
+              screen: "ChatDetails",
+              params: {
+                store: {
+                  id: storeId,
+                  name: store.name,
+                  profileImage: null, // Store profile image not available in this context
+                },
+                chat_id,
+                store_order_id: storeId,
+              },
+            });
+          },
+          onError: (error) => {
+            console.error("Failed to create chat:", error);
+            // Fallback: navigate without chat_id
+            navigation.navigate("ServiceNavigator", {
+              screen: "ChatDetails",
+              params: {
+                store: {
+                  id: storeId,
+                  name: store.name,
+                  profileImage: null,
+                },
+              },
+            });
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error starting chat:", error);
+    }
+  };
 
   /* ---------- Qty & Delete mutations using CART_ITEM(:id) ---------- */
   const updateItem = useUpdateCartItem({
@@ -284,8 +350,16 @@ export default function ShippingDetailsScreen() {
               <View style={styles.storeHeader}>
                 <ThemedText style={styles.storeName}>{store.name}</ThemedText>
 
-                <TouchableOpacity style={styles.chatBtn}>
-                  <ThemedText style={styles.chatBtnTxt}>Start Chat</ThemedText>
+                <TouchableOpacity 
+                  style={styles.chatBtn}
+                  onPress={() => handleStartChat(store)}
+                  disabled={creatingChat}
+                >
+                  {creatingChat ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <ThemedText style={styles.chatBtnTxt}>Start Chat</ThemedText>
+                  )}
                 </TouchableOpacity>
 
                 {/* Expand toggle */}
@@ -322,7 +396,16 @@ export default function ShippingDetailsScreen() {
                       idx > 0 && { borderTopWidth: 1, borderTopColor: COLOR.line },
                     ]}
                   >
-                    <Image source={it.image || PRODUCT_IMG} style={styles.itemImg} />
+                    <Image 
+                      source={it.image ? { uri: it.image } : PRODUCT_IMG} 
+                      style={styles.itemImg}
+                      onError={(error) => {
+                        console.log("Image load error for item:", it.title, "Image URL:", it.image, "Error:", error.nativeEvent.error);
+                      }}
+                      onLoad={() => {
+                        console.log("Image loaded successfully for item:", it.title, "Image URL:", it.image);
+                      }}
+                    />
                     <View style={{ flex: 1 }}>
                       <ThemedText style={styles.itemTitle} numberOfLines={2}>
                         {it.title}
@@ -337,7 +420,17 @@ export default function ShippingDetailsScreen() {
                         <QtyBtn onPress={() => updateQty(store.id, it.id, +1)} plus />
 
                         <View style={{ flex: 1 }} />
-                        <TouchableOpacity style={styles.iconChip}>
+                        <TouchableOpacity 
+                          style={styles.iconChip}
+                          onPress={() => {
+                            if (it.product) {
+                              navigation.navigate("CategoryNavigator", {
+                                screen: "ProductDetails",
+                                params: { productId: it.product.id }
+                              });
+                            }
+                          }}
+                        >
                           <Ionicons name="create-outline" size={18} color={COLOR.text} />
                         </TouchableOpacity>
                         <TouchableOpacity

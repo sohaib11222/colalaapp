@@ -15,7 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
-import { useCategoryProducts } from "../../../config/api.config";
+import { useCategoryProducts, useGetTopSelling } from "../../../config/api.config";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
@@ -111,28 +111,54 @@ const ProductsListScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
 
-  const categoryTitle = route.params?.categoryTitle || "Products";
+  const categoryTitle = route.params?.categoryTitle || (isTopSelling ? "Top Selling Products" : "Products");
   const categoryId = route.params?.categoryId;
   const fetchCategoryId = route.params?.fetchCategoryId || categoryId;
+  const isTopSelling = route.params?.isTopSelling || false;
 
   console.log("CategoryTitle :", categoryTitle);
   console.log("CategoryID", categoryId);
   console.log("FetchedCategoryId", fetchCategoryId);
+  console.log("IsTopSelling:", isTopSelling);
 
   // pagination
   const [page, setPage] = useState(1);
-  const { data, isLoading, isFetching, isError } = useCategoryProducts(
+  
+  // Use different API based on navigation source
+  const categoryProductsQuery = useCategoryProducts(
     fetchCategoryId,
-    page
+    page,
+    { enabled: !isTopSelling }
   );
+  
+  const topSellingQuery = useGetTopSelling({
+    enabled: isTopSelling
+  });
+  
+  // Use the appropriate query result
+  const { data, isLoading, isFetching, isError } = isTopSelling 
+    ? topSellingQuery 
+    : categoryProductsQuery;
 
   // API calls for filters
   const { data: storesData, isLoading: storesLoading } = useStores();
   const { data: brandsData, isLoading: brandsLoading } = useAllBrands();
 
+  // Handle different API response structures
   const pageObj = data?.data;
-  const apiItems = Array.isArray(pageObj?.data) ? pageObj.data : [];
-  const nextPageUrl = pageObj?.next_page_url;
+  let apiItems = [];
+  let nextPageUrl = null;
+  
+  if (isTopSelling) {
+    // Top selling API returns data directly in data.data
+    apiItems = Array.isArray(data?.data) ? data.data : [];
+    console.log("Top Selling API Items:", apiItems);
+  } else {
+    // Category products API returns paginated data
+    apiItems = Array.isArray(pageObj?.data) ? pageObj.data : [];
+    nextPageUrl = pageObj?.next_page_url;
+    console.log("Category API Items:", apiItems);
+  }
 
   // Process API data for filters
   const apiStores = storesData?.data || [];
@@ -349,7 +375,10 @@ const ProductsListScreen = () => {
 
   const loadMore = () => {
     if (isFetching) return;
-    if (nextPageUrl) setPage((p) => p + 1);
+    // Only load more for category products (top selling doesn't have pagination)
+    if (!isTopSelling && nextPageUrl) {
+      setPage((p) => p + 1);
+    }
   };
 
   return (

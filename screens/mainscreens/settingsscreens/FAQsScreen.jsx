@@ -7,11 +7,17 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  ActivityIndicator,
+  Linking,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
+
+import { useGetFaqs } from "../../../config/api.config";
+
 
 /* ---- THEME ---- */
 const COLOR = {
@@ -26,7 +32,53 @@ const COLOR = {
 export default function FAQsScreen() {
   const navigation = useNavigation();
 
-  const FAQS = [
+  // API hook
+  const { data: apiData, isLoading, error } = useGetFaqs();
+
+  // Extract YouTube video ID and generate thumbnail URL
+  const getYouTubeThumbnail = (url) => {
+    if (!url) return null;
+    
+    // Extract video ID from various YouTube URL formats
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    
+    if (match && match[1]) {
+      const videoId = match[1];
+      // Return high quality thumbnail
+      return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+    }
+    
+    return null;
+  };
+
+  // Handle video play
+  const handleVideoPlay = async (videoUrl) => {
+    try {
+      console.log("Opening video:", videoUrl);
+      const supported = await Linking.canOpenURL(videoUrl);
+      
+      if (supported) {
+        await Linking.openURL(videoUrl);
+      } else {
+        Alert.alert(
+          "Cannot Open Video",
+          "Unable to open the video. Please try again later.",
+          [{ text: "OK" }]
+        );
+      }
+    } catch (error) {
+      console.error("Error opening video:", error);
+      Alert.alert(
+        "Error",
+        "Failed to open video. Please try again later.",
+        [{ text: "OK" }]
+      );
+    }
+  };
+
+  // Dummy data fallback
+  const DUMMY_FAQS = [
     {
       id: "q1",
       q: "How to setup my store",
@@ -37,16 +89,63 @@ export default function FAQsScreen() {
     { id: "q4", q: "Do you offer escrow services", bullets: [] },
   ];
 
-  const [openId, setOpenId] = useState("q1");
+  // Map API data to component format
+  const mapApiFaqToComponent = (apiFaq) => {
+    return {
+      id: `api_${apiFaq.id}`,
+      q: apiFaq.question,
+      bullets: apiFaq.answer ? [apiFaq.answer] : [],
+    };
+  };
+
+  // Process FAQs data
+  const FAQS = React.useMemo(() => {
+    if (isLoading || error || !apiData?.data?.faqs) {
+      return DUMMY_FAQS;
+    }
+    
+    console.log("API FAQs Data:", apiData.data.faqs);
+    return apiData.data.faqs.map(mapApiFaqToComponent);
+  }, [apiData, isLoading, error]);
+
+  // Get video URL and thumbnail from API
+  const { videoUrl, thumbnailUrl, originalVideoUrl } = React.useMemo(() => {
+    if (apiData?.data?.category?.video) {
+      const originalUrl = apiData.data.category.video;
+      console.log("API Video URL:", originalUrl);
+      
+      const thumbnail = getYouTubeThumbnail(originalUrl);
+      console.log("Generated Thumbnail URL:", thumbnail);
+      
+      return {
+        videoUrl: thumbnail || originalUrl,
+        thumbnailUrl: thumbnail,
+        originalVideoUrl: originalUrl
+      };
+    }
+    
+    return {
+      videoUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1400&auto=format&fit=crop",
+      thumbnailUrl: null,
+      originalVideoUrl: null
+    };
+  }, [apiData]);
+
+  const [openId, setOpenId] = useState(FAQS.length > 0 ? FAQS[0].id : "");
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }} edges={["top"]}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: COLOR.bg }}
+      edges={["top"]}
+    >
       {/* Header (white, no radius) */}
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() =>
-              navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigation.navigate("Home")
             }
             style={styles.backBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -67,19 +166,49 @@ export default function FAQsScreen() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Loading indicator */}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLOR.primary} />
+            <ThemedText style={styles.loadingText}>Loading FAQs...</ThemedText>
+          </View>
+        )}
+
+        {/* Error message */}
+        {error && !isLoading && (
+          <View style={styles.errorContainer}>
+            <ThemedText style={styles.errorText}>
+              Failed to load FAQs. Showing default content.
+            </ThemedText>
+          </View>
+        )}
+
         {/* Video banner */}
-        <View style={styles.videoCard}>
+        <TouchableOpacity 
+          style={styles.videoCard}
+          onPress={() => {
+            if (originalVideoUrl) {
+              handleVideoPlay(originalVideoUrl);
+            }
+          }}
+          activeOpacity={0.9}
+        >
           <Image
             source={{
-              uri:
-                "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1400&auto=format&fit=crop",
+              uri: videoUrl,
             }}
             style={styles.videoImage}
+            resizeMode="cover"
           />
           <View style={styles.playOverlay}>
             <Ionicons name="play" size={26} color="#fff" />
           </View>
-        </View>
+          {thumbnailUrl && (
+            <View style={styles.youtubeIndicator}>
+              <Ionicons name="logo-youtube" size={20} color="#fff" />
+            </View>
+          )}
+        </TouchableOpacity>
 
         {/* FAQ list */}
         <View style={{ marginTop: 12 }}>
@@ -90,7 +219,10 @@ export default function FAQsScreen() {
                 key={item.id}
                 style={[
                   styles.card,
-                  open && { borderColor: COLOR.primary, backgroundColor: "#fff" },
+                  open && {
+                    borderColor: COLOR.primary,
+                    backgroundColor: "#fff",
+                  },
                 ]}
               >
                 <TouchableOpacity
@@ -147,7 +279,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: COLOR.line,
-    marginBottom:20
+    marginBottom: 20,
   },
   headerRow: {
     height: 44,
@@ -165,7 +297,7 @@ const styles = StyleSheet.create({
     borderColor: COLOR.line,
     alignItems: "center",
     justifyContent: "center",
-    zIndex:5
+    zIndex: 5,
   },
   headerTitle: {
     position: "absolute",
@@ -199,6 +331,17 @@ const styles = StyleSheet.create({
     marginLeft: -28,
     marginTop: -28,
   },
+  youtubeIndicator: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 0, 0, 0.8)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
   /* Cards */
   card: {
@@ -228,4 +371,29 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   bulletText: { color: COLOR.sub },
+
+  /* Loading and Error */
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    color: COLOR.sub,
+    fontSize: 16,
+  },
+  errorContainer: {
+    backgroundColor: "#fff3cd",
+    borderColor: "#ffeaa7",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: "#856404",
+    textAlign: "center",
+    fontSize: 14,
+  },
 });

@@ -8,6 +8,8 @@ import {
   TextInput,
   Dimensions,
   Platform,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -67,7 +69,18 @@ export default function StoresScreen() {
   });
 
   // Fetch stores from API
-  const { data, isLoading, isError } = useStores();
+  const { data, isLoading, isError, refetch, isFetching } = useStores();
+
+  // Refresh functionality
+  const handleRefresh = async () => {
+    try {
+      console.log("Refreshing stores...");
+      await refetch();
+      console.log("Stores refreshed successfully");
+    } catch (error) {
+      console.error("Error refreshing stores:", error);
+    }
+  };
 
   // Map API -> UI model while keeping non-response bits hardcoded
   const storesFromApi = useMemo(() => {
@@ -244,7 +257,13 @@ export default function StoresScreen() {
       </View>
 
       {/* Grid */}
-      <FlatList
+      {isLoading && !filtered.length ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLOR.primary} />
+          <ThemedText style={styles.loadingText}>Loading stores...</ThemedText>
+        </View>
+      ) : (
+        <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
         numColumns={2}
@@ -258,6 +277,14 @@ export default function StoresScreen() {
         }}
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: COLOR.bg }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={handleRefresh}
+            tintColor={COLOR.primary}
+            colors={[COLOR.primary]}
+          />
+        }
         // optional simple empty states without changing layout
         ListEmptyComponent={
           !isLoading && (
@@ -267,6 +294,7 @@ export default function StoresScreen() {
           )
         }
       />
+      )}
     </SafeAreaView>
   );
 }
@@ -284,6 +312,20 @@ const FilterPill = ({ label, onPress }) => (
 /* -------------------- STYLES -------------------- */
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLOR.bg },
+
+  /* Loading */
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
+  },
 
   header: {
     backgroundColor: '#E53E3E',
