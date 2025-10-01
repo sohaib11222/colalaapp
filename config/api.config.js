@@ -72,6 +72,8 @@ const API = {
   Get_Post_Comments: (postId) => `${BASE_URL}/posts/${postId}/comments`,
   All_Brands: `${BASE_URL}/brands`,
   User_Review: `${BASE_URL}/user-reveiws`,
+  Get_Top_Selling: `${BASE_URL}/buyer/products/top-selling`,
+  Get_Faqs: `${BASE_URL}/faqs/category/name/general`,
 };
 
 export default API;
@@ -773,7 +775,7 @@ export const fileUrl = (p) => {
   if (!p) return null;
   if (/^https?:\/\//i.test(p)) return p;
   const base = BASE_URL.replace(/\/api\/?$/, ""); // -> https://colala.hmstech.xyz
-  
+
   // Handle different path types
   if (p.startsWith('profile_picture/')) {
     return `${base}/storage/${p}`;
@@ -858,3 +860,18 @@ export const useUserReview = (options) =>
     },
     ...options,
   });
+
+
+export const useGetTopSelling = (options) =>
+  useQuery({
+    queryKey: ["getTopSelling"],
+    queryFn: () => http.get(API.Get_Top_Selling),
+    ...options,
+  });
+
+export const useGetFaqs = (options) =>
+  useQuery({
+    queryKey: ["getFaqs"],
+    queryFn: () => http.get(API.Get_Faqs),
+    ...options,
+  }); 

@@ -10,19 +10,16 @@ import ThemedText from '../../../components/ThemedText'; // ← adjust path if n
 const COLOR = { primary:'#E53E3E', white:'#fff', text:'#101318', sub:'#6C727A', border:'#ECEDEF', pill:'#F1F2F5', line:'#E9EBEF', danger:'#E74C3C' };
 const { width } = Dimensions.get('window');
 
+import {useListOfAllSavedItems, fileUrl} from '../../../config/api.config';
+
+
 /* ------- Card sizes ------- */
 const productCardWidth = (width - 48) / 2;          // Products/Services
-const CARD_GAP = 10;                                // Stores only
-const SCREEN_PADDING = 16;
-const storeCardWidth = (width - SCREEN_PADDING * 2 - CARD_GAP) / 2;
-const COVER_HEIGHT = 100;
-const AVATAR_SIZE = 44;
 
-const TABS = ['Products', 'Services', 'Stores', 'Posts'];
+const TABS = ['Products', 'Services', 'Posts'];
 const LOCATIONS = ['All', 'Lagos, Nigeria', 'Abuja, Nigeria', 'Kano, Nigeria'];
 const PRODUCT_CATEGORIES = ['All', 'Laptops', 'Phones', 'Accessories'];
 const SERVICE_CATEGORIES = ['All', 'Fashion', 'Repairs', 'Beauty'];
-const STORE_CATEGORIES   = ['All', 'Electronics', 'Phones'];
 
 const SAVED_PRODUCTS = [
   { id: '1', title: 'Dell Inspiron Laptop', store: 'Sasha Stores', store_image: require('../../../assets/Ellipse 18.png'), location: 'Lagos, Nigeria', rating: 4.5, price: '₦2,000,000', originalPrice: '₦3,000,000', image: require('../../../assets/Frame 264.png'), tagImages: [require('../../../assets/freedel.png'), require('../../../assets/bulk.png')], category: 'Laptops', sponsored: true },
@@ -31,12 +28,6 @@ const SAVED_PRODUCTS = [
   { id: '4', title: 'Dell Inspiron Laptop', store: 'Sasha Stores', store_image: require('../../../assets/Ellipse 18.png'), location: 'Lagos, Nigeria', rating: 4.5, price: '₦2,000,000', originalPrice: '₦3,000,000', image: require('../../../assets/Frame 264 (3).png'), tagImages: [require('../../../assets/freedel.png'), require('../../../assets/bulk.png')], category: 'Laptops' },
 ];
 
-const SAVED_STORES = [
-  { id: '1', name: 'Sasha Stores',        cover: require('../../../assets/Frame 253.png'), avatar: require('../../../assets/Ellipse 18.png'), tags: ['Electronics','Phones'], rating: 4.5, location: 'Lagos, Nigeria' },
-  { id: '2', name: 'Vee Stores',          cover: require('../../../assets/Frame 253.png'), avatar: require('../../../assets/Ellipse 18.png'), tags: ['Electronics','Phones'], rating: 4.5, location: 'Lagos, Nigeria' },
-  { id: '3', name: 'Adam Stores',         cover: require('../../../assets/Frame 253.png'), avatar: require('../../../assets/Ellipse 18.png'), tags: ['Electronics','Phones'], rating: 4.5, location: 'Lagos, Nigeria' },
-  { id: '4', name: 'Scent Villa Stores',  cover: require('../../../assets/Frame 253.png'), avatar: require('../../../assets/Ellipse 18.png'), tags: ['Electronics','Phones'], rating: 4.5, location: 'Lagos, Nigeria' },
-];
 
 /* -------- Services -------- */
 const SAVED_SERVICES = [
@@ -83,6 +74,119 @@ const SavedItemsScreen = ({ navigation }) => {
   const [category, setCategory] = useState('All');
   const [picker, setPicker] = useState(null);
 
+  // API Integration
+  const { data: savedItemsRes, isLoading, error } = useListOfAllSavedItems();
+  const apiSavedItems = savedItemsRes?.data || [];
+
+  // Debug logging
+  console.log("=== SAVED ITEMS SCREEN DEBUG ===");
+  console.log("API Response:", savedItemsRes);
+  console.log("Saved Items from API:", apiSavedItems);
+  console.log("API Error Details:", error);
+  console.log("Navigation object:", navigation);
+  console.log("Navigation available:", !!navigation);
+  console.log("Navigation methods:", navigation ? Object.keys(navigation) : "No navigation");
+  
+  // Log the structure of saved items to understand the data format
+  if (apiSavedItems.length > 0) {
+    console.log("=== SAVED ITEMS STRUCTURE DEBUG ===");
+    apiSavedItems.forEach((item, index) => {
+      console.log(`Item ${index}:`, {
+        id: item.id,
+        type: item.type,
+        product_id: item.product_id,
+        service_id: item.service_id,
+        name: item.name,
+        price: item.price
+      });
+    });
+  }
+
+  // Map API data to component format
+  const mapApiProductToComponent = (apiItem) => {
+    console.log("=== MAPPING PRODUCT ===");
+    console.log("Original API Item:", apiItem);
+    console.log("Product ID:", apiItem.id);
+    console.log("Product ID Type:", typeof apiItem.id);
+    console.log("Product Name:", apiItem.name);
+    console.log("Product Price:", apiItem.price);
+    console.log("Product ID from API:", apiItem.product_id);
+    
+    // Use product_id if available, otherwise use id
+    const productId = apiItem.product_id || apiItem.id;
+    console.log("Using Product ID for navigation:", productId);
+    
+    const mapped = {
+      id: String(productId), // Use the correct product ID for navigation
+      title: apiItem.name || 'Product',
+      store: 'Store', // Store name not provided in API
+      store_image: require('../../../assets/Ellipse 18.png'),
+      location: 'Lagos, Nigeria', // Default location
+      rating: 4.5, // Default rating
+      price: `₦${parseFloat(apiItem.price || 0).toLocaleString()}`,
+      originalPrice: apiItem.discount_price ? `₦${parseFloat(apiItem.discount_price).toLocaleString()}` : null,
+      image: apiItem.images?.[0] ? { uri: apiItem.images[0] } : require('../../../assets/Frame 264.png'),
+      tagImages: [require('../../../assets/freedel.png'), require('../../../assets/bulk.png')],
+      category: 'Products',
+      sponsored: false,
+      // Add original API data for navigation
+      originalApiData: apiItem,
+    };
+    
+    console.log("Mapped Product:", mapped);
+    return mapped;
+  };
+
+  const mapApiServiceToComponent = (apiItem) => {
+    console.log("=== MAPPING SERVICE ===");
+    console.log("Original API Item:", apiItem);
+    console.log("Service ID:", apiItem.id);
+    console.log("Service ID Type:", typeof apiItem.id);
+    console.log("Service Name:", apiItem.name);
+    console.log("Service Price:", apiItem.price);
+    console.log("Service ID from API:", apiItem.service_id);
+    
+    // Use service_id if available, otherwise use id
+    const serviceId = apiItem.service_id || apiItem.id;
+    console.log("Using Service ID for navigation:", serviceId);
+    
+    const mapped = {
+      id: String(serviceId), // Use the correct service ID for navigation
+      name: 'Store', // Store name not provided in API
+      service: apiItem.name || 'Service',
+      price: apiItem.price ? `₦${parseFloat(apiItem.price).toLocaleString()}` : 'Contact for price',
+      image: require('../../../assets/Rectangle 32.png'),
+      rating: 4.5, // Default rating
+      profileImage: require('../../../assets/Ellipse 18.png'),
+      location: 'Lagos, Nigeria', // Default location
+      category: 'Services',
+      // Add original API data for navigation
+      originalApiData: apiItem,
+    };
+    
+    console.log("Mapped Service:", mapped);
+    return mapped;
+  };
+
+  const mapApiPostToComponent = (apiItem) => ({
+    id: String(apiItem.id),
+    store: 'Store', // Store name not provided in API
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop',
+    location: 'Lagos, Nigeria', // Default location
+    timeAgo: new Date(apiItem.saved_at).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    images: apiItem.post?.media_urls?.map(media => fileUrl(media.url)) || [],
+    image: apiItem.post?.media_urls?.[0] ? fileUrl(apiItem.post.media_urls[0].url) : 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=1200&auto=format&fit=crop',
+    caption: apiItem.post?.body || 'Check out this amazing product',
+    likes: apiItem.post?.likes_count || 0,
+    comments: apiItem.post?.comments_count || 0,
+    shares: apiItem.post?.shares_count || 0,
+  });
+
   // posts sheets
   const [activePost, setActivePost] = useState(null);
   const [commentsVisible, setCommentsVisible] = useState(false);
@@ -92,51 +196,108 @@ const SavedItemsScreen = ({ navigation }) => {
   useEffect(() => { setQuery(''); setLocation('All'); setCategory('All'); }, [activeTab]);
 
   const filteredProducts = useMemo(() => {
+    console.log("=== FILTERING PRODUCTS ===");
+    console.log("Active tab:", activeTab);
+    console.log("Is loading:", isLoading);
+    console.log("Error:", error);
+    console.log("API saved items length:", apiSavedItems.length);
+    
     if (activeTab !== 'Products') return [];
+    
+    // Use API data if available, otherwise fallback to dummy data
+    let products = [];
+    if (!isLoading && !error && apiSavedItems.length > 0) {
+      const apiProducts = apiSavedItems.filter(item => item.type === 'product');
+      console.log("API Products found:", apiProducts.length);
+      products = apiProducts.map(mapApiProductToComponent);
+      console.log("Mapped API Products:", products);
+    } else if (error) {
+      console.log("API Error, using dummy products:", error);
+      products = SAVED_PRODUCTS;
+    } else {
+      console.log("Using dummy products");
+      products = SAVED_PRODUCTS;
+    }
+    
     const q = query.trim().toLowerCase();
-    return SAVED_PRODUCTS.filter(p =>
+    const filtered = products.filter(p =>
       (p.title + p.store).toLowerCase().includes(q) &&
       (location === 'All' || p.location === location) &&
       (category === 'All' || p.category === category)
     );
-  }, [activeTab, query, location, category]);
+    
+    console.log("Final filtered products:", filtered);
+    console.log("Filtered products count:", filtered.length);
+    return filtered;
+  }, [activeTab, query, location, category, apiSavedItems, isLoading, error]);
 
-  const filteredStores = useMemo(() => {
-    if (activeTab !== 'Stores') return [];
-    const q = query.trim().toLowerCase();
-    return SAVED_STORES.filter(s =>
-      (!q || s.name.toLowerCase().includes(q) || s.tags.some(t => t.toLowerCase().includes(q))) &&
-      (location === 'All' || s.location === location) &&
-      (category === 'All' || s.tags.map(t => t.toLowerCase()).includes(category.toLowerCase()))
-    );
-  }, [activeTab, query, location, category]);
 
   const filteredServices = useMemo(() => {
+    console.log("=== FILTERING SERVICES ===");
+    console.log("Active tab:", activeTab);
+    console.log("Is loading:", isLoading);
+    console.log("Error:", error);
+    console.log("API saved items length:", apiSavedItems.length);
+    
     if (activeTab !== 'Services') return [];
+    
+    // Use API data if available, otherwise fallback to dummy data
+    let services = [];
+    if (!isLoading && !error && apiSavedItems.length > 0) {
+      const apiServices = apiSavedItems.filter(item => item.type === 'service');
+      console.log("API Services found:", apiServices.length);
+      services = apiServices.map(mapApiServiceToComponent);
+      console.log("Mapped API Services:", services);
+    } else if (error) {
+      console.log("API Error, using dummy services:", error);
+      services = SAVED_SERVICES;
+    } else {
+      console.log("Using dummy services");
+      services = SAVED_SERVICES;
+    }
+    
     const q = query.trim().toLowerCase();
-    return SAVED_SERVICES.filter(s =>
+    const filtered = services.filter(s =>
       (!q || s.service.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)) &&
       (location === 'All' || s.location === location) &&
       (category === 'All' || s.category === category)
     );
-  }, [activeTab, query, location, category]);
+    
+    console.log("Final filtered services:", filtered);
+    console.log("Filtered services count:", filtered.length);
+    return filtered;
+  }, [activeTab, query, location, category, apiSavedItems, isLoading, error]);
 
   const filteredPosts = useMemo(() => {
     if (activeTab !== 'Posts') return [];
+    
+    // Use API data if available, otherwise fallback to dummy data
+    let posts = [];
+    if (!isLoading && !error && apiSavedItems.length > 0) {
+      const apiPosts = apiSavedItems.filter(item => item.type === 'post');
+      posts = apiPosts.map(mapApiPostToComponent);
+      console.log("Mapped API Posts:", posts);
+    } else if (error) {
+      console.log("API Error, using dummy posts:", error);
+      posts = SAVED_POSTS;
+    } else {
+      console.log("Using dummy posts");
+      posts = SAVED_POSTS;
+    }
+    
     const q = query.trim().toLowerCase();
-    return SAVED_POSTS.filter(p =>
+    return posts.filter(p =>
       (!q || p.caption?.toLowerCase().includes(q) || p.store.toLowerCase().includes(q)) &&
       (location === 'All' || p.location === location)
     );
-  }, [activeTab, query, location]);
+  }, [activeTab, query, location, apiSavedItems, isLoading, error]);
 
-  const isStores = activeTab === 'Stores';
   const isServices = activeTab === 'Services';
   const isPosts = activeTab === 'Posts';
 
-  const listData = isStores ? filteredStores : isServices ? filteredServices : isPosts ? filteredPosts : filteredProducts;
-  const listKey  = isStores ? 'stores' : isServices ? 'services' : isPosts ? 'posts' : 'products';
-  const placeholder = isStores ? 'Search Store' : isServices ? 'Search Service' : isPosts ? 'Search Post' : 'Search Product';
+  const listData = isServices ? filteredServices : isPosts ? filteredPosts : filteredProducts;
+  const listKey  = isServices ? 'services' : isPosts ? 'posts' : 'products';
+  const placeholder = isServices ? 'Search Service' : isPosts ? 'Search Post' : 'Search Product';
 
   /* ---------- Post helpers (Feed design) ---------- */
   const openComments = (post) => { setActivePost(post); setCommentsVisible(true); };
@@ -150,7 +311,14 @@ const SavedItemsScreen = ({ navigation }) => {
     const [carouselW, setCarouselW] = useState(0);
 
     return (
-      <View style={styles.postCard}>
+      <TouchableOpacity 
+        style={styles.postCard}
+        onPress={() => navigation?.navigate?.('MainNavigator', { 
+          screen: 'FeedScreen', 
+          params: { postId: item.id, post: item } 
+        })}
+        activeOpacity={0.95}
+      >
         {/* Top bar */}
         <View style={styles.postTop}>
           <Image source={{ uri: item.avatar }} style={styles.avatar} />
@@ -209,13 +377,21 @@ const SavedItemsScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.actionsRight}>
-            <TouchableOpacity style={styles.visitBtn}><ThemedText style={styles.visitBtnText}>Visit Store</ThemedText></TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.visitBtn}
+              onPress={() => navigation?.navigate?.('ServiceNavigator', { 
+                screen: 'StoreDetails', 
+                params: { store: { name: item.store } } 
+              })}
+            >
+              <ThemedText style={styles.visitBtnText}>Visit Store</ThemedText>
+            </TouchableOpacity>
             <TouchableOpacity style={{ marginLeft: 10 }}>
               <Ionicons name="download-outline" size={24} color={COLOR.text} />
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -361,10 +537,43 @@ const SavedItemsScreen = ({ navigation }) => {
 
   /* ---------- Product / Store / Service renderers ---------- */
   const renderItem = ({ item }) => {
+    console.log("=== RENDER ITEM DEBUG ===");
+    console.log("Rendering item:", item);
+    console.log("Item ID:", item?.id);
+    console.log("Item type:", typeof item?.id);
+    console.log("Is Posts:", isPosts);
+    console.log("Is Services:", isServices);
+    console.log("Active tab:", activeTab);
+    
     if (isPosts) return <PostCard item={item} />;
     if (isServices) {
       return (
-        <View style={styles.serviceCard}>
+        <TouchableOpacity 
+          style={styles.serviceCard} 
+          onPress={() => {
+            console.log("=== SERVICE NAVIGATION DEBUG ===");
+            console.log("Service item being clicked:", item);
+            console.log("Service ID:", item.id);
+            console.log("Service Name:", item.service);
+            console.log("Service Type:", typeof item.id);
+            console.log("Navigation object:", navigation);
+            console.log("Navigation navigate method:", navigation?.navigate);
+            
+            const navigationParams = { 
+              screen: 'ServiceDetails', 
+              params: { service: item } 
+            };
+            console.log("Navigation params:", navigationParams);
+            
+            try {
+              navigation?.navigate?.('ServiceNavigator', navigationParams);
+              console.log("Service navigation call completed successfully");
+            } catch (error) {
+              console.error("Service navigation error:", error);
+            }
+          }}
+          activeOpacity={0.9}
+        >
           <Image source={item.image} style={styles.serviceImage} />
           <View style={styles.serviceHeader}>
             <Image source={item.profileImage} style={styles.profileImage} />
@@ -377,81 +586,111 @@ const SavedItemsScreen = ({ navigation }) => {
           <View style={styles.serviceBody}>
             <ThemedText style={styles.serviceTitle}>{item.service}</ThemedText>
             <ThemedText style={styles.servicePrice}>{item.price}</ThemedText>
-            <TouchableOpacity style={styles.detailsBtn} onPress={() => navigation?.navigate?.('SeviceDeatils', { store: item })} activeOpacity={0.9}>
+            <TouchableOpacity style={styles.detailsBtn} onPress={() => {
+              console.log("=== SERVICE DETAILS BUTTON NAVIGATION DEBUG ===");
+              console.log("Service item being clicked (details button):", item);
+              console.log("Service ID:", item.id);
+              console.log("Service Name:", item.service);
+              console.log("Navigation object:", navigation);
+              
+              const navigationParams = { 
+                screen: 'ServiceDetails', 
+                params: { service: item } 
+              };
+              console.log("Navigation params:", navigationParams);
+              
+              try {
+                navigation?.navigate?.('ServiceNavigator', navigationParams);
+                console.log("Service details button navigation call completed successfully");
+              } catch (error) {
+                console.error("Service details button navigation error:", error);
+              }
+            }} activeOpacity={0.9}>
               <ThemedText style={styles.detailsText}>Details</ThemedText>
             </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
-    if (!isStores) {
-      return (
-        <TouchableOpacity activeOpacity={0.9} onPress={() => {}} style={styles.productCard}>
-          <View>
-            <Image source={item.image} style={styles.productImage} resizeMode="cover" />
-            {item.sponsored ? (<View style={styles.sponsoredBadge}><ThemedText style={styles.sponsoredText}>Sponsored</ThemedText></View>) : null}
-          </View>
-          <View style={[styles.rowBetween, styles.storeBar]}>
-            <View style={styles.storeRow}>
-              <Image source={item.store_image} style={styles.storeAvatar} />
-              <ThemedText style={styles.storeName}>{item.store}</ThemedText>
-            </View>
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" color="#E53E3E" size={12} /><ThemedText style={styles.rating}>{item.rating}</ThemedText>
-            </View>
-          </View>
-          <View style={styles.infoContainer}>
-            <ThemedText numberOfLines={2} style={styles.productTitle}>{item.title}</ThemedText>
-            <View style={styles.priceRow}>
-              <ThemedText style={styles.price}>{item.price}</ThemedText>
-              {!!item.originalPrice && <ThemedText style={styles.originalPrice}>{item.originalPrice}</ThemedText>}
-            </View>
-            {!!item.tagImages?.length && (
-              <View style={styles.tagsRow}>
-                {item.tagImages.map((src, i)=>(<Image key={i} source={src} style={styles.tagIcon} resizeMode="contain" />))}
-              </View>
-            )}
-            <View style={styles.rowBetween}>
-              <View style={styles.locationRow}>
-                <Ionicons name="location-outline" size={13} color="#444" style={{ marginRight: 2 }} />
-                <ThemedText numberOfLines={1} style={styles.location}>{item.location}</ThemedText>
-              </View>
-              <TouchableOpacity onPress={() => {}}>
-                <Image source={require('../../../assets/Frame 265.png')} style={{ width: 28, height: 28, resizeMode: 'contain' }} />
-              </TouchableOpacity>
-            </View>
           </View>
         </TouchableOpacity>
       );
     }
-
-    // store card
-    const coverSrc  = typeof item.cover === 'number' ? item.cover : { uri: item.cover };
-    const avatarSrc = typeof item.avatar === 'number' ? item.avatar : { uri: item.avatar };
     return (
-      <View style={styles.storeCard}>
-        <Image source={coverSrc} style={styles.cover} />
-        <Image source={avatarSrc} style={[styles.avatar, { top: COVER_HEIGHT - AVATAR_SIZE / 2 }]} />
-        <View style={[styles.storeContent, { paddingTop: AVATAR_SIZE / 2 + 6 }]}>
-          <View style={styles.rowBetween}>
-            <ThemedText numberOfLines={1} style={styles.storeTitle}>{item.name}</ThemedText>
-            <View style={styles.starRow}>
-              <Ionicons name="star" size={12} color={COLOR.primary} />
-              <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
-            </View>
-          </View>
-          <View style={styles.storeTagsRow}>
-            {item.tags.map((tag, i)=>(
-              <View key={tag} style={[styles.storeTag, i===0 ? styles.tagBlue : styles.tagRed]}>
-                <ThemedText style={[styles.storeTagTxt, i===0 ? styles.tagTxtBlue : styles.tagTxtRed]}>{tag}</ThemedText>
-              </View>
-            ))}
-          </View>
-          <TouchableOpacity style={styles.cta} activeOpacity={0.9} onPress={() => {}}>
-            <ThemedText style={styles.ctaText}>Go to Shop</ThemedText>
-          </TouchableOpacity>
+      <TouchableOpacity 
+        activeOpacity={0.9} 
+        onPress={() => {
+          console.log("=== PRODUCT NAVIGATION DEBUG ===");
+          console.log("Item being clicked:", item);
+          console.log("Item ID:", item.id);
+          console.log("Item Type:", typeof item.id);
+          console.log("Navigation object:", navigation);
+          console.log("Navigation navigate method:", navigation?.navigate);
+          
+          const navigationParams = { 
+            screen: 'ProductDetails', 
+            params: { productId: item.id } 
+          };
+          console.log("Navigation params:", navigationParams);
+          
+          try {
+            navigation?.navigate?.('CategoryNavigator', navigationParams);
+            console.log("Navigation call completed successfully");
+          } catch (error) {
+            console.error("Navigation error:", error);
+          }
+        }} 
+        style={styles.productCard}
+      >
+        <View>
+          <Image source={item.image} style={styles.productImage} resizeMode="cover" />
+          {item.sponsored ? (<View style={styles.sponsoredBadge}><ThemedText style={styles.sponsoredText}>Sponsored</ThemedText></View>) : null}
         </View>
-      </View>
+        <View style={[styles.rowBetween, styles.storeBar]}>
+          <View style={styles.storeRow}>
+            <Image source={item.store_image} style={styles.storeAvatar} />
+            <ThemedText style={styles.storeName}>{item.store}</ThemedText>
+          </View>
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" color="#E53E3E" size={12} /><ThemedText style={styles.rating}>{item.rating}</ThemedText>
+          </View>
+        </View>
+        <View style={styles.infoContainer}>
+          <ThemedText numberOfLines={2} style={styles.productTitle}>{item.title}</ThemedText>
+          <View style={styles.priceRow}>
+            <ThemedText style={styles.price}>{item.price}</ThemedText>
+            {!!item.originalPrice && <ThemedText style={styles.originalPrice}>{item.originalPrice}</ThemedText>}
+          </View>
+          {!!item.tagImages?.length && (
+            <View style={styles.tagsRow}>
+              {item.tagImages.map((src, i)=>(<Image key={i} source={src} style={styles.tagIcon} resizeMode="contain" />))}
+            </View>
+          )}
+          <View style={styles.rowBetween}>
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={13} color="#444" style={{ marginRight: 2 }} />
+              <ThemedText numberOfLines={1} style={styles.location}>{item.location}</ThemedText>
+            </View>
+            <TouchableOpacity onPress={() => {
+              console.log("=== PRODUCT CART ICON NAVIGATION DEBUG ===");
+              console.log("Item being clicked (cart icon):", item);
+              console.log("Item ID:", item.id);
+              console.log("Navigation object:", navigation);
+              
+              const navigationParams = { 
+                screen: 'ProductDetails', 
+                params: { productId: item.id } 
+              };
+              console.log("Navigation params:", navigationParams);
+              
+              try {
+                navigation?.navigate?.('CategoryNavigator', navigationParams);
+                console.log("Cart icon navigation call completed successfully");
+              } catch (error) {
+                console.error("Cart icon navigation error:", error);
+              }
+            }}>
+              <Image source={require('../../../assets/Frame 265.png')} style={{ width: 28, height: 28, resizeMode: 'contain' }} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -459,11 +698,9 @@ const SavedItemsScreen = ({ navigation }) => {
     const options =
       type === 'location'
         ? LOCATIONS
-        : activeTab === 'Stores'
-          ? STORE_CATEGORIES
-          : activeTab === 'Services'
-            ? SERVICE_CATEGORIES
-            : PRODUCT_CATEGORIES;
+        : activeTab === 'Services'
+          ? SERVICE_CATEGORIES
+          : PRODUCT_CATEGORIES;
 
     return (
       <Modal visible={picker === type} transparent animationType="fade" onRequestClose={() => setPicker(null)}>
@@ -530,28 +767,33 @@ const SavedItemsScreen = ({ navigation }) => {
       )}
 
       {/* List */}
-      <FlatList
-        key={listKey}
-        data={listData}
-        keyExtractor={(it) => it.id}
-        numColumns={isPosts ? 1 : 2}
-        columnWrapperStyle={!isPosts ? { justifyContent: 'space-between' } : undefined}
-        contentContainerStyle={
-          isStores
-            ? { paddingHorizontal: SCREEN_PADDING, paddingBottom: 24, paddingTop: 8 }
-            : isPosts
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <Image source={require('../../../assets/Users.png')} style={{ width: 120, height: 120, opacity: 0.6 }} />
+          <ThemedText style={styles.loadingText}>Loading saved items...</ThemedText>
+        </View>
+      ) : (
+        <FlatList
+          key={listKey}
+          data={listData}
+          keyExtractor={(it) => it.id}
+          numColumns={isPosts ? 1 : 2}
+          columnWrapperStyle={!isPosts ? { justifyContent: 'space-between' } : undefined}
+          contentContainerStyle={
+            isPosts
               ? { paddingBottom: 24 }
               : { paddingHorizontal: 16, paddingBottom: 24 }
-        }
-        ListEmptyComponent={
-          <View style={styles.placeholder}>
-            <Image source={require('../../../assets/Users.png')} style={{ width: 120, height: 120, opacity: 0.6 }} />
-            <ThemedText style={{ color: COLOR.sub, marginTop: 10 }}>{`No saved ${activeTab.toLowerCase()} yet`}</ThemedText>
-          </View>
-        }
-        renderItem={renderItem}
-        showsVerticalScrollIndicator={false}
-      />
+          }
+          ListEmptyComponent={
+            <View style={styles.placeholder}>
+              <Image source={require('../../../assets/Users.png')} style={{ width: 120, height: 120, opacity: 0.6 }} />
+              <ThemedText style={{ color: COLOR.sub, marginTop: 10 }}>{`No saved ${activeTab.toLowerCase()} yet`}</ThemedText>
+            </View>
+          }
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       {/* Pickers */}
       {renderPicker('location')}
@@ -612,6 +854,19 @@ const styles = StyleSheet.create({
   sheetText: { fontSize: 16, color: COLOR.text },
 
   placeholder: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
+  
+  // Loading styles
+  loadingContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    paddingVertical: 60 
+  },
+  loadingText: { 
+    color: COLOR.sub, 
+    marginTop: 12, 
+    fontSize: 14 
+  },
 
   /* ---- Product card ---- */
   productCard: { backgroundColor: '#fff', borderRadius: 16, marginTop: 12, width: productCardWidth, overflow: 'hidden', ...shadow(4) },
@@ -635,22 +890,6 @@ const styles = StyleSheet.create({
   storeRow: { flexDirection: 'row', alignItems: 'center' },
   storeAvatar: { width: 20, height: 20, borderRadius: 12, marginRight: 6 },
 
-  /* ---- Store card ---- */
-  storeCard: { width: storeCardWidth, backgroundColor: '#fff', borderRadius: 18, overflow: 'visible', ...shadow(8) },
-  cover: { width: '100%', height: COVER_HEIGHT, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
-  avatar: { position: 'absolute', left: 16, width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2, backgroundColor: '#fff', borderWidth: 3, borderColor: '#fff' },
-  storeContent: { paddingHorizontal: 14, paddingBottom: 12 },
-  storeTitle: { fontSize: 15, fontWeight: '700', color: COLOR.text, flex: 1 },
-  starRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  ratingText: { fontSize: 11, color: '#6C727A', fontWeight: '600' },
-  storeTagsRow: { flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 10 },
-  storeTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  tagBlue: { backgroundColor: '#E9F0FF', borderWidth: 1, borderColor: '#3D71FF' },
-  tagRed: { backgroundColor: '#FFE7E6', borderWidth: 1, borderColor: COLOR.primary },
-  storeTagTxt: { fontSize: 12, fontWeight: '600' },
-  tagTxtBlue: { color: '#3D71FF' }, tagTxtRed: { color: COLOR.primary },
-  cta: { backgroundColor: COLOR.primary, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  ctaText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
   /* ---- Service card ---- */
   serviceCard: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', marginTop: 12, width: productCardWidth, ...shadow(4) },
