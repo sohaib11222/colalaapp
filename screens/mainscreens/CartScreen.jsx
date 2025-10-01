@@ -14,7 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../components/ThemedText";
-import { useCart, useUpdateCartItem, useDeleteCartItem } from "../../config/api.config";
+import { useCart, useUpdateCartItem, useDeleteCartItem, fileUrl, useStartChat } from "../../config/api.config";
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
@@ -40,6 +40,56 @@ export default function CartScreen() {
   const [stores, setStores] = useState([]);
   const [refreshing, setRefreshing] = useState(false);  // ⬅️ new
 
+  // Chat functionality
+  const { mutate: startChat, isPending: creatingChat } = useStartChat();
+
+  // Handle start chat
+  const handleStartChat = (store) => {
+    try {
+      const storeId = store.store?.id || store.id;
+      console.log("Starting chat with store ID:", storeId);
+      
+      startChat(
+        { storeId },
+        {
+          onSuccess: (data) => {
+            console.log("Chat created successfully:", data);
+            const { chat_id } = data;
+            
+            navigation.navigate("ServiceNavigator", {
+              screen: "ChatDetails",
+              params: {
+                store: {
+                  id: storeId,
+                  name: store.name,
+                  profileImage: store.store?.profile_image ? fileUrl(store.store.profile_image) : null,
+                },
+                chat_id,
+                store_order_id: storeId,
+              },
+            });
+          },
+          onError: (error) => {
+            console.error("Failed to create chat:", error);
+            // Fallback: navigate without chat_id
+            navigation.navigate("ServiceNavigator", {
+              screen: "ChatDetails",
+              params: {
+                store: {
+                  id: storeId,
+                  name: store.name,
+                  profileImage: store.store?.profile_image ? fileUrl(store.store.profile_image) : null,
+                },
+              },
+            });
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error starting chat:", error);
+    }
+  };
+
   // mutations
   const updateItem = useUpdateCartItem({
     onError: (err) => Alert.alert("Error", err?.message || "Failed to update quantity."),
@@ -51,18 +101,45 @@ export default function CartScreen() {
   // hydrate UI from API
   useEffect(() => {
     const storesObj = data?.data?.stores || {};
-    const normalized = Object.entries(storesObj).map(([storeId, block]) => ({
-      id: String(storeId),
-      // API has no store name -> keep hardcoded
-      name: `Store ${storeId}`,
-      selected: true,
-      items: (block?.items || []).map((it) => ({
-        id: String(it.id), // cart item id
-        title: `${it.name}${it.color ? ` - ${it.color}` : ""}${it.size ? ` (${it.size})` : ""}`,
-        price: Number(it.unit_price || 0),
-        qty: Number(it.qty || 0),
-      })),
-    }));
+    console.log("Cart API Data:", data?.data);
+    console.log("Stores Object:", storesObj);
+    
+    const normalized = Object.entries(storesObj).map(([storeId, block]) => {
+      const firstItem = block?.items?.[0];
+      const storeInfo = firstItem?.store;
+      
+      console.log("Processing store:", storeId, "with items:", block?.items);
+      
+      return {
+        id: String(storeId),
+        name: storeInfo?.store_name || `Store ${storeId}`,
+        selected: true,
+        store: storeInfo, // Keep store info for chat
+        items: (block?.items || []).map((it) => {
+          const imageUrl = it.product?.images?.[0]?.path ? fileUrl(it.product.images[0].path) : null;
+          const price = Number(it.discount_price || it.unit_price || 0);
+          
+          console.log("Item mapping:", {
+            id: it.id,
+            name: it.name,
+            unit_price: it.unit_price,
+            discount_price: it.discount_price,
+            final_price: price,
+            product_images: it.product?.images,
+            image_url: imageUrl
+          });
+          
+          return {
+            id: String(it.id), // cart item id
+            title: `${it.name}${it.color ? ` - ${it.color}` : ""}${it.size ? ` (${it.size})` : ""}`,
+            price: price, // Use discount_price if available
+            qty: Number(it.qty || 0),
+            image: imageUrl, // Use API image
+            product: it.product, // Keep product info for navigation
+          };
+        }),
+      };
+    });
     setStores(normalized);
   }, [data]);
 
@@ -189,8 +266,16 @@ const onRefresh = async () => {
                 {/* red header */}
                 <View style={styles.storeHeader}>
                   <ThemedText style={styles.storeName}>{store.name}</ThemedText>
-                  <TouchableOpacity style={styles.chatBtn}>
-                    <ThemedText style={styles.chatBtnTxt}>Start Chat</ThemedText>
+                  <TouchableOpacity 
+                    style={styles.chatBtn}
+                    onPress={() => handleStartChat(store)}
+                    disabled={creatingChat}
+                  >
+                    {creatingChat ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <ThemedText style={styles.chatBtnTxt}>Start Chat</ThemedText>
+                    )}
                   </TouchableOpacity>
                 </View>
 
@@ -201,8 +286,17 @@ const onRefresh = async () => {
                       key={it.id}
                       style={[styles.itemRow, idx > 0 && { borderTopWidth: 1, borderTopColor: COLOR.line }]}
                     >
-                      {/* Image stays hardcoded per request */}
-                      <Image source={PRODUCT_IMG} style={styles.itemImg} />
+                      {/* Use API image or fallback */}
+                      <Image 
+                        source={it.image ? { uri: it.image } : PRODUCT_IMG} 
+                        style={styles.itemImg}
+                        onError={(error) => {
+                          console.log("Image load error for item:", it.title, "Image URL:", it.image, "Error:", error.nativeEvent.error);
+                        }}
+                        onLoad={() => {
+                          console.log("Image loaded successfully for item:", it.title, "Image URL:", it.image);
+                        }}
+                      />
                       <View style={{ flex: 1 }}>
                         <ThemedText style={styles.itemTitle} numberOfLines={2}>
                           {it.title}
@@ -217,7 +311,17 @@ const onRefresh = async () => {
                           <QtyBtn onPress={() => updateQty(store.id, it.id, +1)} icon="add" />
 
                           <View style={{ flex: 1 }} />
-                          <TouchableOpacity style={styles.iconChip}>
+                          <TouchableOpacity 
+                            style={styles.iconChip}
+                            onPress={() => {
+                              if (it.product) {
+                                navigation.navigate("CategoryNavigator", {
+                                  screen: "ProductDetails",
+                                  params: { productId: it.product.id }
+                                });
+                              }
+                            }}
+                          >
                             <Ionicons name="create-outline" size={18} color={COLOR.text} />
                           </TouchableOpacity>
                           <TouchableOpacity

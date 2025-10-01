@@ -11,6 +11,7 @@ import {
   TextInput,
   SafeAreaView,
   Image,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -18,6 +19,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useQuery } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ThemedText from "../../../components/ThemedText";
+
+import { useWalletWithdraw } from "../../../config/api.config";
 
 /* ---------------- THEME ---------------- */
 const COLOR = {
@@ -61,11 +64,15 @@ const StatusLabel = ({ status }) => {
     failed: { text: "Failed", color: COLOR.failed },
   };
   const it = map[status] || map.successful;
-  return <ThemedText style={{ color: it.color, marginTop: 6 }}>{it.text}</ThemedText>;
+  return (
+    <ThemedText style={{ color: it.color, marginTop: 6 }}>{it.text}</ThemedText>
+  );
 };
 
 const Amount = ({ value, color = COLOR.success }) => (
-  <ThemedText style={{ color, fontWeight: "800" }}>{`₦${Number(value).toLocaleString()}`}</ThemedText>
+  <ThemedText style={{ color, fontWeight: "800" }}>{`₦${Number(
+    value
+  ).toLocaleString()}`}</ThemedText>
 );
 
 const TxIcon = ({ type }) => (
@@ -87,7 +94,9 @@ const RowCard = ({ item, tab }) => {
       <TxIcon type={tab} />
 
       <View style={{ flex: 1 }}>
-        <ThemedText style={{ color: COLOR.text, fontWeight: "700" }}>{item.title}</ThemedText>
+        <ThemedText style={{ color: COLOR.text, fontWeight: "700" }}>
+          {item.title}
+        </ThemedText>
         <StatusLabel status={item.status} />
       </View>
 
@@ -116,11 +125,64 @@ export default function ShoppingWalletScreen() {
   const [wAccName, setWAccName] = useState("");
   const [saveDetails, setSaveDetails] = useState(false);
 
-  // Query hook
-  const { data, isLoading, isError } = useQuery({
+  // Withdraw API integration
+  const { mutate: withdraw, isPending: isWithdrawing } = useWalletWithdraw();
+
+  // Validation for withdraw form
+  const isWithdrawFormValid = useMemo(() => {
+    return wAmount.trim() !== "" && 
+           wAccNumber.trim() !== "" && 
+           wBankName.trim() !== "" && 
+           wAccName.trim() !== "";
+  }, [wAmount, wAccNumber, wBankName, wAccName]);
+
+  // Handle withdraw submission
+  const handleWithdraw = () => {
+    if (!isWithdrawFormValid) return;
+
+    const withdrawData = {
+      amount: wAmount.trim(),
+      bank_name: wBankName.trim(),
+      account_number: wAccNumber.trim(),
+      account_name: wAccName.trim()
+    };
+
+    console.log("Submitting withdrawal:", withdrawData);
+
+    withdraw(withdrawData, {
+      onSuccess: (data) => {
+        console.log("Withdrawal successful:", data);
+        // Reset form
+        setWAmount("");
+        setWAccNumber("");
+        setWBankName("");
+        setWAccName("");
+        setSaveDetails(false);
+        // Close modal
+        setWithdrawVisible(false);
+        // You might want to show a success message here
+      },
+      onError: (error) => {
+        console.error("Withdrawal failed:", error);
+        // You might want to show an error message here
+      }
+    });
+  };
+
+  // Query hook with refresh functionality
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["transactions"],
     queryFn: fetchTransactions,
   });
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    try {
+      await refetch();
+    } catch (error) {
+      console.error("Error refreshing transactions:", error);
+    }
+  };
 
   // Pick correct list based on tab
   const txData = useMemo(() => {
@@ -162,11 +224,15 @@ export default function ShoppingWalletScreen() {
       </View>
 
       {isLoading ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
           <ThemedText>Loading...</ThemedText>
         </View>
       ) : isError ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
           <ThemedText>Error fetching transactions</ThemedText>
         </View>
       ) : (
@@ -184,34 +250,44 @@ export default function ShoppingWalletScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.gradientCard}
               >
-                <ThemedText style={styles.balanceLabel}>Shopping Wallet</ThemedText>
-<ThemedText style={styles.balanceValue}>
-  ₦{Number(data?.balance || 0).toLocaleString()}
-</ThemedText>
+                <ThemedText style={styles.balanceLabel}>
+                  Shopping Wallet
+                </ThemedText>
+                <ThemedText style={styles.balanceValue}>
+                  ₦{Number(data?.balance || 0).toLocaleString()}
+                </ThemedText>
 
                 <View style={styles.balanceBtnRow}>
-                  <TouchableOpacity style={[styles.balanceBtn, { marginRight: 16 }]}
-                 
-                  onPress={() => navigation.navigate('FlutterwaveWebView', { 
-                  amount: 1000, 
-                  order_id: 'topup_' + Date.now(), 
-                  isTopUp: true 
-                })}
+                  <TouchableOpacity
+                    style={[styles.balanceBtn, { marginRight: 16 }]}
+                    onPress={() =>
+                      navigation.navigate("FlutterwaveWebView", {
+                        amount: 1000,
+                        order_id: "topup_" + Date.now(),
+                        isTopUp: true,
+                      })
+                    }
                   >
-                    <ThemedText style={styles.balanceBtnTxt}>Deposit</ThemedText>
+                    <ThemedText style={styles.balanceBtnTxt}>
+                      Deposit
+                    </ThemedText>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.balanceBtn}
                     onPress={() => setWithdrawVisible(true)}
                   >
-                    <ThemedText style={styles.balanceBtnTxt}>Withdraw</ThemedText>
+                    <ThemedText style={styles.balanceBtnTxt}>
+                      Withdraw
+                    </ThemedText>
                   </TouchableOpacity>
                 </View>
               </LinearGradient>
 
               {/* Transaction header + filter */}
               <View style={styles.txHeaderRow}>
-                <ThemedText style={styles.txHeader}>Transaction History</ThemedText>
+                <ThemedText style={styles.txHeader}>
+                  Transaction History
+                </ThemedText>
 
                 <View style={styles.filterWrap}>
                   <TouchableOpacity
@@ -219,7 +295,11 @@ export default function ShoppingWalletScreen() {
                     style={styles.filterBtn}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Ionicons name="filter-outline" size={18} color={COLOR.text} />
+                    <Ionicons
+                      name="filter-outline"
+                      size={18}
+                      color={COLOR.text}
+                    />
                   </TouchableOpacity>
 
                   {filterOpen && (
@@ -232,7 +312,10 @@ export default function ShoppingWalletScreen() {
                       ].map((opt, idx) => (
                         <TouchableOpacity
                           key={opt.key}
-                          style={[styles.popItem, idx === 3 && { borderBottomWidth: 0 }]}
+                          style={[
+                            styles.popItem,
+                            idx === 3 && { borderBottomWidth: 0 },
+                          ]}
                           onPress={() => {
                             setFilter(opt.key);
                             setFilterOpen(false);
@@ -271,6 +354,16 @@ export default function ShoppingWalletScreen() {
           renderItem={({ item }) => <RowCard item={item} tab={tab} />}
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching}
+              onRefresh={handleRefresh}
+              colors={[COLOR.primary]} // Android
+              tintColor={COLOR.primary} // iOS
+              title="Pull to refresh" // iOS
+              titleColor={COLOR.sub} // iOS
+            />
+          }
         />
       )}
 
@@ -329,7 +422,10 @@ export default function ShoppingWalletScreen() {
                 onPress={() => setSaveDetails((p) => !p)}
               >
                 <View
-                  style={[styles.checkbox, saveDetails && styles.checkboxChecked]}
+                  style={[
+                    styles.checkbox,
+                    saveDetails && styles.checkboxChecked,
+                  ]}
                 >
                   {saveDetails ? (
                     <Ionicons name="checkmark" size={14} color="#fff" />
@@ -342,12 +438,22 @@ export default function ShoppingWalletScreen() {
 
               <View style={{ flex: 1 }} />
               <TouchableOpacity
-                style={styles.withdrawBtn}
-                onPress={() => setWithdrawVisible(false)}
+                style={[
+                  styles.withdrawBtn,
+                  (!isWithdrawFormValid || isWithdrawing) && styles.withdrawBtnDisabled
+                ]}
+                onPress={handleWithdraw}
+                disabled={!isWithdrawFormValid || isWithdrawing}
               >
-                <ThemedText style={styles.withdrawBtnTxt}>
-                  Process Withdrawal
-                </ThemedText>
+                {isWithdrawing ? (
+                  <ThemedText style={styles.withdrawBtnTxt}>
+                    Processing...
+                  </ThemedText>
+                ) : (
+                  <ThemedText style={styles.withdrawBtnTxt}>
+                    Process Withdrawal
+                  </ThemedText>
+                )}
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -364,7 +470,10 @@ const TabBtn = ({ label, active, onPress }) => (
     style={[styles.tabBtn, active ? styles.tabActive : styles.tabInactive]}
   >
     <ThemedText
-      style={[styles.tabTxt, active ? styles.tabTxtActive : styles.tabTxtInactive]}
+      style={[
+        styles.tabTxt,
+        active ? styles.tabTxtActive : styles.tabTxtInactive,
+      ]}
     >
       {label}
     </ThemedText>
@@ -435,7 +544,12 @@ const styles = StyleSheet.create({
     ...shadow(6),
   },
   balanceLabel: { color: "#fff", opacity: 0.9, fontSize: 12, marginBottom: 18 },
-  balanceValue: { color: "#fff", fontSize: 38, fontWeight: "700", marginBottom: 20 },
+  balanceValue: {
+    color: "#fff",
+    fontSize: 38,
+    fontWeight: "700",
+    marginBottom: 20,
+  },
   balanceBtnRow: { flexDirection: "row", marginBottom: 10 },
   balanceBtn: {
     flex: 1,
@@ -500,7 +614,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tabActive: { backgroundColor: COLOR.primary },
-  tabInactive: { backgroundColor: "#fff", borderWidth: 1, borderColor: COLOR.line },
+  tabInactive: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLOR.line,
+  },
   tabTxt: { fontWeight: "600" },
   tabTxtActive: { color: "#fff" },
   tabTxtInactive: { color: COLOR.text },
@@ -560,7 +678,13 @@ const styles = StyleSheet.create({
     color: COLOR.text,
     marginBottom: 12,
   },
-  saveRow: { flexDirection: "row", alignItems: "center", marginTop: 4, marginBottom: 24, gap: 10 },
+  saveRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 24,
+    gap: 10,
+  },
   checkbox: {
     width: 18,
     height: 18,
@@ -571,13 +695,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#fff",
   },
-  checkboxChecked: { backgroundColor: COLOR.primary, borderColor: COLOR.primary },
+  checkboxChecked: {
+    backgroundColor: COLOR.primary,
+    borderColor: COLOR.primary,
+  },
   withdrawBtn: {
     height: 52,
     borderRadius: 15,
     backgroundColor: COLOR.primary,
     alignItems: "center",
     justifyContent: "center",
+  },
+  withdrawBtnDisabled: {
+    backgroundColor: COLOR.sub,
+    opacity: 0.6,
   },
   withdrawBtnTxt: { color: "#fff", fontWeight: "600" },
 });

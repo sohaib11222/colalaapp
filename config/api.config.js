@@ -74,6 +74,7 @@ const API = {
   User_Review: `${BASE_URL}/user-reveiws`,
   Get_Top_Selling: `${BASE_URL}/buyer/products/top-selling`,
   Get_Faqs: `${BASE_URL}/faqs/category/name/general`,
+  Wallet_Withdraw: `${BASE_URL}/wallet/withdraw`,
 };
 
 export default API;
@@ -874,4 +875,10 @@ export const useGetFaqs = (options) =>
     queryKey: ["getFaqs"],
     queryFn: () => http.get(API.Get_Faqs),
     ...options,
-  }); 
+  });
+
+export const useWalletWithdraw = (options) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.Wallet_Withdraw, payload),
+    ...options,
+  });
