@@ -17,6 +17,8 @@ import FAQsScreen from '../screens/mainscreens/settingsscreens/FAQsScreen.jsx';
 import EditProfileScreen from '../screens/mainscreens/settingsscreens/EditProfileScreen.jsx';
 import SupportFormScreen from '../screens/mainscreens/settingsscreens/SupportFormScreen.jsx';
 import SupportDetailsScreen from '../screens/mainscreens/settingsscreens/SupportDetailsScreen.jsx';
+import LeaderBoardScreen from '../screens/mainscreens/settingsscreens/LeaderBoardScreen.jsx';
+import HelpScreen from '../screens/mainscreens/settingsscreens/HelpScreen.jsx';
 
 const Stack = createNativeStackNavigator();
 
@@ -37,6 +39,8 @@ const SettingsNavigator = () => {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="SupportForm" component={SupportFormScreen} />
       <Stack.Screen name="SupportDetails" component={SupportDetailsScreen} />
+      <Stack.Screen name="LeaderBoard" component={LeaderBoardScreen} />
+      <Stack.Screen name="Help" component={HelpScreen} />
 
     
 

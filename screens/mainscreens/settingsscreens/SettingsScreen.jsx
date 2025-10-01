@@ -31,10 +31,10 @@ const COLOR = {
 
 const SettingsScreen = () => {
   const navigation = useNavigation();
-  
+
   // State for user data
   const [user, setUser] = useState(null);
-  
+
   // Wallet balance hook
   const { data: walletData, isLoading: walletLoading, refetch, isFetching } = useWalletBalance();
 
@@ -61,7 +61,7 @@ const SettingsScreen = () => {
         console.log("Error loading user data:", error);
       }
     };
-    
+
     loadUserData();
   }, []);
 
@@ -171,6 +171,10 @@ const SettingsScreen = () => {
       navigation.navigate("SettingsNavigator", {
         screen: "FAQs",
       });
+    if (key === "leaderboard")
+      navigation.navigate("SettingsNavigator", {
+        screen: "LeaderBoard",
+      });
 
     if (key === "logout") {
       handleLogout();
@@ -184,7 +188,7 @@ const SettingsScreen = () => {
   const handleLogout = async () => {
     try {
       console.log("Logging out user...");
-      
+
       // Clear all stored data
       await AsyncStorage.multiRemove([
         'auth_token',
@@ -194,15 +198,15 @@ const SettingsScreen = () => {
         'saved_items',
         'followed_stores'
       ]);
-      
+
       console.log("User data cleared successfully");
-      
+
       // Navigate to login screen or reset navigation stack
       navigation.reset({
         index: 0,
         routes: [{ name: 'AuthNavigator' }],
       });
-      
+
     } catch (error) {
       console.error("Error during logout:", error);
       // Even if there's an error, try to navigate to login
@@ -294,8 +298,8 @@ const SettingsScreen = () => {
           <View style={{ flex: 1 }}>
             <ThemedText style={styles.walletLabel}>Main Wallet</ThemedText>
             <ThemedText style={styles.walletAmount}>
-              {walletLoading 
-                ? "Loading..." 
+              {walletLoading
+                ? "Loading..."
                 : formatCurrency(walletData?.data?.shopping_balance || 0)
               }
             </ThemedText>
@@ -320,8 +324,8 @@ const SettingsScreen = () => {
           }
         >
           <ThemedText style={styles.holdingText}>
-            {walletLoading 
-              ? "Loading..." 
+            {walletLoading
+              ? "Loading..."
               : `${formatCurrency(walletData?.data?.reward_balance || 0)} locked in holding wallet`
             }{" "}
             <ThemedText
@@ -337,7 +341,7 @@ const SettingsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={{ paddingBottom: 28 }}
         refreshControl={
           <RefreshControl

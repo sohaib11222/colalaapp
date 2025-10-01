@@ -12,9 +12,9 @@ import {
 const { width } = Dimensions.get('window');
 
 const bannerImages = [
-    require('../assets/Frame 253.png'), // Replace with actual images
-    require('../assets/Frame 253.png'), // Replace with actual images
-    require('../assets/Frame 253.png'), // Replace with actual images
+    require('../assets/Frame 253.png'),
+    require('../assets/Frame 253.png'), 
+    require('../assets/Frame 253.png'), 
 
 ];
 
