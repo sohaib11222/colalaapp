@@ -71,7 +71,7 @@ const API = {
   My_Points: `${BASE_URL}/my-points`,
   Get_Post_Comments: (postId) => `${BASE_URL}/posts/${postId}/comments`,
   All_Brands: `${BASE_URL}/brands`,
-  User_Review: `${BASE_URL}/user-reviews`,
+  User_Review: `${BASE_URL}/user-reveiws`,
 };
 
 export default API;
@@ -773,8 +773,16 @@ export const fileUrl = (p) => {
   if (!p) return null;
   if (/^https?:\/\//i.test(p)) return p;
   const base = BASE_URL.replace(/\/api\/?$/, ""); // -> https://colala.hmstech.xyz
-  const cleaned = String(p).replace(/^\/?storage\/?/, ""); // avoid duplicated /storage
-  return `${base}/storage/${cleaned}`;
+  
+  // Handle different path types
+  if (p.startsWith('profile_picture/')) {
+    return `${base}/storage/${p}`;
+  } else if (p.startsWith('store_reviews/')) {
+    return `${base}/storage/${p}`;
+  } else {
+    const cleaned = String(p).replace(/^\/?storage\/?/, ""); // avoid duplicated /storage
+    return `${base}/storage/${cleaned}`;
+  }
 };
 
 
@@ -843,6 +851,10 @@ export const useAllBrands = (options) =>
 export const useUserReview = (options) =>
   useQuery({
     queryKey: ["userReview"],
-    queryFn: () => http.get(API.User_Review),
+    queryFn: () => {
+      const endpoint = `${BASE_URL}/user-reveiws`;
+      console.log("useUserReview - Calling endpoint:", endpoint);
+      return http.get(endpoint);
+    },
     ...options,
   });
