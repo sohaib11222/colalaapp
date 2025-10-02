@@ -1,5 +1,5 @@
 // screens/FollowedStoresScreen.jsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +21,7 @@ const { width } = Dimensions.get("window");
 
 
 import { useGetFollowedStores } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 /* -------------------- THEME -------------------- */
@@ -113,6 +115,12 @@ export default function FollowedStoresScreen() {
     review: "Review",
   });
 
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
+
   // API Integration
   const { data: followedStoresRes, isLoading, error } = useGetFollowedStores();
   const apiStores = followedStoresRes?.data || [];
@@ -129,6 +137,19 @@ export default function FollowedStoresScreen() {
     phone: apiStore.store_phone,
     followed_at: apiStore.followed_at,
   });
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch followed stores query
+      await queryClient.invalidateQueries({ queryKey: ['followedStores'] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   // Use API data if available, otherwise fallback to dummy data
   const allStores = useMemo(() => {
@@ -254,6 +275,14 @@ export default function FollowedStoresScreen() {
         </View>
       </View>
 
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading followed stores...</ThemedText>
+        </View>
+      )}
+
       {/* ===== Search bar (outside header) ===== */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -307,6 +336,16 @@ export default function FollowedStoresScreen() {
             paddingTop: 8,
             gap: CARD_GAP,
           }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLOR.primary]}
+              tintColor={COLOR.primary}
+              title="Pull to refresh"
+              titleColor={COLOR.sub}
+            />
+          }
           showsVerticalScrollIndicator={false}
           style={{ backgroundColor: COLOR.bg }}
           ListEmptyComponent={
@@ -496,6 +535,23 @@ const styles = StyleSheet.create({
     color: COLOR.sub,
     marginTop: 12,
     fontSize: 14,
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });
 

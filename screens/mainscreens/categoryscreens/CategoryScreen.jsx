@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   View,
   TextInput,
@@ -8,12 +8,14 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
 import { useRoute } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
 import { useCategories } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 const CategoryScreen = () => {
   const navigation = useNavigation();
@@ -27,6 +29,12 @@ const CategoryScreen = () => {
       : null;
 
   const { data, isLoading, isError } = useCategories();
+
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   const apiCategories = Array.isArray(data?.data) ? data.data : [];
   const [expanded, setExpanded] = useState({}); // { [parentId]: boolean }
@@ -42,6 +50,19 @@ const CategoryScreen = () => {
       return { [initialParentId]: true };
     });
   }, [initialParentId, apiCategories.length]);
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch categories query
+      await queryClient.invalidateQueries({ queryKey: ['categories'] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   // Filter categories based on search query and hide empty categories
   const filteredCategories = useMemo(() => {
@@ -268,6 +289,14 @@ const CategoryScreen = () => {
         </View>
       </View>
 
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color="#E53E3E" />
+          <ThemedText style={styles.headerLoadingText}>Loading categories...</ThemedText>
+        </View>
+      )}
+
       {/* Content */}
       {isLoading ? (
         <View style={{ padding: 24 }}>
@@ -289,6 +318,16 @@ const CategoryScreen = () => {
           keyExtractor={(item) => String(item.id)}
           renderItem={renderCategory}
           contentContainerStyle={{ padding: 16 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#E53E3E']}
+              tintColor={'#E53E3E'}
+              title="Pull to refresh"
+              titleColor={'#6C727A'}
+            />
+          }
         />
       )}
     </SafeAreaView>
@@ -390,4 +429,21 @@ const styles = StyleSheet.create({
 
   // If your PNGs are already colored, remove tintColor.
   iconImg: { width: 22, height: 22, resizeMode: "contain" },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ECEDEF",
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: "#6C727A",
+    fontSize: 14,
+    fontWeight: "500",
+  },
 });

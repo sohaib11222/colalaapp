@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
     View,
     Text,
@@ -11,6 +11,7 @@ import {
     ActivityIndicator,
     Alert,
     ScrollView,
+    RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,6 +26,7 @@ import {
     useSearch,     // <-- new
     BASE_URL,
 } from "../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 const { width } = Dimensions.get("window");
 const COLOR = { primary: "#E53E3E", bg: "#F5F6F8", text: "#101318" };
@@ -34,6 +36,12 @@ export default function SearchScreen() {
     const navigation = useNavigation();
     const [activeTab, setActiveTab] = useState("products"); // null = discover
     const [query, setQuery] = useState("");
+    
+    // Query client for refresh functionality
+    const queryClient = useQueryClient();
+    
+    // Refresh state
+    const [refreshing, setRefreshing] = useState(false);
 
     // Discover data (no tab)
     const { data: productData, isLoading: productsLoading } = useGetAllProducts();
@@ -72,6 +80,24 @@ export default function SearchScreen() {
     }, [serviceData, query]);
 
     const imgUrl = (p) => (p ? `${BASE_URL.replace("/api", "")}/storage/${p}` : null);
+
+    // Pull to refresh functionality
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            // Invalidate and refetch all queries
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['products'] }),
+                queryClient.invalidateQueries({ queryKey: ['stores'] }),
+                queryClient.invalidateQueries({ queryKey: ['services'] }),
+                queryClient.invalidateQueries({ queryKey: ['search'] }),
+            ]);
+        } catch (error) {
+            console.log('Refresh error:', error);
+        } finally {
+            setRefreshing(false);
+        }
+    }, [queryClient]);
 
     /* ---------- Cards (same designs you had) ---------- */
     const renderProductCard = ({ item }) => {
@@ -223,7 +249,20 @@ export default function SearchScreen() {
 
     /* ---------- Discover section (unchanged) ---------- */
     const renderDiscover = () => (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+        <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={{ paddingBottom: 60 }}
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    colors={[COLOR.primary]}
+                    tintColor={COLOR.primary}
+                    title="Pull to refresh"
+                    titleColor="#888"
+                />
+            }
+        >
             <View style={styles.section}>
                 <ThemedText style={styles.sectionTitle}>Recent Search</ThemedText>
                 {["Iphone 15", "Womens dress", "Hisensense television"].map((t, i) => (
@@ -418,6 +457,16 @@ export default function SearchScreen() {
                     numColumns={2}
                     columnWrapperStyle={{ justifyContent: "space-around", gap: 10 }}
                     contentContainerStyle={{ paddingBottom: 40 }}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={[COLOR.primary]}
+                            tintColor={COLOR.primary}
+                            title="Pull to refresh"
+                            titleColor="#888"
+                        />
+                    }
                     renderItem={
                         activeTab === "products"
                             ? renderProductCard
@@ -459,6 +508,14 @@ export default function SearchScreen() {
                     style={{ width: 22, height: 22, resizeMode: "contain" }}
                 />
             </View>
+
+            {/* Header loading indicator */}
+            {(productsLoading || storesLoading || servicesLoading || searchLoading) && (
+                <View style={styles.headerLoadingContainer}>
+                    <ActivityIndicator size="small" color={COLOR.primary} />
+                    <ThemedText style={styles.headerLoadingText}>Loading...</ThemedText>
+                </View>
+            )}
 
             <View style={styles.tabs}>
                 {["products", "stores", "services"].map((t) => (
@@ -585,4 +642,21 @@ const styles = StyleSheet.create({
     verticalDivider: { width: 1, height: "100%", backgroundColor: "#ccc" },
     shopBtn: { backgroundColor: COLOR.primary, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10 },
     shopBtnText: { color: "#fff", fontSize: 10 },
+
+    // Header loading styles
+    headerLoadingContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 12,
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#ccc",
+    },
+    headerLoadingText: {
+        marginLeft: 8,
+        color: "#888",
+        fontSize: 14,
+        fontWeight: "500",
+    },
 });

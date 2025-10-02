@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   View,
   TouchableOpacity,
@@ -11,6 +11,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Modal,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
@@ -25,6 +26,7 @@ const absUrl = (u) => (u?.startsWith("http") ? u : `${HOST}${u || ""}`);
 
 import { useAllBrands } from "../../../config/api.config";
 import { useStores } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 /* ------------ THEME FOR SHEETS (matches ServiceStoresScreen) ------------ */
 const COLOR = {
@@ -123,6 +125,12 @@ const ProductsListScreen = () => {
 
   // pagination
   const [page, setPage] = useState(1);
+  
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
   
   // Use different API based on navigation source
   const categoryProductsQuery = useCategoryProducts(
@@ -381,8 +389,39 @@ const ProductsListScreen = () => {
     }
   };
 
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Reset page to 1 and invalidate queries
+      setPage(1);
+      if (isTopSelling) {
+        await queryClient.invalidateQueries({ queryKey: ['topSelling'] });
+      } else {
+        await queryClient.invalidateQueries({ queryKey: ['categoryProducts', fetchCategoryId] });
+      }
+      // Also refresh filter data
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['stores'] }),
+        queryClient.invalidateQueries({ queryKey: ['allBrands'] })
+      ]);
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient, isTopSelling, fetchCategoryId]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f4f4f4" }}>
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color="#E53E3E" />
+          <ThemedText style={styles.headerLoadingText}>Loading products...</ThemedText>
+        </View>
+      )}
+
       {/* HEADER (unchanged) */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
@@ -599,6 +638,16 @@ const ProductsListScreen = () => {
             contentContainerStyle={{ paddingBottom: 20 }}
             onEndReachedThreshold={0.3}
             onEndReached={loadMore}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#E53E3E']}
+                tintColor={'#E53E3E'}
+                title="Pull to refresh"
+                titleColor={'#6C727A'}
+              />
+            }
             ListFooterComponent={
               isFetching && nextPageUrl ? (
                 <View style={{ paddingVertical: 16 }}>
@@ -1267,5 +1316,22 @@ const sheetStyles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     marginRight: 12,
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ECEDEF",
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: "#6C727A",
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

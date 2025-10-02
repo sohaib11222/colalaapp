@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Image,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,6 +27,7 @@ const COLOR = {
 };
 
 import { useMyPoints } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Row = ({ item }) => (
   <View style={styles.row}>
@@ -43,12 +45,31 @@ const Row = ({ item }) => (
 export default function MyPointsScreen() {
   const navigation = useNavigation();
   
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
+  
   // Fetch points data
   const { data: pointsData, isLoading, error } = useMyPoints();
 
   // Process API data
   const totalPoints = pointsData?.data?.total_points || 0;
   const stores = pointsData?.data?.stores || [];
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch points query
+      await queryClient.invalidateQueries({ queryKey: ['myPoints'] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   if (isLoading) {
     return (
@@ -118,6 +139,14 @@ export default function MyPointsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading points data...</ThemedText>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerRow}>
@@ -143,6 +172,16 @@ export default function MyPointsScreen() {
         data={stores}
         keyExtractor={(i) => String(i.id)}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLOR.primary]}
+            tintColor={COLOR.primary}
+            title="Pull to refresh"
+            titleColor={COLOR.sub}
+          />
+        }
         ListHeaderComponent={
           <>
             <LinearGradient
@@ -304,5 +343,22 @@ const styles = StyleSheet.create({
     color: COLOR.sub,
     textAlign: "center",
     lineHeight: 20,
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

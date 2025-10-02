@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   FlatList,
   Dimensions,
   Image,
+  RefreshControl,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,6 +35,7 @@ import {
   useUpdateAddress,
   useDeleteAddress,
 } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 /* ------------ THEME ------------ */
 const COLOR = {
@@ -110,6 +112,12 @@ const lgaByState = {
 
 export default function EditProfileScreen() {
   const navigation = useNavigation();
+
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   /* ---------- tabs ---------- */
   const [tab, setTab] = useState("addresses"); // default to addresses per your task
@@ -271,6 +279,22 @@ export default function EditProfileScreen() {
   useEffect(() => {
     loadUserData();
   }, []);
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch all queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['addresses'] }),
+        loadUserData(), // Reload user data from AsyncStorage
+      ]);
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   // Edit profile mutation
   const editProfile = useEditProfile({
@@ -513,6 +537,14 @@ export default function EditProfileScreen() {
         </View>
       </View>
 
+      {/* Header loading indicator */}
+      {(addressesQuery.isLoading || editProfile.isPending) && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading...</ThemedText>
+        </View>
+      )}
+
       {/* Tabs */}
       <View style={styles.tabs}>
         <TouchableOpacity
@@ -648,6 +680,16 @@ export default function EditProfileScreen() {
                 paddingBottom: 110,
               }}
               showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={[COLOR.primary]}
+                  tintColor={COLOR.primary}
+                  title="Pull to refresh"
+                  titleColor={COLOR.sub}
+                />
+              }
             >
               {addresses.map((a) => (
                 <AddressCard
@@ -1604,5 +1646,22 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     marginBottom: 6,
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

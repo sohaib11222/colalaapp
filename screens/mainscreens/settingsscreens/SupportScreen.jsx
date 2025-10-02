@@ -1,5 +1,5 @@
 // screens/SupportScreen.jsx
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   Image,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +23,7 @@ import {
   useSupportTicketDetails,
   useSupportTicketMessage,
 } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 /* ---- Theme ---- */
 const COLOR = {
   primary: "#E53E3E",
@@ -36,6 +38,12 @@ export default function SupportScreen() {
   const navigation = useNavigation();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("all"); // 'all' | 'pending' | 'resolved'
+
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch support tickets
   const { data: ticketsData, isLoading, error } = useSupportTickets();
@@ -57,6 +65,19 @@ export default function SupportScreen() {
       return "N/A";
     }
   };
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch support tickets query
+      await queryClient.invalidateQueries({ queryKey: ['supportTickets'] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   // Process tickets data
   const tickets = useMemo(() => {
@@ -155,6 +176,14 @@ export default function SupportScreen() {
         </View>
       </View>
 
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading support tickets...</ThemedText>
+        </View>
+      )}
+
       {/* Tabs */}
       <View style={styles.tabsRow}>
         <TabPill
@@ -197,6 +226,16 @@ export default function SupportScreen() {
             paddingHorizontal: 16,
             paddingTop: 6,
           }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLOR.primary]}
+              tintColor={COLOR.primary}
+              title="Pull to refresh"
+              titleColor={COLOR.sub}
+            />
+          }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <ThemedText style={styles.emptyText}>
@@ -547,5 +586,22 @@ const styles = StyleSheet.create({
   },
   ticketRight: {
     alignItems: "flex-end",
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

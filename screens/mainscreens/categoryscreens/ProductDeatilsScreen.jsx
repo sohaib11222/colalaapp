@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
   Dimensions,
   Modal,
   Linking,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
@@ -24,6 +25,7 @@ const HOST = "https://colala.hmstech.xyz";
 
 import { useSavedToggleItem } from "../../../config/api.config";
 import { useCheckSavedItem } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ProductDetailsScreen = () => {
   const route = useRoute();
@@ -38,6 +40,12 @@ const ProductDetailsScreen = () => {
   const { data, isLoading, isError } = useProductDetails(productId);
   const { data: cartData } = useCart();
   const raw = data?.data;
+
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   // State for saved status
   const [isSaved, setIsSaved] = useState(false);
@@ -101,6 +109,22 @@ const ProductDetailsScreen = () => {
       });
     }
   }, [productId]);
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch product details and cart queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['productDetails', productId] }),
+        queryClient.invalidateQueries({ queryKey: ['cart'] })
+      ]);
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient, productId]);
 
   // Handle heart icon press
   const handleHeartPress = () => {
@@ -555,10 +579,29 @@ const ProductDetailsScreen = () => {
           <ThemedText>Failed to load product details.</ThemedText>
         </View>
       ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <>
+          {/* Header loading indicator */}
+          {isLoading && (
+            <View style={styles.headerLoadingContainer}>
+              <ActivityIndicator size="small" color="#E53E3E" />
+              <ThemedText style={styles.headerLoadingText}>Loading product details...</ThemedText>
+            </View>
+          )}
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#E53E3E']}
+                tintColor={'#E53E3E'}
+                title="Pull to refresh"
+                titleColor={'#6C727A'}
+              />
+            }
+          >
           {/* HEADER */}
           <View style={styles.header}>
             <TouchableOpacity
@@ -1246,6 +1289,7 @@ const ProductDetailsScreen = () => {
             </View>
           </Modal>
         </ScrollView>
+        </>
       )}
     </SafeAreaView>
   );
@@ -1580,6 +1624,23 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ECEDEF",
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: "#6C727A",
+    fontSize: 14,
+    fontWeight: "500",
   },
 });
 

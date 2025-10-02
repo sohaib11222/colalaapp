@@ -1,5 +1,5 @@
 // screens/MyReviewsScreen.jsx
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +21,7 @@ import ThemedText from "../../../components/ThemedText";
 
 
 import { useUserReview, fileUrl } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 /* -------------------- THEME -------------------- */
@@ -239,6 +241,12 @@ export default function MyReviewsScreen() {
   const navigation = useNavigation();
   const [tab, setTab] = useState("store"); // 'store' | 'product'
 
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
+
   // API Integration
   const { data: userReviewRes, isLoading, error } = useUserReview();
   const apiStoreReviews = userReviewRes?.data?.store_reviews || [];
@@ -249,6 +257,19 @@ export default function MyReviewsScreen() {
   console.log("Store Reviews from API:", apiStoreReviews);
   console.log("Product Reviews from API:", apiProductReviews);
   console.log("API Error Details:", error);
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch user reviews query
+      await queryClient.invalidateQueries({ queryKey: ['userReview'] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   // Map API data to component format
   const mapApiStoreReviewToComponent = (apiReview) => {
@@ -468,6 +489,14 @@ export default function MyReviewsScreen() {
         </View>
       </View>
 
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading reviews...</ThemedText>
+        </View>
+      )}
+
       {/* Segmented tabs */}
       <View style={styles.tabsWrap}>
         <TouchableOpacity
@@ -529,6 +558,16 @@ export default function MyReviewsScreen() {
           data={data}
           keyExtractor={(i) => String(i.id)}
           contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 18 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLOR.primary]}
+              tintColor={COLOR.primary}
+              title="Pull to refresh"
+              titleColor={COLOR.sub}
+            />
+          }
           renderItem={({ item }) => (
             <ReviewCard
               item={item}
@@ -989,5 +1028,22 @@ const styles = StyleSheet.create({
     color: COLOR.sub,
     textAlign: "center",
     lineHeight: 20,
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

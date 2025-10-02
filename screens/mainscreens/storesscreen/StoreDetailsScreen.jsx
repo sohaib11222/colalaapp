@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -12,6 +12,8 @@ import {
   Modal,
   KeyboardAvoidingView,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,6 +31,7 @@ import {
 
 import { useToggleFollowStore } from "../../../config/api.config";
 import { useCheckFollowedStore } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 const { width } = Dimensions.get("window");
 const COLOR = {
@@ -83,6 +86,12 @@ export default function StoreDetailsScreen() {
   // Follow/Unfollow functionality
   const [isFollowing, setIsFollowing] = useState(false);
   const [isCheckingFollow, setIsCheckingFollow] = useState(true);
+
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
   
   const { mutateAsync: toggleFollow, isPending: isTogglingFollow } = useToggleFollowStore({
     onSuccess: (response) => {
@@ -266,6 +275,22 @@ export default function StoreDetailsScreen() {
       Alert.alert("Error", "Failed to update follow status. Please try again.");
     }
   };
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch store details and reviews queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['storeDetails', storeId] }),
+        queryClient.invalidateQueries({ queryKey: ['storeReviews', storeId] })
+      ]);
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient, storeId]);
 
   const activeReviews = reviewScope === "store" ? reviewsStore : reviewsProduct;
   const reviewCount = activeReviews.length;
@@ -516,7 +541,27 @@ export default function StoreDetailsScreen() {
       style={{ flex: 1, backgroundColor: COLOR.bg }}
       edges={["top"]}
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
+      {/* Header loading indicator */}
+      {!storeRes && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading store details...</ThemedText>
+        </View>
+      )}
+
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLOR.primary]}
+            tintColor={COLOR.primary}
+            title="Pull to refresh"
+            titleColor={COLOR.sub}
+          />
+        }
+      >
         {/* Cover */}
         <View style={styles.coverWrap}>
           {coverSrc ? (
@@ -1678,5 +1723,22 @@ const styles = StyleSheet.create({
     color: COLOR.sub,
     textAlign: "center",
     lineHeight: 20,
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

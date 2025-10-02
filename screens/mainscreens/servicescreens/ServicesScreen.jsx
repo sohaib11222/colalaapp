@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -8,12 +8,14 @@ import {
   FlatList,
   Dimensions,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText"; // 👈 import ThemedText
 
 import { useServicesCategories } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 
@@ -23,6 +25,12 @@ const CARD_WIDTH = (width - 48) / 3;
 const ServicesScreen = () => {
   const navigation = useNavigation();
   
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
+  
   // Fetch services categories from API
   const { data: servicesData, isLoading, error } = useServicesCategories();
   
@@ -31,6 +39,19 @@ const ServicesScreen = () => {
     if (!imagePath) return require("../../../assets/Rectangle 32 (1).png");
     return { uri: `https://colala.hmstech.xyz/storage/${imagePath}` };
   };
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch services categories query
+      await queryClient.invalidateQueries({ queryKey: ['servicesCategories'] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   return (
     <View style={styles.container}>
@@ -99,6 +120,14 @@ const ServicesScreen = () => {
         </View>
       </View>
 
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color="#E53E3E" />
+          <ThemedText style={styles.headerLoadingText}>Loading services...</ThemedText>
+        </View>
+      )}
+
       {/* ⚪️ Card Body Overlapping Header */}
       <View style={styles.bodyCard}>
         <TouchableOpacity style={styles.viewAllButton}>
@@ -125,6 +154,16 @@ const ServicesScreen = () => {
               marginBottom: 14,
             }}
             contentContainerStyle={{ paddingBottom: 20 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#E53E3E']}
+                tintColor={'#E53E3E'}
+                title="Pull to refresh"
+                titleColor={'#6C727A'}
+              />
+            }
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.card}
@@ -283,5 +322,22 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#E53E3E",
     fontSize: 14,
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ECEDEF",
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: "#6C727A",
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

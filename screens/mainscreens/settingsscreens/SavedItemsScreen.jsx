@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   View, StyleSheet, TouchableOpacity, TextInput,
   FlatList, SafeAreaView, Dimensions, Modal, Pressable, Image, Platform,
-  ScrollView, KeyboardAvoidingView
+  ScrollView, KeyboardAvoidingView, RefreshControl, ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedText from '../../../components/ThemedText'; // ← adjust path if needed
@@ -11,6 +11,7 @@ const COLOR = { primary:'#E53E3E', white:'#fff', text:'#101318', sub:'#6C727A', 
 const { width } = Dimensions.get('window');
 
 import {useListOfAllSavedItems, fileUrl} from '../../../config/api.config';
+import { useQueryClient } from '@tanstack/react-query';
 
 
 /* ------- Card sizes ------- */
@@ -145,17 +146,23 @@ const SavedItemsScreen = ({ navigation }) => {
     console.log("Service Name:", apiItem.name);
     console.log("Service Price:", apiItem.price);
     console.log("Service ID from API:", apiItem.service_id);
+    console.log("Service Media:", apiItem.media);
     
     // Use service_id if available, otherwise use id
     const serviceId = apiItem.service_id || apiItem.id;
     console.log("Using Service ID for navigation:", serviceId);
+    
+    // Get service image from media array
+    const serviceImage = apiItem.media && apiItem.media.length > 0 
+      ? { uri: apiItem.media[0] } 
+      : require('../../../assets/Rectangle 32.png');
     
     const mapped = {
       id: String(serviceId), // Use the correct service ID for navigation
       name: 'Store', // Store name not provided in API
       service: apiItem.name || 'Service',
       price: apiItem.price ? `₦${parseFloat(apiItem.price).toLocaleString()}` : 'Contact for price',
-      image: require('../../../assets/Rectangle 32.png'),
+      image: serviceImage, // Use actual service image from API
       rating: 4.5, // Default rating
       profileImage: require('../../../assets/Ellipse 18.png'),
       location: 'Lagos, Nigeria', // Default location
@@ -192,8 +199,27 @@ const SavedItemsScreen = ({ navigation }) => {
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
 
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
+
   // Reset filters when switching tabs
   useEffect(() => { setQuery(''); setLocation('All'); setCategory('All'); }, [activeTab]);
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch saved items query
+      await queryClient.invalidateQueries({ queryKey: ['savedItems'] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   const filteredProducts = useMemo(() => {
     console.log("=== FILTERING PRODUCTS ===");
@@ -728,6 +754,14 @@ const SavedItemsScreen = ({ navigation }) => {
         <View style={{ width: 36 }} />
       </View>
 
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading saved items...</ThemedText>
+        </View>
+      )}
+
       {/* Tabs */}
       <View style={styles.tabsRow}>
         {TABS.map(t => (
@@ -783,6 +817,16 @@ const SavedItemsScreen = ({ navigation }) => {
             isPosts
               ? { paddingBottom: 24 }
               : { paddingHorizontal: 16, paddingBottom: 24 }
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLOR.primary]}
+              tintColor={COLOR.primary}
+              title="Pull to refresh"
+              titleColor={COLOR.sub}
+            />
           }
           ListEmptyComponent={
             <View style={styles.placeholder}>
@@ -953,4 +997,21 @@ const styles = StyleSheet.create({
   optionRowDanger: { borderColor:'#FDE2E0', backgroundColor:'#FFF8F8' },
   optionLeft: { flexDirection:'row', alignItems:'center', gap:12 },
   optionLabel: { fontSize:15, color:COLOR.text },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
+  },
 });

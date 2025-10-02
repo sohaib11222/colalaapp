@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   View,
   Image,
@@ -12,6 +12,8 @@ import {
   Pressable,
   StyleSheet,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import {
@@ -27,6 +29,7 @@ import {
   queryClient,
   useCreateDispute,
 } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 const COLOR = {
   primary: "#E53E3E",
@@ -78,6 +81,12 @@ export default function ChatDetailsScreen() {
     storeName: store?.name,
     storeProfileImage: store?.profileImage
   });
+
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   // Handle case where chatId is not provided
   if (!chatId) {
@@ -186,6 +195,19 @@ export default function ChatDetailsScreen() {
       }
     );
   };
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch chat messages query
+      await queryClient.invalidateQueries({ queryKey: ['chatMessages', chatId] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient, chatId]);
 
   const KAV_OFFSET = Platform.OS === "ios" ? insets.top + headerH : 0;
 
@@ -379,6 +401,14 @@ export default function ChatDetailsScreen() {
       style={{ flex: 1, backgroundColor: COLOR.bg }}
       edges={["top", "bottom"]}
     >
+      {/* Header loading indicator */}
+      {messagesLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading messages...</ThemedText>
+        </View>
+      )}
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -480,6 +510,16 @@ export default function ChatDetailsScreen() {
             renderItem={renderMessage}
             onContentSizeChange={scrollToEnd}
             style={{ flex: 1 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[COLOR.primary]}
+                tintColor={COLOR.primary}
+                title="Pull to refresh"
+                titleColor={COLOR.sub}
+              />
+            }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <ThemedText style={styles.emptyText}>
@@ -924,5 +964,22 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.sub,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

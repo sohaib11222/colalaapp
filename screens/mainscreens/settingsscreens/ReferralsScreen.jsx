@@ -1,5 +1,5 @@
 // screens/ReferralsScreen.jsx
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -11,6 +11,8 @@ import {
   TextInput,
   ScrollView,
   Image,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +20,7 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Clipboard from "expo-clipboard";
 import ThemedText from "../../../components/ThemedText"; // <-- adjust path if needed
+import { useQueryClient } from "@tanstack/react-query";
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
@@ -35,6 +38,12 @@ export default function ReferralsScreen() {
   const [tab, setTab] = useState("wallet"); // 'wallet' | 'faqs' | 'search'
   const [code] = useState("QERDEQWE");
   const [copied, setCopied] = useState(false);
+
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   // Transfer modal
   const [transferVisible, setTransferVisible] = useState(false);
@@ -59,6 +68,19 @@ export default function ReferralsScreen() {
       setTimeout(() => setCopied(false), 1200);
     } catch {}
   };
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch referral-related queries
+      await queryClient.invalidateQueries({ queryKey: ['referrals'] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   const steps = [
     "Invite a friend with your referral code for them to get a one time referral bonus",
@@ -160,6 +182,14 @@ export default function ReferralsScreen() {
         </View>
       </View>
 
+      {/* Header loading indicator */}
+      {refreshing && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Refreshing referrals...</ThemedText>
+        </View>
+      )}
+
       {/* Tabs */}
       <View style={styles.tabsWrap}>
         {[
@@ -188,6 +218,16 @@ export default function ReferralsScreen() {
           data={[{ id: "content" }]}
           keyExtractor={(i) => i.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLOR.primary]}
+              tintColor={COLOR.primary}
+              title="Pull to refresh"
+              titleColor={COLOR.sub}
+            />
+          }
           renderItem={() => (
             <>
               {/* Gradient Wallet Card */}
@@ -260,6 +300,16 @@ export default function ReferralsScreen() {
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLOR.primary]}
+              tintColor={COLOR.primary}
+              title="Pull to refresh"
+              titleColor={COLOR.sub}
+            />
+          }
         >
           {/* Video banner with play icon */}
           <View style={styles.videoCard}>
@@ -308,6 +358,16 @@ export default function ReferralsScreen() {
           data={PRODUCTS}
           keyExtractor={(i) => i.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLOR.primary]}
+              tintColor={COLOR.primary}
+              title="Pull to refresh"
+              titleColor={COLOR.sub}
+            />
+          }
           ListHeaderComponent={
             <>
               {/* Search input with icon on the right */}
@@ -918,4 +978,21 @@ const styles = StyleSheet.create({
   },
   radioOuterActive: { borderColor: COLOR.primary },
   radioInner: { width: 10, height: 10, borderRadius: 6, backgroundColor: COLOR.primary },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
+  },
 });

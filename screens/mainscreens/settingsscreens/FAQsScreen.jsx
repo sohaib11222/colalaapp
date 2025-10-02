@@ -1,5 +1,5 @@
 // screens/FAQsScreen.jsx
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Linking,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,6 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
 
 import { useGetFaqs } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 /* ---- THEME ---- */
@@ -31,6 +33,12 @@ const COLOR = {
 
 export default function FAQsScreen() {
   const navigation = useNavigation();
+
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   // API hook
   const { data: apiData, isLoading, error } = useGetFaqs();
@@ -76,6 +84,19 @@ export default function FAQsScreen() {
       );
     }
   };
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch FAQs query
+      await queryClient.invalidateQueries({ queryKey: ['faqs'] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   // Dummy data fallback
   const DUMMY_FAQS = [
@@ -162,9 +183,27 @@ export default function FAQsScreen() {
         </View>
       </View>
 
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading FAQs...</ThemedText>
+        </View>
+      )}
+
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLOR.primary]}
+            tintColor={COLOR.primary}
+            title="Pull to refresh"
+            titleColor={COLOR.sub}
+          />
+        }
       >
         {/* Loading indicator */}
         {isLoading && (
@@ -395,5 +434,22 @@ const styles = StyleSheet.create({
     color: "#856404",
     textAlign: "center",
     fontSize: 14,
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

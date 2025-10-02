@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
   Image,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,6 +17,7 @@ import ThemedText from "../../../components/ThemedText"; // <-- adjust path if n
 
 import { useEscrowWallet } from "../../../config/api.config";
 import { useEscrowWalletHistory } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 /* ---- THEME ---- */
 const COLOR = {
@@ -61,6 +63,12 @@ const LockRow = ({ item, onPressStore }) => (
 export default function EscrowWalletScreen() {
   const navigation = useNavigation();
 
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
+
   // Fetch escrow wallet data
   const { data: walletData, isLoading: walletLoading, error: walletError } = useEscrowWallet();
   
@@ -90,6 +98,22 @@ export default function EscrowWalletScreen() {
       return "N/A";
     }
   };
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch both escrow wallet queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['escrowWallet'] }),
+        queryClient.invalidateQueries({ queryKey: ['escrowWalletHistory'] })
+      ]);
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   // Process history data
   const historyItems = useMemo(() => {
@@ -192,10 +216,28 @@ export default function EscrowWalletScreen() {
         </View>
       </View>
 
+      {/* Header loading indicator */}
+      {(walletLoading || historyLoading) && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ThemedText style={styles.headerLoadingText}>Loading wallet data...</ThemedText>
+        </View>
+      )}
+
       <FlatList
         data={historyItems}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLOR.primary]}
+            tintColor={COLOR.primary}
+            title="Pull to refresh"
+            titleColor={COLOR.sub}
+          />
+        }
         ListHeaderComponent={
           <>
             {/* Balance card */}
@@ -373,5 +415,22 @@ const styles = StyleSheet.create({
     color: COLOR.sub,
     textAlign: "center",
     lineHeight: 20,
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: COLOR.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   Dimensions,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
@@ -18,6 +19,7 @@ import ThemedText from "../../../components/ThemedText";
 import { useServicesDetail } from "../../../config/api.config";
 import { useSavedToggleItem } from "../../../config/api.config";
 import { useCheckSavedItem } from "../../../config/api.config";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 
@@ -50,6 +52,12 @@ const ServiceDetailsScreen = () => {
   // State for image viewer
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Query client for refresh functionality
+  const queryClient = useQueryClient();
+  
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch service details from API
   const {
@@ -89,6 +97,19 @@ const ServiceDetailsScreen = () => {
       });
     }
   }, [service?.id]);
+
+  // Pull to refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate and refetch service details query
+      await queryClient.invalidateQueries({ queryKey: ['serviceDetails', service?.id] });
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient, service?.id]);
 
   // Handle heart icon press
   const handleHeartPress = () => {
@@ -216,8 +237,29 @@ const ServiceDetailsScreen = () => {
   const priceBreakdown = getPriceBreakdown(serviceInfo?.sub_services);
 
   return (
-    <ScrollView style={styles.container}>
-      <StatusBar style="dark" />
+    <>
+      {/* Header loading indicator */}
+      {isLoading && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color="#E53E3E" />
+          <ThemedText style={styles.headerLoadingText}>Loading service details...</ThemedText>
+        </View>
+      )}
+
+      <ScrollView 
+        style={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#E53E3E']}
+            tintColor={'#E53E3E'}
+            title="Pull to refresh"
+            titleColor={'#6C727A'}
+          />
+        }
+      >
+        <StatusBar style="dark" />
       {/* Top Image */}
       <View style={styles.topHeader}>
         <TouchableOpacity
@@ -457,6 +499,7 @@ const ServiceDetailsScreen = () => {
         </View>
       </Modal>
     </ScrollView>
+    </>
   );
 };
 
@@ -731,5 +774,22 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+
+  // Header loading styles
+  headerLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ECEDEF",
+  },
+  headerLoadingText: {
+    marginLeft: 8,
+    color: "#6C727A",
+    fontSize: 14,
+    fontWeight: "500",
   },
 });
