@@ -14,8 +14,11 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import ThemedText from "../../components/ThemedText";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -258,7 +261,24 @@ const handleLikePress = async () => {
           >
             <ThemedText style={styles.visitBtnText}>Visit Store</ThemedText>
           </TouchableOpacity>
-          <TouchableOpacity style={{ marginLeft: 10 }}>
+          <TouchableOpacity
+            style={{ marginLeft: 10 }}
+            onPress={async () => {
+              try {
+                const uri = images?.[activeIdx] || images?.[0];
+                if (!uri) return;
+                const { status } = await MediaLibrary.requestPermissionsAsync();
+                if (status !== 'granted') { Alert.alert('Permission required', 'Please allow photo library access to save images.'); return; }
+                const fileName = uri.split('/').pop() || `image_${Date.now()}.jpg`;
+                const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+                const download = await FileSystem.downloadAsync(uri, fileUri);
+                if (download.status === 200) {
+                  await MediaLibrary.saveToLibraryAsync(download.uri);
+                  Alert.alert('Saved', 'Image saved to your gallery.');
+                }
+              } catch (e) { Alert.alert('Error', 'Failed to save image.'); }
+            }}
+          >
             <Image
               source={require("../../assets/DownloadSimple.png")}
               style={{ width: 30, height: 30 }}

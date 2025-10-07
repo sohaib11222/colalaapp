@@ -14,6 +14,7 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,6 +32,7 @@ import {
 
 import { useToggleFollowStore } from "../../../config/api.config";
 import { useCheckFollowedStore } from "../../../config/api.config";
+import { useCategories, useAllBrands } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
 
 const { width } = Dimensions.get("window");
@@ -174,6 +176,8 @@ export default function StoreDetailsScreen() {
             id: String(p.id),
             title: p.name || "Product",
             name: p.name || "Product",
+            categoryId: p.category_id ?? null,
+            brandId: p.brand ? Number(p.brand) : null,
             store: name,
             store_image: avatar,
             location: location || "Lagos, Nigeria",
@@ -226,15 +230,30 @@ export default function StoreDetailsScreen() {
   // ======== Search in Products ========
   const [tab, setTab] = useState("Products");
   const [query, setQuery] = useState("");
+  const [filtersVisible, setFiltersVisible] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+  const [selectedBrandIds, setSelectedBrandIds] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const products = useMemo(() => {
-    if (!query) return productsSource;
-    const q = query.toLowerCase();
-    return productsSource.filter(
-      (p) =>
-        (p?.title || p?.name || "").toLowerCase().includes(q) ||
-        (p?.store || "").toLowerCase().includes(q)
-    );
-  }, [query, productsSource]);
+    const base = Array.isArray(productsSource) ? productsSource : [];
+    const q = (query || "").toLowerCase();
+    const textFiltered = q
+      ? base.filter(
+          (p) =>
+            (p?.title || p?.name || "").toLowerCase().includes(q) ||
+            (p?.store || "").toLowerCase().includes(q)
+        )
+      : base;
+
+    const catOk = (p) =>
+      !selectedCategoryIds?.length || selectedCategoryIds.includes(p.categoryId);
+    const brandOk = (p) =>
+      !selectedBrandIds?.length || selectedBrandIds.includes(p.brandId);
+    const locOk = (p) =>
+      !selectedLocation || (p.location || "").toLowerCase() === selectedLocation.toLowerCase();
+
+    return textFiltered.filter((p) => catOk(p) && brandOk(p) && locOk(p));
+  }, [query, productsSource, selectedCategoryIds, selectedBrandIds, selectedLocation]);
 
   // ======== Reviews: API ↔ UI mapping (keep demo if none) ========
   const mapApiReviewToUi = (rv) => ({
@@ -527,6 +546,7 @@ export default function StoreDetailsScreen() {
   // ======== Simple local sheets (unchanged) ========
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
+  const [addressesVisible, setAddressesVisible] = useState(false);
 
   // ======== RENDER ========
   const coverSrc = toSrc(mergedStore?.cover);
@@ -578,10 +598,10 @@ export default function StoreDetailsScreen() {
               <Ionicons name="chevron-back" size={20} color="#fff" />
             </TouchableOpacity>
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <TouchableOpacity style={styles.circleBtn}>
+              <TouchableOpacity style={styles.circleBtn} onPress={() => navigation.navigate('AuthNavigator', { screen: 'Search' }) }>
                 <Ionicons name="search" size={18} color="#fff" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.circleBtn}>
+              <TouchableOpacity style={styles.circleBtn} onPress={() => Alert.alert("Share", "Share is available on the live application only.") }>
                 <Image
                   source={require("../../../assets/Vector (23).png")}
                   style={styles.iconImg}
@@ -662,14 +682,16 @@ export default function StoreDetailsScreen() {
             <ThemedText style={[styles.metaTxt, { marginBottom: 5 }]}>
               {mergedStore?.location || "Lagos, Nigeria"}
             </ThemedText>
-            <ThemedText
-              style={[
-                styles.metaTxt,
-                { color: COLOR.primary, textDecorationLine: "underline" },
-              ]}
-            >
-              View Store Addresses
-            </ThemedText>
+            <TouchableOpacity onPress={() => setAddressesVisible(true)}>
+              <ThemedText
+                style={[
+                  styles.metaTxt,
+                  { color: COLOR.primary, textDecorationLine: "underline" },
+                ]}
+              >
+                View Store Addresses
+              </ThemedText>
+            </TouchableOpacity>
           </View>
 
           {/* Your tags block (not in API) — kept as-is */}
@@ -793,7 +815,24 @@ export default function StoreDetailsScreen() {
 
         {/* Action buttons (kept) */}
         <View style={styles.buttonStack}>
-          <TouchableOpacity style={[styles.bigBtn, styles.bigBtnRed]}>
+          <TouchableOpacity
+            style={[styles.bigBtn, styles.bigBtnRed]}
+            onPress={async () => {
+              try {
+                const phone = (mergedStore?.phone || "").toString().trim();
+                if (!phone) {
+                  Alert.alert("Call", "Phone number not available.");
+                  return;
+                }
+                const telUrl = `tel:${phone}`;
+                const supported = await Linking.canOpenURL(telUrl);
+                if (supported) await Linking.openURL(telUrl);
+                else Alert.alert("Call", "Calling is not supported on this device.");
+              } catch (e) {
+                Alert.alert("Call", "Failed to start call.");
+              }
+            }}
+          >
             <ThemedText style={styles.bigBtnTxt}>Call</ThemedText>
           </TouchableOpacity>
 
@@ -894,7 +933,7 @@ export default function StoreDetailsScreen() {
                 />
               </View>
               <TouchableOpacity style={styles.filterBtn}>
-                <Ionicons name="options-outline" size={18} color={COLOR.text} />
+                <Ionicons name="options-outline" size={18} color={COLOR.text} onPress={() => setFiltersVisible(true)} />
               </TouchableOpacity>
             </View>
 
@@ -1015,6 +1054,21 @@ export default function StoreDetailsScreen() {
         visible={leaveReviewVisible}
         onClose={() => setLeaveReviewVisible(false)}
         onSubmit={handleSubmitReview}
+      />
+      <StoreAddressesModal
+        visible={addressesVisible}
+        onClose={() => setAddressesVisible(false)}
+        addresses={mergedStore?.addresses || []}
+      />
+      <FiltersModal
+        visible={filtersVisible}
+        onClose={() => setFiltersVisible(false)}
+        selectedCategoryIds={selectedCategoryIds}
+        setSelectedCategoryIds={setSelectedCategoryIds}
+        selectedBrandIds={selectedBrandIds}
+        setSelectedBrandIds={setSelectedBrandIds}
+        selectedLocation={selectedLocation}
+        setSelectedLocation={setSelectedLocation}
       />
     </SafeAreaView>
   );
@@ -1192,6 +1246,362 @@ function ReviewSheet({ visible, onClose, onSubmit }) {
           >
             <ThemedText style={styles.sendReviewTxt}>Send Review</ThemedText>
           </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+/* ===== Store Addresses Modal ===== */
+function StoreAddressesModal({ visible, onClose, addresses }) {
+  const openMap = async (addr) => {
+    const q = [addr?.full_address, addr?.local_government, addr?.state]
+      .filter(Boolean)
+      .join(", ");
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      q || "Store"
+    )}`;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) await Linking.openURL(url);
+    } catch {}
+  };
+
+  const defaultHours = [
+    { d: "Monday", t: "08:00 AM - 07:00PM" },
+    { d: "Tuesday", t: "08:00 AM - 07:00PM" },
+    { d: "Wednesday", t: "08:00 AM - 07:00PM" },
+    { d: "Thursday", t: "08:00 AM - 07:00PM" },
+    { d: "Friday", t: "08:00 AM - 07:00PM" },
+    { d: "Saturday", t: "08:00 AM - 07:00PM" },
+  ];
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.modalOverlay}
+      >
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.sheet, { maxHeight: "85%" }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <ThemedText style={styles.sheetTitle}>Store Addresses</ThemedText>
+            <TouchableOpacity
+              style={{ borderColor: "#000", borderWidth: 1.2, borderRadius: 20, padding: 2 }}
+              onPress={onClose}
+            >
+              <Ionicons name="close" size={18} color={COLOR.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView>
+            {(addresses || []).map((addr, idx) => (
+              <View key={addr?.id ?? idx} style={{ marginBottom: 12 }}>
+                <View
+                  style={{
+                    backgroundColor: "#fff",
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: COLOR.line,
+                    overflow: "hidden",
+                    ...shadow(4),
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: COLOR.primary,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <ThemedText style={{ color: "#fff", fontWeight: "700" }}>{`Address ${
+                      idx + 1
+                    }`}</ThemedText>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      {addr?.is_main ? (
+                        <View
+                          style={{
+                            backgroundColor: "#fff",
+                            borderRadius: 12,
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                          }}
+                        >
+                          <ThemedText style={{ color: COLOR.primary, fontSize: 10 }}>
+                            Main Office
+                          </ThemedText>
+                        </View>
+                      ) : null}
+                      <TouchableOpacity
+                        onPress={() => openMap(addr)}
+                        style={{
+                          backgroundColor: "#fff",
+                          borderRadius: 12,
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                        }}
+                      >
+                        <ThemedText style={{ color: COLOR.text, fontSize: 12 }}>View on Map</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={{ paddingHorizontal: 12, paddingVertical: 12 }}>
+                    <ThemedText style={{ color: COLOR.sub, fontSize: 11 }}>State</ThemedText>
+                    <ThemedText style={{ color: COLOR.text, marginTop: 2 }}>{addr?.state || "-"}</ThemedText>
+
+                    <ThemedText style={{ color: COLOR.sub, fontSize: 11, marginTop: 10 }}>
+                      Local Government
+                    </ThemedText>
+                    <ThemedText style={{ color: COLOR.text, marginTop: 2 }}>
+                      {addr?.local_government || "-"}
+                    </ThemedText>
+
+                    <ThemedText style={{ color: COLOR.sub, fontSize: 11, marginTop: 10 }}>
+                      Full Address
+                    </ThemedText>
+                    <ThemedText style={{ color: COLOR.text, marginTop: 2 }}>
+                      {addr?.full_address || "-"}
+                    </ThemedText>
+
+                    <View
+                      style={{
+                        marginTop: 12,
+                        backgroundColor: "#FFEDED",
+                        borderRadius: 12,
+                        padding: 12,
+                        borderWidth: 1,
+                        borderColor: "#FFE1E1",
+                      }}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                        <Ionicons name="time-outline" size={16} color={COLOR.text} />
+                        <ThemedText style={{ marginLeft: 6, fontWeight: "700", color: COLOR.text }}>
+                          Opening Hours
+                        </ThemedText>
+                      </View>
+                      {(addr?.opening_hours && Array.isArray(addr.opening_hours)
+                        ? addr.opening_hours
+                        : defaultHours
+                      ).map((row, i) => (
+                        <View key={i} style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                          <ThemedText style={{ color: COLOR.sub, fontSize: 12 }}>{row.d || row.day}</ThemedText>
+                          <ThemedText style={{ color: COLOR.text, fontSize: 12 }}>{row.t || row.time}</ThemedText>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+/* ===== Filters Modal ===== */
+function FiltersModal({
+  visible,
+  onClose,
+  selectedCategoryIds,
+  setSelectedCategoryIds,
+  selectedBrandIds,
+  setSelectedBrandIds,
+  selectedLocation,
+  setSelectedLocation,
+}) {
+  const { data: categoriesRes } = useCategories();
+  const { data: brandsRes } = useAllBrands();
+  const categories = categoriesRes?.data || [];
+  const brands = brandsRes?.data || [];
+
+  const [openSection, setOpenSection] = useState(null); // 'category' | 'brand' | 'location'
+
+  const toggleId = (list, setList, id) => {
+    setList((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const reset = () => {
+    setSelectedCategoryIds([]);
+    setSelectedBrandIds([]);
+    setSelectedLocation(null);
+  };
+
+  const LOCATIONS = ["Lagos, Nigeria", "Abuja, Nigeria", "Kano, Nigeria", "Port Harcourt, Nigeria"];
+
+  const renderCheckboxRow = (label, checked, onPress) => (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLOR.line,
+        paddingHorizontal: 12,
+        paddingVertical: 14,
+        marginTop: 8,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
+      <ThemedText style={{ color: COLOR.text }}>{label}</ThemedText>
+      <View
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: 4,
+          borderWidth: 1.5,
+          borderColor: COLOR.line,
+          backgroundColor: checked ? COLOR.primary : "transparent",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {checked ? <Ionicons name="checkmark" color="#fff" size={14} /> : null}
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.modalOverlay}
+      >
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.sheet, { maxHeight: "90%" }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <ThemedText style={styles.sheetTitle}>Filters</ThemedText>
+            <TouchableOpacity
+              style={{ borderColor: "#000", borderWidth: 1.2, borderRadius: 20, padding: 2 }}
+              onPress={onClose}
+            >
+              <Ionicons name="close" size={18} color={COLOR.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView>
+            {/* Category Section */}
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#F6F6F6",
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 14,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+              onPress={() => setOpenSection((s) => (s === "category" ? null : "category"))}
+            >
+              <ThemedText style={{ color: COLOR.text }}>Category</ThemedText>
+              <Ionicons name={openSection === "category" ? "chevron-up" : "chevron-down"} size={18} />
+            </TouchableOpacity>
+            {openSection === "category" && (
+              <View style={{ marginTop: 6 }}>
+                {categories.map((c) =>
+                  renderCheckboxRow(
+                    c.title,
+                    selectedCategoryIds.includes(c.id),
+                    () => toggleId(selectedCategoryIds, setSelectedCategoryIds, c.id)
+                  )
+                )}
+              </View>
+            )}
+
+            {/* Brand Section */}
+            <View style={{ height: 12 }} />
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#F6F6F6",
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 14,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+              onPress={() => setOpenSection((s) => (s === "brand" ? null : "brand"))}
+            >
+              <ThemedText style={{ color: COLOR.text }}>Brand</ThemedText>
+              <Ionicons name={openSection === "brand" ? "chevron-up" : "chevron-down"} size={18} />
+            </TouchableOpacity>
+            {openSection === "brand" && (
+              <View style={{ marginTop: 6 }}>
+                {brands.map((b) =>
+                  renderCheckboxRow(
+                    b.name,
+                    selectedBrandIds.includes(b.id),
+                    () => toggleId(selectedBrandIds, setSelectedBrandIds, b.id)
+                  )
+                )}
+              </View>
+            )}
+
+            {/* Location Section */}
+            <View style={{ height: 12 }} />
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#F6F6F6",
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 14,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+              onPress={() => setOpenSection((s) => (s === "location" ? null : "location"))}
+            >
+              <ThemedText style={{ color: COLOR.text }}>Location</ThemedText>
+              <Ionicons name={openSection === "location" ? "chevron-up" : "chevron-down"} size={18} />
+            </TouchableOpacity>
+            {openSection === "location" && (
+              <View style={{ marginTop: 6 }}>
+                {LOCATIONS.map((loc) =>
+                  renderCheckboxRow(loc, selectedLocation === loc, () => setSelectedLocation(loc))
+                )}
+              </View>
+            )}
+
+            <View style={{ height: 16 }} />
+          </ScrollView>
+
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                height: 48,
+                borderRadius: 12,
+                backgroundColor: "#EFEFEF",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onPress={reset}
+            >
+              <ThemedText style={{ color: COLOR.text }}>Clear</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                height: 48,
+                borderRadius: 12,
+                backgroundColor: COLOR.primary,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onPress={onClose}
+            >
+              <ThemedText style={{ color: "#fff", fontWeight: "700" }}>Apply</ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>

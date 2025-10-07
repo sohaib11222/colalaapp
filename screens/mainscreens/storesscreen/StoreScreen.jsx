@@ -10,6 +10,9 @@ import {
   Platform,
   RefreshControl,
   ActivityIndicator,
+  Modal,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,7 +20,7 @@ import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
 
 // API hooks
-import { useStores, BASE_URL } from "../../../config/api.config";
+import { useStores, BASE_URL, useCategories } from "../../../config/api.config";
 
 const { width } = Dimensions.get("window");
 
@@ -68,6 +71,15 @@ export default function StoresScreen() {
     review: "Review",
   });
 
+  // Filter selections
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+  const [selectedReview, setSelectedReview] = useState(null); // e.g., 4.5, 4, 3
+
   // Fetch stores from API
   const { data, isLoading, isError, refetch, isFetching } = useStores();
 
@@ -88,6 +100,7 @@ export default function StoresScreen() {
     return list.map((s) => {
       const cover = mediaUrl(s.banner_image) || FALLBACK_COVER;
       const avatar = mediaUrl(s.profile_image) || FALLBACK_AVATAR;
+      const ratingVal = Number(s.average_rating ?? s.rating ?? HARDCODED_RATING) || HARDCODED_RATING;
       return {
         id: String(s.id),
         name: s.store_name || "Store",
@@ -95,41 +108,48 @@ export default function StoresScreen() {
         avatar,
         // hardcoded bits (not in response)
         tags: HARDCODED_TAGS,
-        rating: HARDCODED_RATING,
+        rating: ratingVal,
         // keep original API store if you need it in details
         _api: s,
       };
     });
   }, [data]);
 
-  // search (local)
+  // search + filters (local)
   const filtered = useMemo(() => {
-    if (!query.trim()) return storesFromApi;
-    const q = query.toLowerCase();
-    return (storesFromApi || []).filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s._api?.store_location?.toLowerCase()?.includes(q) ||
-        s.tags.some((t) => t.toLowerCase().includes(q))
-    );
-  }, [query, storesFromApi]);
+    const base = storesFromApi || [];
+    const q = (query || "").toLowerCase();
+    const byText = q
+      ? base.filter(
+          (s) =>
+            s.name.toLowerCase().includes(q) ||
+            s._api?.store_location?.toLowerCase()?.includes(q) ||
+            s.tags.some((t) => t.toLowerCase().includes(q))
+        )
+      : base;
+
+    const locationOk = (s) =>
+      !selectedLocation ||
+      (s._api?.store_location || "").toLowerCase() === selectedLocation.toLowerCase();
+
+    const categoryOk = (s) => {
+      if (!selectedCategoryIds?.length) return true;
+      const cats = Array.isArray(s._api?.categories) ? s._api.categories : [];
+      return cats.some((c) => selectedCategoryIds.includes(c.id));
+    };
+
+    const reviewOk = (s) => {
+      if (!selectedReview) return true;
+      return Number(s.rating) >= Number(selectedReview);
+    };
+
+    return byText.filter((s) => locationOk(s) && categoryOk(s) && reviewOk(s));
+  }, [query, storesFromApi, selectedLocation, selectedCategoryIds, selectedReview]);
 
   const onFilterPress = (key) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]:
-        prev[key] === (key === "location" ? "Lagos" : key === "category" ? "Phones" : "4.5+")
-          ? key === "location"
-            ? "Location"
-            : key === "category"
-              ? "Category"
-              : "Review"
-          : key === "location"
-            ? "Lagos"
-            : key === "category"
-              ? "Phones"
-              : "4.5+",
-    }));
+    if (key === "location") setLocationModalVisible(true);
+    if (key === "category") setCategoryModalVisible(true);
+    if (key === "review") setReviewModalVisible(true);
   };
 
   const renderStore = ({ item, index }) => {
@@ -251,9 +271,9 @@ export default function StoresScreen() {
 
       {/* Filters (UI only; values are placeholders) */}
       <View style={styles.filtersRow}>
-        <FilterPill label={filters.location} onPress={() => onFilterPress("location")} />
-        <FilterPill label={filters.category} onPress={() => onFilterPress("category")} />
-        <FilterPill label={filters.review} onPress={() => onFilterPress("review")} />
+        <FilterPill label={selectedLocation || filters.location} onPress={() => onFilterPress("location")} />
+        <FilterPill label={selectedCategoryIds.length ? `${selectedCategoryIds.length} Category` : filters.category} onPress={() => onFilterPress("category")} />
+        <FilterPill label={selectedReview ? `${selectedReview}+` : filters.review} onPress={() => onFilterPress("review")} />
       </View>
 
       {/* Grid */}
@@ -295,6 +315,28 @@ export default function StoresScreen() {
         }
       />
       )}
+      {/* Modals */}
+      <LocationFilterModal
+        visible={locationModalVisible}
+        onClose={() => setLocationModalVisible(false)}
+        selectedLocation={selectedLocation}
+        setSelectedLocation={setSelectedLocation}
+        setFilters={setFilters}
+      />
+      <CategoryFilterModal
+        visible={categoryModalVisible}
+        onClose={() => setCategoryModalVisible(false)}
+        selectedCategoryIds={selectedCategoryIds}
+        setSelectedCategoryIds={setSelectedCategoryIds}
+        setFilters={setFilters}
+      />
+      <ReviewFilterModal
+        visible={reviewModalVisible}
+        onClose={() => setReviewModalVisible(false)}
+        selectedReview={selectedReview}
+        setSelectedReview={setSelectedReview}
+        setFilters={setFilters}
+      />
     </SafeAreaView>
   );
 }
@@ -308,6 +350,163 @@ const FilterPill = ({ label, onPress }) => (
     <Ionicons name="chevron-down" size={14} color={COLOR.text} />
   </TouchableOpacity>
 );
+
+/* -------------------- Filter Modals -------------------- */
+function LocationFilterModal({ visible, onClose, selectedLocation, setSelectedLocation, setFilters }) {
+  const LOCATIONS = ["Lagos, Nigeria", "Abuja, Nigeria", "Kano, Nigeria", "Port Harcourt, Nigeria"];
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.sheet, { maxHeight: '70%' }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <ThemedText style={styles.sheetTitle}>Location</ThemedText>
+            <TouchableOpacity style={styles.sheetClose} onPress={onClose}>
+              <Ionicons name="close" size={18} color={COLOR.text} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView>
+            {LOCATIONS.map((loc) => (
+              <TouchableOpacity
+                key={loc}
+                style={styles.selectorRow}
+                onPress={() => {
+                  // Toggle selection; tap again to deselect
+                  const next = selectedLocation === loc ? null : loc;
+                  setSelectedLocation(next);
+                  setFilters((p) => ({ ...p, location: next || 'Location' }));
+                }}
+              >
+                <ThemedText style={{ color: COLOR.text }}>{loc}</ThemedText>
+                {selectedLocation === loc ? (
+                  <Ionicons name="checkmark" size={18} color={COLOR.primary} />
+                ) : null}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity
+              style={styles.clearBtn}
+              onPress={() => {
+                setSelectedLocation(null);
+                setFilters((p) => ({ ...p, location: 'Location' }));
+              }}
+            >
+              <ThemedText style={{ color: COLOR.text }}>Clear</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.applyBtn}
+              onPress={onClose}
+            >
+              <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Apply</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+function CategoryFilterModal({ visible, onClose, selectedCategoryIds, setSelectedCategoryIds, setFilters }) {
+  const { data: categoriesRes } = useCategories();
+  const categories = categoriesRes?.data || [];
+
+  const toggle = (id) => {
+    setSelectedCategoryIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.sheet, { maxHeight: '80%' }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <ThemedText style={styles.sheetTitle}>Category</ThemedText>
+            <TouchableOpacity style={styles.sheetClose} onPress={onClose}>
+              <Ionicons name="close" size={18} color={COLOR.text} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView>
+            {categories.map((c) => (
+              <TouchableOpacity key={c.id} style={styles.selectorRow} onPress={() => toggle(c.id)}>
+                <ThemedText style={{ color: COLOR.text }}>{c.title}</ThemedText>
+                {selectedCategoryIds.includes(c.id) ? (
+                  <Ionicons name="checkmark" size={18} color={COLOR.primary} />
+                ) : null}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity style={styles.clearBtn} onPress={() => setSelectedCategoryIds([])}>
+              <ThemedText style={{ color: COLOR.text }}>Clear</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.applyBtn}
+              onPress={() => {
+                setFilters((p) => ({ ...p, category: selectedCategoryIds.length ? `${selectedCategoryIds.length} Category` : 'Category' }));
+                onClose();
+              }}
+            >
+              <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Apply</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+function ReviewFilterModal({ visible, onClose, selectedReview, setSelectedReview, setFilters }) {
+  const OPTIONS = [4.5, 4, 3, 2];
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.sheet, { maxHeight: '60%' }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <ThemedText style={styles.sheetTitle}>Review</ThemedText>
+            <TouchableOpacity style={styles.sheetClose} onPress={onClose}>
+              <Ionicons name="close" size={18} color={COLOR.text} />
+            </TouchableOpacity>
+          </View>
+          {OPTIONS.map((r) => (
+            <TouchableOpacity
+              key={r}
+              style={styles.selectorRow}
+              onPress={() => {
+                // Toggle; tap again to deselect
+                const next = selectedReview === r ? null : r;
+                setSelectedReview(next);
+                setFilters((p) => ({ ...p, review: next ? `${next}+` : 'Review' }));
+              }}
+            >
+              <ThemedText style={{ color: COLOR.text }}>{`${r}+`}</ThemedText>
+              {selectedReview === r ? <Ionicons name="checkmark" size={18} color={COLOR.primary} /> : null}
+            </TouchableOpacity>
+          ))}
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+            <TouchableOpacity
+              style={styles.clearBtn}
+              onPress={() => {
+                setSelectedReview(null);
+                setFilters((p) => ({ ...p, review: 'Review' }));
+              }}
+            >
+              <ThemedText style={{ color: COLOR.text }}>Clear</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.applyBtn} onPress={onClose}>
+              <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Apply</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
 
 /* -------------------- STYLES -------------------- */
 const styles = StyleSheet.create({
@@ -394,6 +593,17 @@ const styles = StyleSheet.create({
     ...shadow(1),
   },
   filterText: { color: COLOR.text, fontSize: 12 },
+
+  // Modal styles
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  sheet: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  sheetHandle: { alignSelf: 'center', width: 68, height: 6, borderRadius: 999, backgroundColor: '#D8DCE2', marginBottom: 6 },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
+  sheetTitle: { fontSize: 18, fontWeight: '700', color: COLOR.text },
+  sheetClose: { borderColor: '#000', borderWidth: 1.2, borderRadius: 20, padding: 2 },
+  selectorRow: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: COLOR.line, paddingHorizontal: 12, paddingVertical: 14, marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  clearBtn: { flex: 1, height: 48, borderRadius: 12, backgroundColor: '#EFEFEF', alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  applyBtn: { flex: 1, height: 48, borderRadius: 12, backgroundColor: COLOR.primary, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
 
   /* ---- Card ---- */
   card: {

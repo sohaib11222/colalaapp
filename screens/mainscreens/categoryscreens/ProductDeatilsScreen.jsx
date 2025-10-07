@@ -271,19 +271,20 @@ const ProductDetailsScreen = () => {
   //   );
   // }
 
-  // ---------- Description defaults ----------
-  const specs = {
-    brand: product?.brand ?? "Apple",
-    model: product?.name ?? "12 pro Max",
-    color: "Black",
-    storage: "64 gig",
-    resolution: "1080 x 1920",
-    display: "IPS LCD",
-    screenSize: "6.5",
-    battery: "3000 mah",
-    sim: "Nanosim",
-    camera: "20 mega pixel",
-  };
+  // ---------- Description Other Details ----------
+  // Use variant attributes when the product has variations; otherwise hide Other Details
+  const variantCandidate = (selectedVariant || (variations[0] || null));
+  const specs = product?.has_variants && variantCandidate
+    ? {
+        SKU: variantCandidate.sku || "-",
+        Color: variantCandidate.color || "-",
+        Size: variantCandidate.size || "-",
+        Price: `₦${Number(
+          variantCandidate.discount_price ?? variantCandidate.price ?? 0
+        ).toLocaleString()}`,
+        Stock: variantCandidate.stock ?? "-",
+      }
+    : null;
 
   // ---------- Reviews fallback ----------
   const fallbackReviews = [
@@ -425,13 +426,18 @@ const ProductDetailsScreen = () => {
       </ThemedText>
       <View style={styles.lightDivider} />
 
-      <ThemedText style={styles.descLabel}>Other Details</ThemedText>
-      {Object.entries(specs).map(([k, v]) => (
-        <View style={styles.specRow} key={k}>
-          <ThemedText style={styles.specKey}>{k}</ThemedText>
-          <ThemedText style={styles.specVal}>{v}</ThemedText>
-        </View>
-      ))}
+      {specs ? (
+        <>
+          <View style={styles.lightDivider} />
+          <ThemedText style={styles.descLabel}>Other Details</ThemedText>
+          {Object.entries(specs).map(([k, v]) => (
+            <View style={styles.specRow} key={k}>
+              <ThemedText style={styles.specKey}>{k}</ThemedText>
+              <ThemedText style={styles.specVal}>{v}</ThemedText>
+            </View>
+          ))}
+        </>
+      ) : null}
     </View>
   );
 
@@ -844,7 +850,7 @@ const ProductDetailsScreen = () => {
                           }}
                           onPress={() => setSelectedSize(size)}
                         >
-                          <ThemedText>{size.toUpperCase()}</ThemedText>
+                          <ThemedText>{(size || "").toString().toUpperCase()}</ThemedText>
                         </TouchableOpacity>
                       ))}
                     </View>

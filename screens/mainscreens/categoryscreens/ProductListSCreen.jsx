@@ -153,18 +153,23 @@ const ProductsListScreen = () => {
   const { data: brandsData, isLoading: brandsLoading } = useAllBrands();
 
   // Handle different API response structures
-  const pageObj = data?.data;
+  const root = data?.data;
   let apiItems = [];
   let nextPageUrl = null;
-  
+  let apiTrending = [];
+  let apiNewArrivals = [];
+
   if (isTopSelling) {
     // Top selling API returns data directly in data.data
     apiItems = Array.isArray(data?.data) ? data.data : [];
     console.log("Top Selling API Items:", apiItems);
   } else {
-    // Category products API returns paginated data
-    apiItems = Array.isArray(pageObj?.data) ? pageObj.data : [];
-    nextPageUrl = pageObj?.next_page_url;
+    // Updated category products API shape
+    const allObj = root?.all_products;
+    apiItems = Array.isArray(allObj?.data) ? allObj.data : [];
+    nextPageUrl = allObj?.next_page_url;
+    apiTrending = Array.isArray(root?.trending_products) ? root.trending_products : [];
+    apiNewArrivals = Array.isArray(root?.new_arrivals) ? root.new_arrivals : [];
     console.log("Category API Items:", apiItems);
   }
 
@@ -186,46 +191,47 @@ const ProductsListScreen = () => {
     logo: brand.logo ? absUrl(`/storage/${brand.logo}`) : null,
   }));
 
+  const brandIdToName = useMemo(() => {
+    const map = new Map();
+    brandOptions.forEach((b) => map.set(Number(b.id), String(b.name)));
+    return map;
+  }, [brandOptions]);
+
   // map API -> your card model (unchanged)
-  const allProducts = useMemo(() => {
-    return apiItems.map((p) => {
-      const imgs = Array.isArray(p.images) ? p.images : [];
-      const main = imgs.find((im) => Number(im.is_main) === 1) || imgs[0];
-      const imageUri = main?.path ? absUrl(`/storage/${main.path}`) : null;
+  const mapProductCard = (p) => {
+    const imgs = Array.isArray(p.images) ? p.images : [];
+    const main = imgs.find((im) => Number(im.is_main) === 1) || imgs[0];
+    const imageUri = main?.path ? absUrl(`/storage/${main.path}`) : null;
 
-      const store = {
-        name: p.store?.store_name || "Store",
-        location: p.store?.store_location || "Lagos, Nigeria",
-        rating: 4.5,
-        logo: require("../../../assets/Ellipse 18.png"),
-        background: require("../../../assets/Rectangle 30.png"),
-      };
+    const store = {
+      name: p.store?.store_name || "Store",
+      location: p.store?.store_location || "Lagos, Nigeria",
+      rating: 4.5,
+      logo: require("../../../assets/Ellipse 18.png"),
+      background: require("../../../assets/Rectangle 30.png"),
+    };
 
-      const priceNum = Number(p.discount_price || p.price || 0);
-      const origNum = Number(p.price || 0);
-      const toNaira = (n) => `₦${Number(n).toLocaleString()}`;
+    const priceNum = Number(p.discount_price || p.price || 0);
+    const origNum = Number(p.price || 0);
+    const toNaira = (n) => `₦${Number(n).toLocaleString()}`;
 
-      return {
-        id: String(p.id),
-        title: p.name || "Product",
-        price: priceNum ? toNaira(priceNum) : toNaira(origNum),
-        originalPrice:
-          priceNum && origNum && priceNum < origNum ? toNaira(origNum) : "",
-        image: imageUri
-          ? { uri: imageUri }
-          : require("../../../assets/phone5.png"),
-        store,
-        tagImages: [],
-      };
-    });
-  }, [apiItems]);
+    return {
+      id: String(p.id),
+      title: p.name || "Product",
+      price: priceNum ? toNaira(priceNum) : toNaira(origNum),
+      originalPrice:
+        priceNum && origNum && priceNum < origNum ? toNaira(origNum) : "",
+      image: imageUri ? { uri: imageUri } : require("../../../assets/phone5.png"),
+      store,
+      tagImages: [],
+    };
+  };
 
-  // heuristics for "Trending"/"New" (unchanged)
-  const newestFirst = [...apiItems].sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
-  const newArrivals = newestFirst.slice(0, 6).map((p) => {
+  // placeholder; defined after filter state to avoid TDZ issues
+  let filteredApiItems = apiItems;
+  let allProducts = useMemo(() => apiItems.map(mapProductCard), [apiItems]);
+
+  const mapHorizontal = (p) => {
     const imgs = Array.isArray(p.images) ? p.images : [];
     const main = imgs.find((im) => Number(im.is_main) === 1) || imgs[0];
     const imageUri = main?.path ? absUrl(`/storage/${main.path}`) : null;
@@ -233,9 +239,7 @@ const ProductsListScreen = () => {
       id: String(p.id),
       title: p.name || "Product",
       price: Number(p.discount_price || p.price || 0).toLocaleString(),
-      image: imageUri
-        ? { uri: imageUri }
-        : require("../../../assets/phone3.png"),
+      image: imageUri ? { uri: imageUri } : require("../../../assets/phone3.png"),
       store: {
         name: p.store?.store_name || "Store",
         rating: 4.5,
@@ -243,7 +247,10 @@ const ProductsListScreen = () => {
         location: p.store?.store_location || "Lagos, Nigeria",
       },
     };
-  });
+  };
+
+  const trendingProducts = (apiTrending || []).map(mapHorizontal);
+  const newArrivals = (apiNewArrivals || []).map(mapHorizontal);
 
   /* ---------- FILTER STATE (identical behavior/labels) ---------- */
   const filtersOrder = [
@@ -255,14 +262,14 @@ const ProductsListScreen = () => {
     "Sort by",
   ];
 
-  const [picked, setPicked] = useState({
+  const [picked, setPicked] = useState(() => ({
     Location: null,
     Store: null,
-    Brand: null, // using SERVICES list as “Brand”
+    Brand: null,
     Price: null,
     Ratings: null,
     "Sort by": null,
-  });
+  }));
 
   const [sheet, setSheet] = useState(null); // which sheet is open
   const [minPrice, setMinPrice] = useState("");
@@ -270,7 +277,7 @@ const ProductsListScreen = () => {
 
   const openSheet = (key) => setSheet(key);
   const closeSheet = () => setSheet(null);
-  const clearPick = (key) => setPicked((p) => ({ ...p, [key]: null }));
+  const clearPick = (key) => setPicked((p) => ({ ...(p || {}), [key]: null }));
 
   /* ---------- RENDERERS (unchanged cards) ---------- */
   const renderHorizontalProduct = ({ item }) => (
@@ -411,6 +418,71 @@ const ProductsListScreen = () => {
       setRefreshing(false);
     }
   }, [queryClient, isTopSelling, fetchCategoryId]);
+
+  // Recompute filtered items after picked is defined
+  filteredApiItems = useMemo(() => {
+    try {
+      let items = Array.isArray(apiItems) ? [...apiItems] : [];
+      const sel = picked || {};
+
+      if (sel.Location) {
+        const q = String(sel.Location).toLowerCase();
+        items = items.filter((p) => String(p.store?.store_location || '').toLowerCase() === q);
+      }
+
+      if (sel.Store) {
+        const q = String(sel.Store).toLowerCase();
+        items = items.filter((p) => String(p.store?.store_name || '').toLowerCase() === q);
+      }
+
+      if (sel.Brand) {
+        items = items.filter((p) => {
+          const name = brandIdToName.get(Number(p.brand)) || '';
+          return String(name).toLowerCase() === String(sel.Brand).toLowerCase();
+        });
+      }
+
+      if (sel.Price) {
+        const label = String(sel.Price);
+        const priceValue = (prod) => Number(prod.discount_price || prod.price || 0);
+        if (/Under\s*100k/i.test(label)) items = items.filter((p) => priceValue(p) < 100000);
+        else if (/100k\s*-\s*200k/i.test(label)) items = items.filter((p) => priceValue(p) >= 100000 && priceValue(p) <= 200000);
+        else if (/200k\s*-\s*300k/i.test(label)) items = items.filter((p) => priceValue(p) >= 200000 && priceValue(p) <= 300000);
+        else if (/Above\s*300k/i.test(label)) items = items.filter((p) => priceValue(p) > 300000);
+        else if (/k\s*-\s*/i.test(label)) {
+          const parts = label.split('-').map((s) => s.trim());
+          const toN = (s) => Number(String(s).replace(/[^0-9]/g, '')) * 1000;
+          const min = toN(parts[0] || '0');
+          const max = toN(parts[1] || '0') || Number.MAX_SAFE_INTEGER;
+          items = items.filter((p) => {
+            const v = priceValue(p);
+            return v >= min && v <= max;
+          });
+        }
+      }
+
+      if (sel.Ratings && sel.Ratings !== 'All') {
+        const ratingOf = (p) => Number(p.store?.average_rating ?? 0);
+        const lbl = sel.Ratings;
+        if (/4\s*-\s*5/i.test(lbl)) items = items.filter((p) => ratingOf(p) >= 4);
+        else if (/3\s*-\s*4/i.test(lbl)) items = items.filter((p) => ratingOf(p) >= 3 && ratingOf(p) < 4);
+        else if (/Under\s*4/i.test(lbl)) items = items.filter((p) => ratingOf(p) < 4);
+      }
+
+      if (sel['Sort by']) {
+        const sort = sel['Sort by'];
+        if (/Newest/i.test(sort)) items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        else if (/Lowest\s*Price/i.test(sort)) items.sort((a, b) => Number(a.discount_price || a.price || 0) - Number(b.discount_price || b.price || 0));
+        else if (/Highest\s*Price/i.test(sort)) items.sort((a, b) => Number(b.discount_price || b.price || 0) - Number(a.discount_price || a.price || 0));
+      }
+
+      return items;
+    } catch {
+      return Array.isArray(apiItems) ? apiItems : [];
+    }
+  }, [apiItems, picked, brandIdToName]);
+
+  allProducts = useMemo(() => filteredApiItems.map(mapProductCard), [filteredApiItems]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f4f4f4" }}>
@@ -586,8 +658,8 @@ const ProductsListScreen = () => {
         </View>
       ) : (
         <ScrollView>
-          {/* TRENDING (heuristic) */}
-          {newArrivals.length > 0 && (
+          {/* TRENDING PRODUCTS */}
+          {trendingProducts.length > 0 && (
             <>
               <View style={styles.sectionHeader}>
                 <ThemedText style={styles.sectionTitle}>
@@ -597,7 +669,7 @@ const ProductsListScreen = () => {
               <FlatList
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                data={newArrivals}
+                data={trendingProducts}
                 renderItem={renderHorizontalProduct}
                 keyExtractor={(item) => "trend-" + item.id}
                 contentContainerStyle={{ paddingHorizontal: 10 }}

@@ -97,12 +97,12 @@ const TopStoresSection = () => {
       return {
         id: store.id.toString(),
         name: store.store_name || "Store Name",
-        rating: 4.5, // Default rating since not in API
+        rating: Number(store.average_rating ?? 0) || 0,
         tags: ["Electronics", "Phones"], // Default tags since not in API
         backgroundImage: cover,
         profileImage: avatar,
-        qtySold: 100, // Default value since not in API
-        followers: 5, // Default value since not in API
+        qtySold: Number(store.qty_sold ?? store.total_sold ?? 0) || 0,
+        followers: Number(store.followers_count ?? 0) || 0,
         products: 100, // Default value since not in API
         _api: store, // Keep original API data for navigation
       };
