@@ -63,6 +63,8 @@ const SettingsScreen = () => {
     };
 
     loadUserData();
+    const unsubscribe = navigation.addListener('focus', loadUserData);
+    return unsubscribe;
   }, []);
 
   // Format currency helper

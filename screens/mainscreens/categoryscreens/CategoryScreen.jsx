@@ -282,10 +282,10 @@ const CategoryScreen = () => {
             returnKeyType="search"
             clearButtonMode="while-editing"
           />
-          <Image
+          {/* <Image
             source={require("../../../assets/camera-icon.png")}
             style={styles.iconImg}
-          />{" "}
+          />{" "} */}
         </View>
       </View>
 

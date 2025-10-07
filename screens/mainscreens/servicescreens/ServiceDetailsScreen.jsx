@@ -10,6 +10,7 @@ import {
   Modal,
   Dimensions,
   RefreshControl,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
@@ -19,6 +20,7 @@ import ThemedText from "../../../components/ThemedText";
 import { useServicesDetail } from "../../../config/api.config";
 import { useSavedToggleItem } from "../../../config/api.config";
 import { useCheckSavedItem } from "../../../config/api.config";
+import { useStartServiceChat } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
 
 
@@ -88,6 +90,9 @@ const ServiceDetailsScreen = () => {
     },
   });
 
+  // Service chat functionality
+  const { mutate: startServiceChat, isPending: creatingServiceChat } = useStartServiceChat();
+
   // Check saved status when component mounts
   useEffect(() => {
     if (service?.id) {
@@ -118,6 +123,69 @@ const ServiceDetailsScreen = () => {
         type: "service",
         type_id: service.id.toString(),
       });
+    }
+  };
+
+  // Handle start service chat
+  const handleStartServiceChat = () => {
+    try {
+      const serviceId = service?.id;
+      const storeId = serviceInfo?.store?.id || serviceInfo?.store_id;
+      
+      if (!serviceId) {
+        console.error("Service ID not available");
+        return;
+      }
+      
+      if (!storeId) {
+        console.error("Store ID not available");
+        return;
+      }
+      
+      console.log("Starting service chat:", { serviceId, storeId });
+      
+      startServiceChat(
+        { storeId, serviceId },
+        {
+          onSuccess: (data) => {
+            console.log("Service chat created successfully:", data);
+            const { chat_id } = data;
+            
+            navigation.navigate("ServiceNavigator", {
+              screen: "ChatDetails",
+              params: {
+                store: {
+                  id: storeId,
+                  name: serviceInfo?.store?.store_name || "Service Store",
+                  profileImage: serviceInfo?.store?.profile_image 
+                    ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
+                    : require("../../../assets/Ellipse 18.png"),
+                },
+                chat_id,
+                store_order_id: storeId,
+              },
+            });
+          },
+          onError: (error) => {
+            console.error("Failed to create service chat:", error);
+            // Fallback: navigate without chat_id
+            navigation.navigate("ServiceNavigator", {
+              screen: "ChatDetails",
+              params: {
+                store: {
+                  id: storeId,
+                  name: serviceInfo?.store?.store_name || "Service Store",
+                  profileImage: serviceInfo?.store?.profile_image 
+                    ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
+                    : require("../../../assets/Ellipse 18.png"),
+                },
+              },
+            });
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error starting service chat:", error);
     }
   };
 
@@ -235,6 +303,9 @@ const ServiceDetailsScreen = () => {
   // Use API data or fallback to dummy data
   const serviceInfo = serviceData?.data || service;
   const priceBreakdown = getPriceBreakdown(serviceInfo?.sub_services);
+  
+  // Store phone number for contact functionality
+  const storePhoneNumber = serviceInfo?.store?.store_phone || "08077601234"; // Default fallback
 
   return (
     <>
@@ -412,22 +483,59 @@ const ServiceDetailsScreen = () => {
 
         {/* Action Buttons */}
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.iconBtn}>
-            <Ionicons name="logo-whatsapp" size={20} color="#000" />
+          {/* WhatsApp */}
+          <TouchableOpacity 
+            style={styles.iconBtn}
+            onPress={() => {
+              if (storePhoneNumber) {
+                const phone = storePhoneNumber.replace(/\D/g, ""); // clean digits
+                Linking.openURL(`https://wa.me/${phone}`).catch(err =>
+                  console.log("WhatsApp error:", err)
+                );
+              }
+            }}
+          >
+            <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn}>
+          
+          {/* Call */}
+          <TouchableOpacity 
+            style={styles.iconBtn}
+            onPress={() => {
+              if (storePhoneNumber) {
+                Linking.openURL(`tel:${storePhoneNumber}`).catch(err =>
+                  console.log("Call error:", err)
+                );
+              }
+            }}
+          >
             <Ionicons name="call-outline" size={20} color="#000" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn}>
+          
+          {/* SMS */}
+          <TouchableOpacity 
+            style={styles.iconBtn}
+            onPress={() => {
+              if (storePhoneNumber) {
+                Linking.openURL(`sms:${storePhoneNumber}`).catch(err =>
+                  console.log("SMS error:", err)
+                );
+              }
+            }}
+          >
             <Ionicons name="chatbox-outline" size={20} color="#000" />
           </TouchableOpacity>
+          
           <TouchableOpacity
             style={styles.messageBtn}
-            onPress={() =>
-              navigation.navigate("ServiceChat", { service: serviceInfo })
-            }
+            onPress={handleStartServiceChat}
+            disabled={creatingServiceChat}
           >
-            <ThemedText style={styles.messageText}>Message Store</ThemedText>
+            {creatingServiceChat ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <ThemedText style={styles.messageText}>Message Store</ThemedText>
+            )}
           </TouchableOpacity>
         </View>
       </View>

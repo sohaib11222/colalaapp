@@ -6,6 +6,7 @@ import ServiceNavigator from './ServiceNavigator';
 import CategoryNavigator from './CategoryNavigator';
 import SettingsNavigator from './SettingsNavigator';
 import FlutterwaveWebView from '../components/FlutterwaveWebView';
+import CameraSearchScreen from '../screens/mainscreens/CameraSearchScreen';
 
 const RootStack = createNativeStackNavigator();
 
@@ -17,7 +18,8 @@ const RootNavigator = () => {
        <RootStack.Screen name="ServiceNavigator" component={ServiceNavigator} />
        <RootStack.Screen name="CategoryNavigator" component={CategoryNavigator} />
        <RootStack.Screen name="SettingsNavigator" component={SettingsNavigator} />
-       <RootStack.Screen name="FlutterwaveWebView" component={FlutterwaveWebView} />    
+       <RootStack.Screen name="FlutterwaveWebView" component={FlutterwaveWebView} />
+       <RootStack.Screen name="CameraSearchScreen" component={CameraSearchScreen} />
    
     </RootStack.Navigator>
   );

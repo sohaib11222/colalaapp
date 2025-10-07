@@ -275,10 +275,10 @@ export default function ChatListScreen({ navigation }) {
               returnKeyType="search"
             />
             <TouchableOpacity style={styles.camBtn}>
-              <Image
+              {/* <Image
                 source={require("../../../assets/camera-icon.png")}
                 style={styles.iconImg}
-              />
+              /> */}
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     paddingHorizontal: 10,
     marginTop: 10,
-    height: 50,
+    height: 60,
   },
   searchInput: { flex: 1, fontSize: 14, color: COLOR.text },
   camBtn: {

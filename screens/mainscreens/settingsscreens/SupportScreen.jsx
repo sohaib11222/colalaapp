@@ -171,7 +171,7 @@ export default function SupportScreen() {
             style={styles.searchInput}
           />
           <TouchableOpacity style={styles.searchIconBtn}>
-            <Ionicons name="camera-outline" size={20} color="#111" />
+            {/* <Ionicons name="camera-outline" size={20} color="#111" /> */}
           </TouchableOpacity>
         </View>
       </View>

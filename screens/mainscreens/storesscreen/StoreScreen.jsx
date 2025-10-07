@@ -265,7 +265,7 @@ export default function StoresScreen() {
             showSoftInputOnFocus={false}    // stop keyboard
             pointerEvents="none"            // let TouchableOpacity catch taps
           />
-          <Image source={require('../../../assets/camera-icon.png')} style={styles.iconImg} />
+          {/* <Image source={require('../../../assets/camera-icon.png')} style={styles.iconImg} /> */}
         </TouchableOpacity>
       </View>
 
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 50,
+    height: 60,
   },
   iconRow: { flexDirection: 'row' },
   iconButton: { marginLeft: 9 },

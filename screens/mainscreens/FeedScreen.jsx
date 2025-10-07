@@ -109,7 +109,7 @@ const FeedHeader = ({ navigation }) => (
                 showSoftInputOnFocus={false}    // stop keyboard
                 pointerEvents="none"            // let TouchableOpacity catch taps
               />
-              <Image source={require('../../assets/camera-icon.png')} style={styles.iconImg} />
+              {/* <Image source={require('../../assets/camera-icon.png')} style={styles.iconImg} /> */}
             </TouchableOpacity>
   </View>
 );
@@ -163,7 +163,7 @@ const handleLikePress = async () => {
       {/* Top bar */}
       <View style={styles.postTop}>
         <Image
-          source={{ uri: item.avatar }}
+          source={item.avatar ? { uri: item.avatar } : require("../../assets/Ellipse 18.png")}
           style={styles.avatar}
           defaultSource={require("../../assets/Ellipse 18.png")}
         />
@@ -309,21 +309,30 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
   const apiComments = useMemo(() => {
     if (!commentsData?.data?.data) return [];
 
-    return commentsData.data.data.map((comment) => ({
-      id: String(comment.id),
-      user: comment.user?.full_name || "Unknown",
-      time: timeAgo(comment.created_at),
-      avatar: comment.user?.profile_picture
+    return commentsData.data.data.map((comment) => {
+      // Ensure user is a string, not an object
+      const userName = typeof comment.user === 'object' 
+        ? (comment.user?.full_name || "Unknown")
+        : (comment.user || "Unknown");
+      
+      const userAvatar = typeof comment.user === 'object' && comment.user?.profile_picture
         ? absUrl(
           comment.user.profile_picture.startsWith("/storage")
             ? comment.user.profile_picture
             : `/storage/${comment.user.profile_picture}`
         )
-        : currentUser.avatar,
-      body: comment.body || "",
-      likes: 0,
-      replies: comment.replies || [],
-    }));
+        : currentUser.avatar;
+
+      return {
+        id: String(comment.id),
+        user: userName,
+        time: timeAgo(comment.created_at),
+        avatar: userAvatar,
+        body: comment.body || "",
+        likes: 0,
+        replies: comment.replies || [],
+      };
+    });
   }, [commentsData]);
 
   const [localComments, setLocalComments] = useState([]);
@@ -332,8 +341,9 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
   const comments = [...apiComments, ...localComments];
 
   const startReply = (c) => {
-    setReplyTo({ commentId: c.id, username: c.user });
-    setText(`@${c.user} `);
+    const username = typeof c.user === 'string' ? c.user : (c.user?.full_name || "Unknown");
+    setReplyTo({ commentId: c.id, username });
+    setText(`@${username} `);
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
@@ -436,7 +446,7 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
                         style={{ flexDirection: "row", alignItems: "center" }}
                       >
                         <ThemedText style={styles.commentName}>
-                          {item.user}
+                          {typeof item.user === 'string' ? item.user : (item.user?.full_name || "Unknown")}
                         </ThemedText>
                         <ThemedText style={styles.commentTime}>
                           {" "}
@@ -485,7 +495,7 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
                               }}
                             >
                               <ThemedText style={styles.commentName}>
-                                {r.user}
+                                {typeof r.user === 'string' ? r.user : (r.user?.full_name || "Unknown")}
                               </ThemedText>
                               <ThemedText style={styles.commentTime}>
                                 {" "}
@@ -540,7 +550,7 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
 };
 
 /* -------------------- OPTIONS SHEET (UI unchanged) -------------------- */
-const OptionsSheet = ({ visible, onClose, onHidePost }) => {
+const OptionsSheet = ({ visible, onClose, onHidePost, onShare, onReport }) => {
   const Row = ({ icon, label, danger, onPress }) => (
     <TouchableOpacity
       style={[styles.optionRow, danger && styles.optionRowDanger]}
@@ -598,9 +608,9 @@ const OptionsSheet = ({ visible, onClose, onHidePost }) => {
               />
             }
             label="Share this post"
-            onPress={onClose}
+            onPress={onShare}
           />
-          <Row
+          {/* <Row
             icon={
               <Image
                 source={require("../../assets/Vector (17).png")}
@@ -609,7 +619,7 @@ const OptionsSheet = ({ visible, onClose, onHidePost }) => {
             }
             label="Follow User"
             onPress={onClose}
-          />
+          /> */}
           <Row
             icon={
               <Image
@@ -629,7 +639,7 @@ const OptionsSheet = ({ visible, onClose, onHidePost }) => {
             }
             label="Report Post"
             danger
-            onPress={onClose}
+            onPress={onReport}
           />
         </View>
       </View>
@@ -643,6 +653,10 @@ export default function FeedScreen() {
   const [activePost, setActivePost] = useState(null);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
+  const [sharePopupVisible, setSharePopupVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportProcessingVisible, setReportProcessingVisible] = useState(false);
+  const [reportMessage, setReportMessage] = useState("");
 
   // pagination
   const [page, setPage] = useState(1);
@@ -716,7 +730,7 @@ export default function FeedScreen() {
             ? avatarRaw
             : `/storage/${avatarRaw}`
         )
-        : "https://via.placeholder.com/100";
+        : null; // Will use defaultSource in Image component
 
       const overrides = postOverrides[p.id] || {};
       const likes =
@@ -765,6 +779,30 @@ export default function FeedScreen() {
       return newSet;
     });
     setOptionsVisible(false);
+  };
+
+  const handleShare = () => {
+    setOptionsVisible(false);
+    setSharePopupVisible(true);
+  };
+
+  const handleReport = () => {
+    setOptionsVisible(false);
+    setReportModalVisible(true);
+  };
+
+  const handleReportSubmit = () => {
+    if (!reportMessage.trim()) {
+      Alert.alert("Error", "Please enter a message");
+      return;
+    }
+    setReportModalVisible(false);
+    setReportProcessingVisible(true);
+    // Simulate processing delay
+    setTimeout(() => {
+      setReportProcessingVisible(false);
+      setReportMessage("");
+    }, 2000);
   };
 
   const loadMore = () => {
@@ -837,7 +875,106 @@ export default function FeedScreen() {
         visible={optionsVisible}
         onClose={() => setOptionsVisible(false)}
         onHidePost={() => handleHidePost(activePost?.id)}
+        onShare={handleShare}
+        onReport={handleReport}
       />
+
+      {/* Share Popup */}
+      <Modal
+        visible={sharePopupVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSharePopupVisible(false)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupContainer}>
+            <ThemedText style={styles.popupTitle}>Share</ThemedText>
+            <ThemedText style={styles.popupMessage}>
+              Share is available on the live application only.
+            </ThemedText>
+            <TouchableOpacity
+              style={styles.popupButton}
+              onPress={() => setSharePopupVisible(false)}
+            >
+              <ThemedText style={styles.popupButtonText}>OK</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        visible={reportModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReportModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity 
+            style={{ flex: 1 }} 
+            activeOpacity={1} 
+            onPress={() => setReportModalVisible(false)} 
+          />
+          <View style={styles.reportModal}>
+            <View style={styles.reportModalHeader}>
+              <ThemedText style={styles.reportModalTitle}>Report Post</ThemedText>
+              <TouchableOpacity 
+                style={styles.reportCloseBtn} 
+                onPress={() => setReportModalVisible(false)}
+              >
+                <Ionicons name="close" size={24} color={COLOR.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ThemedText style={styles.reportModalSubtitle}>
+              Please describe the issue with this post
+            </ThemedText>
+
+            <TextInput
+              style={styles.reportTextInput}
+              placeholder="Type your message here..."
+              placeholderTextColor={COLOR.sub}
+              value={reportMessage}
+              onChangeText={setReportMessage}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.reportProceedBtn,
+                !reportMessage.trim() && styles.reportProceedBtnDisabled
+              ]}
+              onPress={handleReportSubmit}
+              disabled={!reportMessage.trim()}
+            >
+              <ThemedText style={styles.reportProceedBtnText}>Proceed</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Report Processing Popup */}
+      <Modal
+        visible={reportProcessingVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReportProcessingVisible(false)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupContainer}>
+            <ActivityIndicator size="large" color={COLOR.primary} style={{ marginBottom: 16 }} />
+            <ThemedText style={styles.popupTitle}>Processing</ThemedText>
+            <ThemedText style={styles.popupMessage}>
+              Your request is under processing now.
+            </ThemedText>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -900,7 +1037,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
-    height: 50,
+    height: 60,
   },
   searchInput: { flex: 1, fontSize: 14, color: "#333" },
   cameraIcon: { marginLeft: 8 },
@@ -1146,5 +1283,107 @@ const styles = StyleSheet.create({
     color: COLOR.sub,
     textAlign: "center",
     lineHeight: 22,
+  },
+
+  /* New Modal Styles */
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  popupContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 320,
+    alignItems: 'center',
+  },
+  popupTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLOR.text,
+    marginBottom: 12,
+  },
+  popupMessage: {
+    fontSize: 14,
+    color: COLOR.sub,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  popupButton: {
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: COLOR.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  popupButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  /* Report Modal Styles */
+  reportModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    marginHorizontal: 7,
+  },
+  reportModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  reportModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLOR.text,
+  },
+  reportCloseBtn: {
+    position: 'absolute',
+    right: 0,
+  },
+  reportModalSubtitle: {
+    fontSize: 14,
+    color: COLOR.sub,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  reportTextInput: {
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 14,
+    color: COLOR.text,
+    minHeight: 100,
+    marginBottom: 20,
+    textAlignVertical: 'top',
+  },
+  reportProceedBtn: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLOR.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reportProceedBtnDisabled: {
+    backgroundColor: COLOR.sub,
+    opacity: 0.5,
+  },
+  reportProceedBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

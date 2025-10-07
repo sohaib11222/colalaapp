@@ -27,6 +27,7 @@ import {
   useDeleteCartItem,
   fileUrl,
   useStartChat,
+  useApplyCoupon,
 } from "../../config/api.config";
 
 /* ---------- THEME ---------- */
@@ -65,7 +66,8 @@ export default function ShippingDetailsScreen() {
           expanded: false,
           coupon: "",
           points: "",
-          selectedAddressId: null, // we’ll set first address below when addresses load
+          discount: 0, // Store the actual coupon discount from API
+          selectedAddressId: null, // we'll set first address below when addresses load
           addresses: [], // injected from GET /buyer/addresses
           items: (s.items || []).map((it) => {
             console.log("ShippingDetailsScreen - Mapping item:", {
@@ -94,6 +96,7 @@ export default function ShippingDetailsScreen() {
             expanded: false,
             coupon: "",
             points: "",
+            discount: 0,
             selectedAddressId: null,
             addresses: [],
             items: [
@@ -157,6 +160,35 @@ export default function ShippingDetailsScreen() {
   // Chat functionality
   const { mutate: startChat, isPending: creatingChat } = useStartChat();
 
+  // Coupon functionality
+  const { mutate: applyCoupon, isPending: applyingCoupon } = useApplyCoupon({
+    onSuccess: (data, variables) => {
+      console.log("Coupon applied successfully:", data);
+      
+      // Extract the discount amount from the API response
+      const discountAmount = data?.data?.discount || 0;
+      
+      // Update the store with the coupon discount
+      setStores((prev) =>
+        prev.map((s) => {
+          if (s.id === variables.storeId) {
+            return {
+              ...s,
+              discount: discountAmount,
+            };
+          }
+          return s;
+        })
+      );
+      
+      Alert.alert("Success", `Coupon applied successfully! You saved ${currency(discountAmount)}`);
+    },
+    onError: (error) => {
+      console.log("Coupon application error:", error);
+      Alert.alert("Error", error?.message || "Failed to apply coupon. Please check the code and try again.");
+    },
+  });
+
   // Handle start chat
   const handleStartChat = (store) => {
     try {
@@ -202,6 +234,39 @@ export default function ShippingDetailsScreen() {
     } catch (error) {
       console.error("Error starting chat:", error);
     }
+  };
+
+  // Handle coupon application
+  const handleApplyCoupon = (store) => {
+    if (!store.coupon?.trim()) {
+      Alert.alert("Error", "Please enter a coupon code.");
+      return;
+    }
+
+    // Get the first product from the store to apply coupon to
+    const firstProduct = store.items?.[0];
+    if (!firstProduct) {
+      Alert.alert("Error", "No products found to apply coupon to.");
+      return;
+    }
+
+    // Use the product_id from the product object
+    const productId = firstProduct.product?.id;
+    if (!productId) {
+      Alert.alert("Error", "Product ID not found for coupon application.");
+      return;
+    }
+
+    console.log("Applying coupon:", {
+      product_id: productId,
+      coupon_code: store.coupon.trim()
+    });
+
+    applyCoupon({
+      product_id: productId,
+      coupon_code: store.coupon.trim(),
+      storeId: store.id
+    });
   };
 
   /* ---------- Qty & Delete mutations using CART_ITEM(:id) ---------- */
@@ -251,13 +316,33 @@ export default function ShippingDetailsScreen() {
     });
   };
 
+  const deleteStore = (storeId) => {
+    Alert.alert(
+      "Remove Store",
+      "Are you sure you want to remove this store and all its items from your cart?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            setStores((prev) => prev.filter((s) => s.id !== storeId));
+          },
+        },
+      ]
+    );
+  };
+
   /* ---------- Per-store & Overall calcs (hardcoded fees locally) ---------- */
   const perStore = useMemo(() => {
     const map = {};
     for (const s of stores) {
       const itemsCount = s.items.reduce((a, b) => a + (b.qty || 0), 0);
       const itemsCost = s.items.reduce((a, b) => a + Number(b.price || 0) * (b.qty || 0), 0);
-      const couponDiscount = s.coupon?.trim() ? 5000 : 0; // NOT in API response now -> hardcoded
+      const couponDiscount = s.discount || 0; // Use the actual discount from API response
       const pointsDiscount = Math.max(0, Math.floor(Number(s.points || 0))) * 1; // 1 point = ₦1 (hardcoded)
       const deliveryFee = 10000; // per-store delivery fee NOT provided here -> hardcoded
       const totalToPay = itemsCost - couponDiscount - pointsDiscount + deliveryFee;
@@ -380,10 +465,13 @@ export default function ShippingDetailsScreen() {
                   />
                 </TouchableOpacity>
 
-                {/* Close (visual) */}
-                <View style={[styles.roundIcon, { marginLeft: 6 }]}>
+                {/* Close (delete store) */}
+                <TouchableOpacity 
+                  style={[styles.roundIcon, { marginLeft: 6 }]}
+                  onPress={() => deleteStore(store.id)}
+                >
                   <Ionicons name="close" size={16} color="#fff" />
-                </View>
+                </TouchableOpacity>
               </View>
 
               {/* White card overlapping header */}
@@ -485,10 +573,18 @@ export default function ShippingDetailsScreen() {
                         placeholderTextColor={COLOR.sub}
                         style={styles.rowInput}
                       />
-                      <TouchableOpacity style={styles.applyBtn}>
-                        <ThemedText style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
-                          Apply Code
-                        </ThemedText>
+                      <TouchableOpacity 
+                        style={styles.applyBtn}
+                        onPress={() => handleApplyCoupon(store)}
+                        disabled={applyingCoupon}
+                      >
+                        {applyingCoupon ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <ThemedText style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
+                            Apply Code
+                          </ThemedText>
+                        )}
                       </TouchableOpacity>
                     </View>
 

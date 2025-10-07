@@ -26,19 +26,19 @@ const COLOR = {
   line: "#ECEDEF",
 };
 
-import { useMyPoints } from "../../../config/api.config";
+import { useMyPoints, fileUrl } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
 
 const Row = ({ item }) => (
   <View style={styles.row}>
     <View style={{ flexDirection: "row", alignItems: "center" }}>
       <Image 
-        source={{ uri: item.avatar || require("../../../assets/Ellipse 18.png") }} 
+        source={item.profile_image ? { uri: fileUrl(item.profile_image) } : require("../../../assets/Ellipse 18.png")} 
         style={styles.avatar} 
       />
-      <ThemedText style={styles.storeName}>{item.name}</ThemedText>
+      <ThemedText style={styles.storeName}>{item.store_name}</ThemedText>
     </View>
-    <ThemedText style={styles.points}>{item.points}</ThemedText>
+    <ThemedText style={styles.points}>{item.points || item.total_points || item.earned_points || 0}</ThemedText>
   </View>
 );
 

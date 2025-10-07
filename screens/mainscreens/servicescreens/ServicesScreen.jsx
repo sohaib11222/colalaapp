@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -20,6 +20,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 
 const { width } = Dimensions.get("window");
+
 const CARD_WIDTH = (width - 48) / 3;
 
 const ServicesScreen = () => {
@@ -31,6 +32,9 @@ const ServicesScreen = () => {
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
   
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  
   // Fetch services categories from API
   const { data: servicesData, isLoading, error } = useServicesCategories();
   
@@ -39,6 +43,21 @@ const ServicesScreen = () => {
     if (!imagePath) return require("../../../assets/Rectangle 32 (1).png");
     return { uri: `https://colala.hmstech.xyz/storage/${imagePath}` };
   };
+
+  // Filter services based on search query
+  const filteredServices = useMemo(() => {
+    if (!servicesData?.data) return [];
+    
+    if (!searchQuery.trim()) {
+      return servicesData.data;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    return servicesData.data.filter(service => 
+      service.title?.toLowerCase().includes(query) ||
+      service.description?.toLowerCase().includes(query)
+    );
+  }, [servicesData, searchQuery]);
 
   // Pull to refresh functionality
   const onRefresh = useCallback(async () => {
@@ -112,11 +131,13 @@ const ServicesScreen = () => {
             placeholder="Search any product, shop or category"
             placeholderTextColor="#888"
             style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
-          <Image
+          {/* <Image
             source={require("../../../assets/camera-icon.png")}
             style={styles.iconImg}
-          />{" "}
+          />{" "} */}
         </View>
       </View>
 
@@ -143,11 +164,25 @@ const ServicesScreen = () => {
           <View style={styles.errorContainer}>
             <ThemedText style={styles.errorText}>Failed to load services</ThemedText>
           </View>
+        ) : filteredServices.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <ThemedText style={styles.emptyText}>
+              {searchQuery.trim() ? `No services found for "${searchQuery}"` : "No services available"}
+            </ThemedText>
+            {searchQuery.trim() && (
+              <TouchableOpacity 
+                style={styles.clearSearchButton}
+                onPress={() => setSearchQuery("")}
+              >
+                <ThemedText style={styles.clearSearchText}>Clear Search</ThemedText>
+              </TouchableOpacity>
+            )}
+          </View>
         ) : (
           <FlatList
             key={"three-columns"}
             numColumns={3}
-            data={servicesData?.data || []}
+            data={filteredServices}
             keyExtractor={(item) => item.id.toString()}
             columnWrapperStyle={{
               justifyContent: "space-between",
@@ -337,6 +372,32 @@ const styles = StyleSheet.create({
   headerLoadingText: {
     marginLeft: 8,
     color: "#6C727A",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+
+  // Empty state styles
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    color: "#666",
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  clearSearchButton: {
+    backgroundColor: "#E53E3E",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  clearSearchText: {
+    color: "#fff",
     fontSize: 14,
     fontWeight: "500",
   },

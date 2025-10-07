@@ -25,6 +25,7 @@ const API = {
   ADDRESSES: `${BASE_URL}/buyer/addresses`,                  // GET (list), POST (create)
   ADDRESS_ID: (id) => `${BASE_URL}/buyer/addresses/${id}`,
   CART_ITEM: (itemId) => `${BASE_URL}/buyer/cart/items/${itemId}`,
+  APPLY_COUPON: `${BASE_URL}/buyer/cart/apply-coupon`,
   STORES: `${BASE_URL}/buyer/stores`,
   STORE_DETAILS: (id) => `${BASE_URL}/buyer/stores/${id}`,
   CHECKOUT_PREVIEW: `${BASE_URL}/buyer/checkout/preview`,   // POST
@@ -35,13 +36,16 @@ const API = {
   CHATS: `${BASE_URL}/buyer/chats`,
   CHAT_MESSAGES: (chatId) => `${BASE_URL}/buyer/chats/${chatId}/messages`,
   SEND_CHAT_MESSAGE: (chatId) => `${BASE_URL}/buyer/chats/${chatId}/send`,
+  START_SERVICE_CHAT: (storeId) => `${BASE_URL}/buyer/chats/start-service/${storeId}`,
   SUPPORT_TICKETS: `${BASE_URL}/buyer/support/tickets`,        // GET (index), POST (create)
   SUPPORT_TICKET_ID: (id) => `${BASE_URL}/buyer/support/tickets/${id}`,
   Supoort_Ticket_Message: `${BASE_URL}/buyer/support/messages`,
   SERVICES: `${BASE_URL}/seller/service`,
   SEARCH: `${BASE_URL}/search`,
+  CAMERA_SEARCH: `${BASE_URL}/search/camera`,
   STORE_REVIEWS: (id) => `${BASE_URL}/buyer/stores/${id}/reviews`,
   Get_All_Products: `${BASE_URL}/buyer/product/get-all`,
+  LEADERBOARD_SELLERS: `${BASE_URL}/leaderboard/sellers`,
 
 
 
@@ -75,6 +79,9 @@ const API = {
   Get_Top_Selling: `${BASE_URL}/buyer/products/top-selling`,
   Get_Faqs: `${BASE_URL}/faqs/category/name/general`,
   Wallet_Withdraw: `${BASE_URL}/wallet/withdraw`,
+  Referral_Balance: `${BASE_URL}/wallet/refferal-balance`,
+  Referral_Withdraw: `${BASE_URL}/wallet/withdraw/referral`,
+  Transfer: `${BASE_URL}/wallet/transfer`,
 };
 
 export default API;
@@ -678,6 +685,26 @@ export const useCreateDispute = (opts) =>
     ...opts,
   });
 
+// Apply coupon mutation
+export const useApplyCoupon = (options) =>
+  useMutation({
+    mutationFn: ({ product_id, coupon_code }) => {
+      return http.post(API.APPLY_COUPON, {
+        product_id,
+        coupon_code,
+      });
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate cart queries to refresh cart data
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      options?.onSuccess?.(data, variables);
+    },
+    onError: (error, variables) => {
+      options?.onError?.(error, variables);
+    },
+    ...options,
+  });
+
 export const useAllDisputes = (options) =>
   useQuery({
     queryKey: ["allDisputes"],
@@ -823,6 +850,65 @@ export const useStartChat = () => {
   });
 };
 
+// Start service chat mutation
+export const useStartServiceChat = () => {
+  return useMutation({
+    mutationFn: async ({ storeId, serviceId }) => {
+      if (!storeId) throw new Error('storeId is required');
+      if (!serviceId) throw new Error('serviceId is required');
+
+      // use axios instance so interceptors add Authorization
+      const res = await http.post(API.START_SERVICE_CHAT(storeId), {
+        service_id: serviceId
+      });
+
+      // backend returns: { status, data: { id, store_id, service_id, ... }, message }
+      const chatId = res?.data?.id;
+      if (!chatId) throw new Error('Service Chat ID missing in response');
+      return { 
+        chat_id: chatId, 
+        store_id: res?.data?.store_id, 
+        service_id: res?.data?.service_id,
+        type: res?.data?.type,
+        raw: res 
+      };
+    },
+  });
+};
+
+// Camera search mutation
+export const useCameraSearch = () => {
+  return useMutation({
+    mutationFn: async ({ image, type = 'product' }) => {
+      if (!image) throw new Error('Image is required');
+
+      // Create FormData for multipart/form-data request
+      const formData = new FormData();
+      formData.append('image', {
+        uri: image,
+        type: 'image/jpeg',
+        name: 'camera_image.jpg',
+      });
+      formData.append('type', type);
+
+      // use axios instance so interceptors add Authorization
+      const res = await http.post(API.CAMERA_SEARCH, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // backend returns: { status, data: { extracted_text, search_results, search_query }, message }
+      return {
+        extracted_text: res?.data?.extracted_text,
+        search_results: res?.data?.search_results,
+        search_query: res?.data?.search_query,
+        raw: res
+      };
+    },
+  });
+};
+
 
 
 
@@ -880,5 +966,32 @@ export const useGetFaqs = (options) =>
 export const useWalletWithdraw = (options) =>
   useMutation({
     mutationFn: (payload) => http.post(API.Wallet_Withdraw, payload),
+    ...options,
+  });
+
+export const useReferralBalance = (options) =>
+  useQuery({
+    queryKey: ["referralBalance"],
+    queryFn: () => http.get(API.Referral_Balance),
+    ...options,
+  });
+
+export const useReferralWithdraw = (options) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.Referral_Withdraw, payload),
+    ...options,
+  });
+
+export const useTransfer = (options) =>
+  useMutation({
+    mutationFn: (payload) => http.post(API.Transfer, payload),
+    ...options,
+  });
+
+export const useLeaderboardSellers = (options) =>
+  useQuery({
+    queryKey: ["leaderboardSellers"],
+    queryFn: () => http.get(API.LEADERBOARD_SELLERS),
+    staleTime: 5 * 60 * 1000, // 5 minutes
     ...options,
   });

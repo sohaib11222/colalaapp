@@ -18,7 +18,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
-
 import { useServicesByCategory } from "../../../config/api.config";
 import { useAllBrands } from "../../../config/api.config";
 import { useStores } from "../../../config/api.config";
@@ -138,6 +137,9 @@ export default function ServiceStoresScreen() {
   
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Helper function for URLs
   const HOST = "https://colala.hmstech.xyz";
@@ -232,7 +234,8 @@ export default function ServiceStoresScreen() {
       return [];
     }
     
-    return servicesData.data.services.map((service) => ({
+    // Map services to store format
+    let filteredStores = servicesData.data.services.map((service) => ({
       id: service.id.toString(),
       name: "Store Name", // Default since store info isn't in service data
       price: formatPrice(service.price_from, service.price_to),
@@ -241,8 +244,102 @@ export default function ServiceStoresScreen() {
       profileImage: require("../../../assets/Ellipse 18.png"),
       service: service.name,
       serviceData: service, // Keep original service data for navigation
+      // Add fields for filtering
+      priceFrom: Number(service.price_from || 0),
+      priceTo: Number(service.price_to || 0),
+      location: "Lagos, Nigeria", // Default location
+      storeName: "Store Name", // Default store name
     }));
-  }, [servicesData]);
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filteredStores = filteredStores.filter(store => 
+        store.service.toLowerCase().includes(query) ||
+        store.name.toLowerCase().includes(query) ||
+        store.storeName.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply Location filter
+    if (picked.Location) {
+      filteredStores = filteredStores.filter(store => 
+        store.location.toLowerCase().includes(picked.Location.toLowerCase())
+      );
+    }
+
+    // Apply Store filter
+    if (picked.Store) {
+      filteredStores = filteredStores.filter(store => 
+        store.storeName.toLowerCase().includes(picked.Store.toLowerCase())
+      );
+    }
+
+    // Apply Services filter
+    if (picked.Services) {
+      filteredStores = filteredStores.filter(store => 
+        store.service.toLowerCase().includes(picked.Services.toLowerCase())
+      );
+    }
+
+    // Apply Price filter
+    if (picked.Price) {
+      filteredStores = filteredStores.filter(store => {
+        const price = store.priceFrom;
+        switch (picked.Price) {
+          case "Under 100k":
+            return price < 100000;
+          case "100k - 200k":
+            return price >= 100000 && price <= 200000;
+          case "200k - 300k":
+            return price >= 200000 && price <= 300000;
+          case "Above 300k":
+            return price > 300000;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply Ratings filter
+    if (picked.Ratings) {
+      filteredStores = filteredStores.filter(store => {
+        const rating = store.rating;
+        switch (picked.Ratings) {
+          case "4 - 5 Stars":
+            return rating >= 4 && rating <= 5;
+          case "3 - 4 Stars":
+            return rating >= 3 && rating < 4;
+          case "Under 4 Stars":
+            return rating < 4;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply Sort by filter
+    if (picked["Sort by"]) {
+      switch (picked["Sort by"]) {
+        case "Newest":
+          // Sort by ID (assuming higher ID = newer)
+          filteredStores.sort((a, b) => Number(b.id) - Number(a.id));
+          break;
+        case "Lowest Price":
+          filteredStores.sort((a, b) => a.priceFrom - b.priceFrom);
+          break;
+        case "Highest Price":
+          filteredStores.sort((a, b) => b.priceFrom - a.priceFrom);
+          break;
+        case "Recommended":
+        default:
+          // Keep original order
+          break;
+      }
+    }
+
+    return filteredStores;
+  }, [servicesData, searchQuery, picked]);
 
   /* ------------ RENDER ------------ */
   return (
@@ -298,11 +395,13 @@ export default function ServiceStoresScreen() {
             placeholder="Search any product, shop or category"
             placeholderTextColor="#888"
             style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
-          <Image
+          {/* <Image
             source={require("../../../assets/camera-icon.png")}
             style={styles.iconImg}
-          />{" "}
+          />{" "} */}
         </View>
       </View>
 
@@ -454,49 +553,58 @@ export default function ServiceStoresScreen() {
           />
         </View>
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-          <ThemedText style={styles.groupTitle}>Popular</ThemedText>
-          {POPULAR_STATES.map((s) => (
-            <TouchableOpacity
-              key={s}
-              style={styles.listRow}
-              onPress={() => {
-                setPicked((p) => ({ ...p, Location: s }));
-                closeSheet();
-              }}
-            >
-              <ThemedText style={styles.listMain}>{s}</ThemedText>
-              <ThemedText style={styles.listSub}>5,000 products</ThemedText>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={COLOR.text}
-                style={{ marginLeft: "auto" }}
-              />
-            </TouchableOpacity>
-          ))}
+          {storesLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLOR.primary} />
+              <ThemedText style={styles.loadingText}>Loading locations...</ThemedText>
+            </View>
+          ) : (
+            <>
+              <ThemedText style={styles.groupTitle}>Popular</ThemedText>
+              {POPULAR_STATES.map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={styles.listRow}
+                  onPress={() => {
+                    setPicked((p) => ({ ...p, Location: s }));
+                    closeSheet();
+                  }}
+                >
+                  <ThemedText style={styles.listMain}>{s}</ThemedText>
+                  <ThemedText style={styles.listSub}>5,000 products</ThemedText>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={COLOR.text}
+                    style={{ marginLeft: "auto" }}
+                  />
+                </TouchableOpacity>
+              ))}
 
-          <ThemedText style={[styles.groupTitle, { marginTop: 14 }]}>
-            All States
-          </ThemedText>
-          {ALL_STATES.map((s) => (
-            <TouchableOpacity
-              key={s}
-              style={styles.listRow}
-              onPress={() => {
-                setPicked((p) => ({ ...p, Location: s }));
-                closeSheet();
-              }}
-            >
-              <ThemedText style={styles.listMain}>{s}</ThemedText>
-              <ThemedText style={styles.listSub}>5,000 products</ThemedText>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={COLOR.text}
-                style={{ marginLeft: "auto" }}
-              />
-            </TouchableOpacity>
-          ))}
+              <ThemedText style={[styles.groupTitle, { marginTop: 14 }]}>
+                All States
+              </ThemedText>
+              {ALL_STATES.map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={styles.listRow}
+                  onPress={() => {
+                    setPicked((p) => ({ ...p, Location: s }));
+                    closeSheet();
+                  }}
+                >
+                  <ThemedText style={styles.listMain}>{s}</ThemedText>
+                  <ThemedText style={styles.listSub}>5,000 products</ThemedText>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={COLOR.text}
+                    style={{ marginLeft: "auto" }}
+                  />
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
         </ScrollView>
       </BottomSheet>
 
@@ -780,7 +888,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
-    height: 50,
+    height: 60,
   },
   searchInput: { flex: 1, fontSize: 14, color: "#333" },
   cameraIcon: { marginLeft: 8 },
@@ -900,7 +1008,7 @@ const styles = StyleSheet.create({
   sheetClose: { position: "absolute", right: 12, top: 10, padding: 6 },
 
   searchBar: {
-    height: 48,
+    height: 60,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLOR.line,

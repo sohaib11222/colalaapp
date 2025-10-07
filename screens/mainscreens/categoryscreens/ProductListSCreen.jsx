@@ -553,10 +553,10 @@ const ProductsListScreen = () => {
             placeholderTextColor="#888"
             style={styles.searchInput}
           />
-          <Image
+          {/* <Image
             source={require("../../../assets/camera-icon.png")}
             style={styles.iconImg}
-          />
+          /> */}
         </View>
       </View>
 

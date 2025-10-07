@@ -7,11 +7,15 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
+import { useCameraSearch } from '../config/api.config';
 
 const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Nigeria' } }) => {
   const navigation = useNavigation();
@@ -23,9 +27,13 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
   });
 
   const [cartQuantity, setCartQuantity] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
 
   const HOST = 'https://colala.hmstech.xyz';
   const toAbs = (u) => (u?.startsWith('http') ? u : `${HOST}/storage/${u || ''}`);
+
+  // Camera search functionality
+  const { mutate: cameraSearch, isPending: isCameraSearching } = useCameraSearch();
 
   // Load stored user
   const loadUser = async () => {
@@ -80,6 +88,67 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
       }
     } catch (err) {
       console.log("❌ Error fetching cart quantity:", err.message);
+    }
+  };
+
+  // Camera search functionality
+  const handleCameraSearch = async () => {
+    try {
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant camera permission to search with images.'
+        );
+        return;
+      }
+
+      // Launch camera
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        setIsSearching(true);
+
+        // Perform camera search
+        cameraSearch(
+          { image: imageUri, type: 'product' },
+          {
+            onSuccess: (data) => {
+              console.log("✅ Camera search successful:", data);
+              setIsSearching(false);
+              
+              // Navigate to camera search results screen
+              navigation.navigate('CameraSearchScreen', {
+                searchResults: data.search_results,
+                extractedText: data.extracted_text,
+                searchQuery: data.search_query,
+              });
+            },
+            onError: (error) => {
+              console.log("❌ Camera search error:", error);
+              setIsSearching(false);
+              Alert.alert(
+                'Search Failed',
+                'Could not analyze the image. Please try again.'
+              );
+            },
+          }
+        );
+      }
+    } catch (error) {
+      console.log("❌ Camera error:", error);
+      setIsSearching(false);
+      Alert.alert(
+        'Error',
+        'Failed to open camera. Please try again.'
+      );
     }
   };
 
@@ -178,7 +247,13 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
           showSoftInputOnFocus={false}
           pointerEvents="none"
         />
-        <Image source={require('../assets/camera-icon.png')} style={styles.iconImg} />
+        <TouchableOpacity onPress={handleCameraSearch} disabled={isCameraSearching || isSearching}>
+          {isCameraSearching || isSearching ? (
+            <ActivityIndicator size="small" color="#888" />
+          ) : (
+            <Image source={require('../assets/camera-icon.png')} style={styles.iconImg} />
+          )}
+        </TouchableOpacity>
       </TouchableOpacity>
     </SafeAreaView>
   );

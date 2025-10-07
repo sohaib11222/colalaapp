@@ -145,6 +145,7 @@ export default function ChatDetailsScreen() {
   useEffect(() => setMessages(mappedApi), [mappedApi]);
 
   const [inputText, setInputText] = useState("");
+  const [chatImageUri, setChatImageUri] = useState(null); // For chat message images
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -162,7 +163,7 @@ export default function ChatDetailsScreen() {
 
   const handleSend = () => {
     const v = inputText.trim();
-    if (!v || !chatId) return;
+    if ((!v && !chatImageUri) || !chatId) return;
 
     // optimistic bubble
     const time = new Date()
@@ -175,14 +176,22 @@ export default function ChatDetailsScreen() {
     const tempId = `temp-${Date.now()}`;
     setMessages((prev) => [
       ...prev,
-      { id: tempId, text: v, sender: "me", time },
+      { 
+        id: tempId, 
+        text: v || (chatImageUri ? "(image)" : ""), 
+        sender: "me", 
+        time,
+        image: chatImageUri,
+        isOptimistic: true
+      },
     ]);
     setInputText("");
+    setChatImageUri(null); // Clear image after sending
     scrollToEnd();
 
     // send to API
     sendMessage(
-      { chatId, message: v },
+      { chatId, message: v || "", image: chatImageUri },
       {
         onSuccess: () => {
           // refresh thread + chat list meta (last msg/time/unread)
@@ -191,6 +200,7 @@ export default function ChatDetailsScreen() {
         },
         onError: () => {
           // Optional rollback of optimistic bubble
+          setMessages((prev) => prev.filter(msg => msg.id !== tempId));
         },
       }
     );
@@ -290,6 +300,37 @@ export default function ChatDetailsScreen() {
     }
   };
 
+  // Image picker for chat messages
+  const pickChatImage = async () => {
+    try {
+      // Request permission
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Please grant permission to access your photo library."
+        );
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setChatImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log("Chat image picker error:", error);
+      Alert.alert("Error", "Failed to pick image. Please try again.");
+    }
+  };
+
   const resetDisputeForm = () => {
     setIssueCategory("");
     setIssueDetails("");
@@ -384,7 +425,11 @@ export default function ChatDetailsScreen() {
         )}
         {item.image && (
           <Image
-            source={{ uri: `https://colala.hmstech.xyz/storage/${item.image}` }}
+            source={{ 
+              uri: item.image.startsWith('http') || item.image.startsWith('file://') 
+                ? item.image 
+                : `https://colala.hmstech.xyz/storage/${item.image}` 
+            }}
             style={styles.messageImage}
             resizeMode="cover"
           />
@@ -530,9 +575,22 @@ export default function ChatDetailsScreen() {
           />
         )}
 
+        {/* Image Preview */}
+        {chatImageUri && (
+          <View style={styles.imagePreviewContainer}>
+            <Image source={{ uri: chatImageUri }} style={styles.imagePreview} />
+            <TouchableOpacity
+              style={styles.removeImageButton}
+              onPress={() => setChatImageUri(null)}
+            >
+              <Ionicons name="close-circle" size={24} color="#E53E3E" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Composer */}
         <View style={[styles.composer, { marginBottom: 10 + insets.bottom }]}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={pickChatImage}>
             <Image
               source={require("../../../assets/Vector (21).png")}
               style={styles.iconImg}
@@ -756,6 +814,24 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 8,
     marginTop: 8,
+  },
+  imagePreviewContainer: {
+    position: "relative",
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  imagePreview: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "#fff",
+    borderRadius: 12,
   },
   time: { fontSize: 8, textAlign: "right", marginTop: 6, color: "#FFFFFF80" },
 
