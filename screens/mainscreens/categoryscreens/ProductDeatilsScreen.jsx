@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -13,13 +13,15 @@ import {
   Modal,
   Linking,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRoute, useNavigation } from "@react-navigation/native";
+import { useRoute, useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import ThemedText from "../../../components/ThemedText";
 import { useProductDetails, useCart } from "../../../config/api.config";
 import { useAddToCart } from "../../../config/api.config";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HOST = "https://colala.hmstech.xyz";
 
@@ -55,16 +57,45 @@ const ProductDetailsScreen = () => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
 
-  // Calculate total cart items count
-  const cartCount =
-    cartData?.data?.items?.reduce(
-      (total, item) => total + (item.quantity || 0),
-      0
-    ) || 0;
+  // Ref for main image carousel
+  const carouselRef = useRef(null);
+
+  // Cart quantity state (same approach as HomeHeader)
+  const [cartQuantity, setCartQuantity] = useState(0);
+
+  // Fetch cart quantity from API (same as HomeHeader)
+  const fetchCartQuantity = async () => {
+    try {
+      const token = await AsyncStorage.getItem('auth_token');
+      if (!token) {
+        console.log("⚠️ No token found in AsyncStorage");
+        return;
+      }
+
+      const response = await fetch(
+        'https://colala.hmstech.xyz/api/buyer/cart-quantity',
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
+
+      const json = await response.json();
+      console.log("✅ Cart quantity response:", json);
+
+      if (json?.status === 'success') {
+        setCartQuantity(parseInt(json.data?.quantity || 0));
+      }
+    } catch (err) {
+      console.log("❌ Error fetching cart quantity:", err.message);
+    }
+  };
 
   // Debug cart data
-  console.log("Cart Data:", cartData);
-  console.log("Cart Count:", cartCount);
+  console.log("Cart Quantity:", cartQuantity);
 
   // Check if product is saved
   const { mutate: checkSaved } = useCheckSavedItem({
@@ -88,17 +119,6 @@ const ProductDetailsScreen = () => {
     },
   });
 
-  const updateCart = (newQty) => {
-  if (!product) return;
-  const payload = {
-    product_id: product.id,
-    qty: newQty,
-  };
-  if (selectedVariant?.id) {
-    payload.variant_id = selectedVariant.id;
-  }
-  addToCartMutation.mutate(payload);
-};
 
   // Check saved status when component mounts
   useEffect(() => {
@@ -108,7 +128,16 @@ const ProductDetailsScreen = () => {
         type_id: productId.toString(),
       });
     }
+    fetchCartQuantity();
   }, [productId]);
+
+  // Fetch cart quantity when screen is focused (same as HomeHeader)
+  useFocusEffect(
+    useCallback(() => {
+      console.log("ProductDetailsScreen focused, fetching cart quantity...");
+      fetchCartQuantity();
+    }, [])
+  );
 
   // Pull to refresh functionality
   const onRefresh = useCallback(async () => {
@@ -233,18 +262,12 @@ const ProductDetailsScreen = () => {
     : null;
 
   const increment = () => {
-    setQuantity((q) => {
-      const newQty = q + 1;
-      updateCart(newQty);
-      return newQty;
-    });
+    setQuantity((q) => q + 1);
   };
   const decrement = () => {
     setQuantity((q) => {
       if (q > 1) {
-        const newQty = q - 1;
-        updateCart(newQty);
-        return newQty;
+        return q - 1;
       }
       return q;
     });
@@ -314,12 +337,17 @@ const ProductDetailsScreen = () => {
 
   const addToCartMutation = useAddToCart({
     onSuccess: (res) => {
-      // console.log("Cart updated:", res);
       console.log("Cart updated:", JSON.stringify(res, null, 2));
-      // You can show a toast or navigate to Cart screen here
+      // Invalidate cart queries to refresh cart count
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+      // Fetch updated cart quantity
+      fetchCartQuantity();
+      // Show success feedback
+      Alert.alert("Success", "Product added to cart successfully!");
     },
     onError: (err) => {
       console.error("Failed to add to cart:", err);
+      Alert.alert("Error", "Failed to add product to cart. Please try again.");
     },
   });
 
@@ -651,6 +679,7 @@ const ProductDetailsScreen = () => {
               )}
               {console.log("All images data:", allImages)}
               <FlatList
+                ref={carouselRef}
                 data={allImages}
                 horizontal
                 pagingEnabled
@@ -721,8 +750,25 @@ const ProductDetailsScreen = () => {
             <FlatList
               horizontal
               data={allImages}
-              renderItem={({ item }) => (
-                <Image source={item} style={styles.thumbnail} />
+              renderItem={({ item, index }) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    setCurrentImageIndex(index);
+                    // Scroll the carousel to the selected image
+                    if (carouselRef.current) {
+                      carouselRef.current.scrollToIndex({
+                        index: index,
+                        animated: true,
+                      });
+                    }
+                  }}
+                  style={[
+                    styles.thumbnailContainer,
+                    index === currentImageIndex && styles.selectedThumbnail
+                  ]}
+                >
+                  <Image source={item} style={styles.thumbnail} />
+                </TouchableOpacity>
               )}
               keyExtractor={(_, index) => index.toString()}
               showsHorizontalScrollIndicator={false}
@@ -874,28 +920,26 @@ const ProductDetailsScreen = () => {
                     {toNaira(subtotal)}
                   </ThemedText>
                 </View>
+                {/* Cart Icon - Display only, navigates to cart */}
                 <TouchableOpacity
                   style={styles.cartIcon}
-                  onPress={handleAddToCart}
+                  onPress={() => navigation.navigate('ServiceNavigator', { screen: 'Cart' })}
                 >
-                  {addToCartMutation.isLoading ? (
-                    <ActivityIndicator size="small" color="#E53E3E" />
-                  ) : (
-                    <View style={styles.cartIconContainer}>
-                      <Image
-                        source={require("../../../assets/ShoppingCartSimple.png")}
-                        style={{ width: 24, height: 24, resizeMode: "contain" }}
-                      />
-                      {(cartCount > 0 || cartData) && (
-                        <View style={styles.cartBadge}>
-                          <ThemedText style={styles.cartBadgeText}>
-                            {cartCount > 99 ? "99+" : cartCount || "0"}
-                          </ThemedText>
-                        </View>
-                      )}
-                    </View>
-                  )}
+                  <View style={styles.cartIconContainer}>
+                    <Image
+                      source={require("../../../assets/ShoppingCartSimple.png")}
+                      style={{ width: 30, height: 28, resizeMode: "contain" }}
+                    />
+                    {cartQuantity > 0 && (
+                      <View style={styles.cartBadge}>
+                        <ThemedText style={styles.cartBadgeText}>
+                          {cartQuantity > 99 ? "99+" : cartQuantity}
+                        </ThemedText>
+                      </View>
+                    )}
+                  </View>
                 </TouchableOpacity>
+
                 <View style={styles.qtyControl}>
                   <TouchableOpacity
                     style={[
@@ -980,33 +1024,14 @@ const ProductDetailsScreen = () => {
 
               <TouchableOpacity
                 style={styles.checkoutBtn}
-                onPress={() => {
-                  navigation.navigate("ServiceNavigator", {
-                    screen: "Cart",
-                    params: {
-                      stores: [
-                        {
-                          id: product.store?.id || product.store_id,
-                          name:
-                            product.store?.name || product.store?.store_name,
-                          selected: true,
-                          items: [
-                            {
-                              id: product.id,
-                              name: product.name,
-                              price: unitPrice,
-                              quantity: quantity,
-                              image: imageSource,
-                              store: product.store,
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                  });
-                }}
+                onPress={handleAddToCart}
+                disabled={addToCartMutation.isLoading}
               >
-                <ThemedText style={styles.checkoutText}>Cart</ThemedText>
+                {addToCartMutation.isLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <ThemedText style={styles.checkoutText}>Add to Cart</ThemedText>
+                )}
               </TouchableOpacity>
 
               <View style={{ paddingHorizontal: 16, marginBottom: 30 }}>
@@ -1346,13 +1371,19 @@ const styles = StyleSheet.create({
   activeIndicator: {
     backgroundColor: "#E53E3E",
   },
+  thumbnailContainer: {
+    marginRight: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
   thumbnail: {
     width: 60,
     height: 60,
-    borderRadius: 8,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
+    borderRadius: 6,
+  },
+  selectedThumbnail: {
+    borderColor: "#E53E3E",
   },
   tabsRow: { flexDirection: "row", paddingHorizontal: 10, marginBottom: 10 },
   tabButton: {
@@ -1406,15 +1437,17 @@ const styles = StyleSheet.create({
   cartIconContainer: { position: "relative" },
   cartBadge: {
     position: "absolute",
-    top: -6,
+    top: -8,
     right: -8,
     backgroundColor: "#E53E3E",
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   cartBadgeText: {
     color: "#fff",
