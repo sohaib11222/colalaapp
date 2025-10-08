@@ -322,7 +322,7 @@ export default function FollowedStoresScreen() {
         </View>
 
         <View style={styles.tagsRow}>
-          {item.tags.map((tag, idx) => (
+          {item.tags.slice(0, 2).map((tag, idx) => (
             <View
               key={tag}
               style={[
@@ -340,6 +340,13 @@ export default function FollowedStoresScreen() {
               </ThemedText>
             </View>
           ))}
+          {item.tags.length > 2 && (
+            <View style={styles.tagMore}>
+              <ThemedText style={styles.tagMoreText}>
+                +{item.tags.length - 2} more
+              </ThemedText>
+            </View>
+          )}
         </View>
 
         <TouchableOpacity
@@ -629,7 +636,14 @@ const styles = StyleSheet.create({
   rating: { flexDirection: "row", alignItems: "center", gap: 3 },
   ratingText: { fontSize: 11, color: COLOR.sub, fontWeight: "600" },
 
-  tagsRow: { flexDirection: "row", gap: 8, marginTop: 8, marginBottom: 10 },
+  tagsRow: { 
+    flexDirection: "row", 
+    gap: 8, 
+    marginTop: 8, 
+    marginBottom: 10,
+    flexWrap: "wrap",
+    alignItems: "center"
+  },
   tagBase: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   tagBlue: {
     backgroundColor: "#E9F0FF",
@@ -644,6 +658,21 @@ const styles = StyleSheet.create({
   tagTextBase: { fontSize: 12, fontWeight: "600" },
   tagTextBlue: { color: "#3D71FF" },
   tagTextRed: { color: COLOR.primary },
+
+  // "+X more" tag style
+  tagMore: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  tagMoreText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLOR.sub,
+  },
 
   cta: {
     backgroundColor: COLOR.primary,
