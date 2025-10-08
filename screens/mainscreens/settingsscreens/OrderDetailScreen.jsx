@@ -460,42 +460,65 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
       const storeId = store.store?.id || store.id;
       console.log("Starting chat with store ID:", storeId);
       
-      startChat(
-        { storeId },
-        {
-          onSuccess: (data) => {
-            console.log("Chat created successfully:", data);
-            const { chat_id } = data;
-            
-            navigation.navigate("ServiceNavigator", {
-              screen: "ChatDetails",
-              params: {
-                store: {
-                  id: storeId,
-                  name: store.name,
-                  profileImage: store.profileImage,
-                },
-                chat_id,
-                store_order_id: storeId,
-              },
-            });
+      // Check if we already have a chat_id from the API
+      const existingChatId = store.chat?.id;
+      console.log("Existing chat ID:", existingChatId);
+      
+      if (existingChatId) {
+        // Use existing chat
+        console.log("Using existing chat ID:", existingChatId);
+        navigation.navigate("ServiceNavigator", {
+          screen: "ChatDetails",
+          params: {
+            store: {
+              id: storeId,
+              name: store.name,
+              profileImage: store.profileImage,
+            },
+            chat_id: existingChatId,
+            store_order_id: storeId,
           },
-          onError: (error) => {
-            console.error("Failed to create chat:", error);
-            // Fallback: navigate without chat_id
-            navigation.navigate("ServiceNavigator", {
-              screen: "ChatDetails",
-              params: {
-                store: {
-                  id: storeId,
-                  name: store.name,
-                  profileImage: store.profileImage,
+        });
+      } else {
+        // Create new chat if none exists
+        console.log("Creating new chat...");
+        startChat(
+          { storeId },
+          {
+            onSuccess: (data) => {
+              console.log("Chat created successfully:", data);
+              const { chat_id } = data;
+              
+              navigation.navigate("ServiceNavigator", {
+                screen: "ChatDetails",
+                params: {
+                  store: {
+                    id: storeId,
+                    name: store.name,
+                    profileImage: store.profileImage,
+                  },
+                  chat_id,
+                  store_order_id: storeId,
                 },
-              },
-            });
-          },
-        }
-      );
+              });
+            },
+            onError: (error) => {
+              console.error("Failed to create chat:", error);
+              // Fallback: navigate without chat_id
+              navigation.navigate("ServiceNavigator", {
+                screen: "ChatDetails",
+                params: {
+                  store: {
+                    id: storeId,
+                    name: store.name,
+                    profileImage: store.profileImage,
+                  },
+                },
+              });
+            },
+          }
+        );
+      }
     } catch (error) {
       console.error("Error starting chat:", error);
     }
@@ -532,7 +555,9 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
           {creatingChat ? (
             <ActivityIndicator size="small" color={COLOR.primary} />
           ) : (
-            <ThemedText style={styles.chatBtnTxt}>Start Chat</ThemedText>
+            <ThemedText style={styles.chatBtnTxt}>
+              {store.chat?.id ? "Open Chat" : "Start Chat"}
+            </ThemedText>
           )}
         </TouchableOpacity>
 
@@ -591,7 +616,7 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
             <ActivityIndicator size="small" color={COLOR.primary} />
           ) : (
             <ThemedText style={{ color: COLOR.text, opacity: 0.9, fontSize: 13 }}>
-              Open Chat
+              {store.chat?.id ? "Open Chat" : "Start Chat"}
             </ThemedText>
           )}
         </TouchableOpacity>
@@ -804,6 +829,7 @@ export default function SingleOrderDetailsScreen() {
         store: so.store, // Keep store data for tracking
         profileImage: so.store?.profile_image ? fileUrl(so.store.profile_image) : null, // Store profile image
         orderTracking: so.order_tracking, // Keep tracking data for modal
+        chat: so.chat, // Keep chat data for existing chat functionality
       };
     });
 
