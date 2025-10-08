@@ -120,6 +120,10 @@ export default function ShoppingWalletScreen() {
 
   const [withdrawVisible, setWithdrawVisible] = useState(false);
   const [wAmount, setWAmount] = useState("");
+  
+  // Deposit modal state
+  const [depositVisible, setDepositVisible] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("");
   const [wAccNumber, setWAccNumber] = useState("");
   const [wBankName, setWBankName] = useState("");
   const [wAccName, setWAccName] = useState("");
@@ -260,13 +264,7 @@ export default function ShoppingWalletScreen() {
                 <View style={styles.balanceBtnRow}>
                   <TouchableOpacity
                     style={[styles.balanceBtn, { marginRight: 16 }]}
-                    onPress={() =>
-                      navigation.navigate("FlutterwaveWebView", {
-                        amount: 1000,
-                        order_id: "topup_" + Date.now(),
-                        isTopUp: true,
-                      })
-                    }
+                    onPress={() => setDepositVisible(true)}
                   >
                     <ThemedText style={styles.balanceBtnTxt}>
                       Deposit
@@ -455,6 +453,90 @@ export default function ShoppingWalletScreen() {
                   </ThemedText>
                 )}
               </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* ===== Deposit Modal ===== */}
+      <Modal
+        visible={depositVisible}
+        animationType="slide"
+        onRequestClose={() => setDepositVisible(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ flex: 1 }}
+          >
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <TouchableOpacity
+                onPress={() => setDepositVisible(false)}
+                style={styles.modalCloseBtn}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+              <ThemedText style={styles.modalTitle}>Deposit Funds</ThemedText>
+              <View style={{ width: 24 }} />
+            </View>
+
+            {/* Content */}
+            <View style={styles.modalContent}>
+              <ThemedText style={styles.modalSubtitle}>
+                Enter the amount you want to deposit into your wallet
+              </ThemedText>
+
+              <View style={styles.inputContainer}>
+                <ThemedText style={styles.inputLabel}>Amount (₦)</ThemedText>
+                <TextInput
+                  style={styles.amountInput}
+                  placeholder="Enter amount"
+                  placeholderTextColor="#999"
+                  value={depositAmount}
+                  onChangeText={setDepositAmount}
+                  keyboardType="numeric"
+                  autoFocus
+                />
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalBtn, styles.modalBtnSecondary]}
+                  onPress={() => setDepositVisible(false)}
+                >
+                  <ThemedText style={styles.modalBtnSecondaryText}>
+                    Cancel
+                  </ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modalBtn,
+                    styles.modalBtnPrimary,
+                    !depositAmount || Number(depositAmount) <= 0
+                      ? styles.modalBtnDisabled
+                      : null,
+                  ]}
+                  onPress={() => {
+                    if (depositAmount && Number(depositAmount) > 0) {
+                      setDepositVisible(false);
+                      navigation.navigate("FlutterwaveWebView", {
+                        amount: Number(depositAmount),
+                        order_id: "topup_" + Date.now(),
+                        isTopUp: true,
+                      });
+                      setDepositAmount(""); // Clear the input
+                    }
+                  }}
+                  disabled={!depositAmount || Number(depositAmount) <= 0}
+                >
+                  <ThemedText style={styles.modalBtnPrimaryText}>
+                    Proceed to Payment
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
             </View>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -711,4 +793,87 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   withdrawBtnTxt: { color: "#fff", fontWeight: "600" },
+
+  // Deposit Modal Styles
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLOR.text,
+  },
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: COLOR.sub,
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  inputContainer: {
+    marginBottom: 32,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: COLOR.text,
+    marginBottom: 8,
+  },
+  amountInput: {
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: COLOR.text,
+    backgroundColor: "#fff",
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+    paddingBottom: 20,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalBtnPrimary: {
+    backgroundColor: COLOR.primary,
+  },
+  modalBtnSecondary: {
+    backgroundColor: "#f5f5f5",
+    borderWidth: 1,
+    borderColor: COLOR.line,
+  },
+  modalBtnDisabled: {
+    backgroundColor: COLOR.sub,
+    opacity: 0.6,
+  },
+  modalBtnPrimaryText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  modalBtnSecondaryText: {
+    color: COLOR.text,
+    fontWeight: "600",
+    fontSize: 16,
+  },
 });

@@ -277,8 +277,8 @@ const styles = StyleSheet.create({
 
   bottomGradient: { borderRadius: 16, padding: 16, paddingLeft: 30, alignItems: 'center' },
   sellerText: { color: '#fff', fontSize: 11, marginLeft: -50, marginBottom: 15, textAlign: 'center' },
-  storeButtons: { flexDirection: 'row', justifyContent: 'flex-start' },
-  storeImage: { width: 100, height: 30, borderRadius: 15, resizeMode: 'contain' },
+  storeButtons: { flexDirection: 'row', justifyContent: 'flex-start', gap: 10 },
+  storeImage: { width: 73, height: 25, borderRadius: 5, resizeMode: 'contain' },
 });
 
 export default LoginScreen;

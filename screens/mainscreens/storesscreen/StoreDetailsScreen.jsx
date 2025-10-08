@@ -164,6 +164,11 @@ export default function StoreDetailsScreen() {
     // addresses (just show link text in UI; keep hardcoded line if missing)
     const addresses = Array.isArray(fromApi.addresses) ? fromApi.addresses : [];
 
+    // banners and announcements from API
+    const banners = Array.isArray(fromApi.banners) ? fromApi.banners : [];
+    const announcements = Array.isArray(fromApi.announcements) ? fromApi.announcements : [];
+    const posts = Array.isArray(fromApi.posts) ? fromApi.posts : [];
+
     // products mapping → your card expects: image, title/name, price text, store name/avatar, rating, etc.
     const productsFromApi = Array.isArray(fromApi.products)
       ? fromApi.products.map((p) => {
@@ -214,6 +219,9 @@ export default function StoreDetailsScreen() {
       rating,
       social_links,
       addresses,
+      banners,
+      announcements,
+      posts,
       // keep your original store object too:
       _api: fromApi,
       // products priority: API → fall back to your DEMO list
@@ -221,11 +229,16 @@ export default function StoreDetailsScreen() {
     };
   }, [apiStore, initialStore, storeId]);
 
+  // Debug logging for banners, announcements, and posts
+  console.log("Banners data:", mergedStore?.banners);
+  console.log("Announcements data:", mergedStore?.announcements);
+  console.log("Posts data:", mergedStore?.posts);
+
   // ======== Products source (API first, else empty state) ========
   const productsSource = mergedStore?.productsFromApi || [];
 
   // ======== Social Feed (empty state when no posts) ========
-  const postsSource = [];
+  const postsSource = mergedStore?.posts || [];
 
   // ======== Search in Products ========
   const [tab, setTab] = useState("Products");
@@ -263,8 +276,29 @@ export default function StoreDetailsScreen() {
     rating: Number(rv.rating) || 0,
     time: new Date(rv.created_at).toLocaleString(),
     text: rv.comment || "",
-    replies: [], // API doesn’t include replies; keep your local reply UI
+    replies: [], // API doesn't include replies; keep your local reply UI
   });
+
+  // Map API post to UI format
+  const mapApiPostToUi = (post) => {
+    const timeAgo = new Date(post.created_at).toLocaleDateString();
+    const images = Array.isArray(post.media) 
+      ? post.media.map(media => fileUrl(media.path))
+      : [];
+    
+    return {
+      id: String(post.id),
+      store: mergedStore?.name || "Store",
+      avatar: mergedStore?.avatar,
+      location: mergedStore?.location || "Lagos, Nigeria",
+      timeAgo,
+      caption: post.body || "",
+      images,
+      likes: post.likes_count || 0,
+      comments: post.comments_count || 0,
+      shares: post.shares_count || 0,
+    };
+  };
 
   const apiReviewsUi = Array.isArray(reviewsApiList)
     ? reviewsApiList.map(mapApiReviewToUi)
@@ -774,7 +808,7 @@ export default function StoreDetailsScreen() {
           <View style={styles.statsBottom}>
             <Ionicons name="megaphone-outline" size={16} color="#fff" />
             <ThemedText style={styles.announceTxt}>
-              New arrivals coming tomorrow
+              {mergedStore?.announcements?.[0]?.message || "New arrivals coming tomorrow"}
             </ThemedText>
           </View>
         </View>
@@ -802,15 +836,45 @@ export default function StoreDetailsScreen() {
           ))}
         </View>
 
-        {/* Promo (kept) */}
+        {/* Banner Carousel */}
         <View style={{ marginHorizontal: 16, marginTop: 12 }}>
-          <View style={styles.promoWrap}>
-            <Image
-              source={promoSrc}
-              style={styles.promoImage}
-              resizeMode="cover"
-            />
-          </View>
+          {mergedStore?.banners?.length > 0 ? (
+            <View style={styles.promoWrap}>
+              <FlatList
+                data={mergedStore.banners}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.bannerCarouselItem}
+                    onPress={() => {
+                      if (item.link) {
+                        Linking.openURL(item.link).catch(err => 
+                          console.log("Banner link error:", err)
+                        );
+                      }
+                    }}
+                  >
+                    <Image 
+                      source={{ uri: fileUrl(item.image_path) }} 
+                      style={styles.promoImage} 
+                      resizeMode="cover" 
+                    />
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          ) : (
+            <View style={styles.promoWrap}>
+              <Image
+                source={promoSrc}
+                style={styles.promoImage}
+                resizeMode="cover"
+              />
+            </View>
+          )}
         </View>
 
         {/* Action buttons (kept) */}
@@ -970,7 +1034,7 @@ export default function StoreDetailsScreen() {
         {tab === "Social Feed" && (
           <View style={{ paddingBottom: 20 }}>
             {postsSource.length > 0 ? (
-              postsSource.map((p) => <PostCardLike key={p.id} item={p} />)
+              postsSource.map((p) => <PostCardLike key={p.id} item={mapApiPostToUi(p)} />)
             ) : (
               <View style={styles.emptyStateContainer}>
                 <Ionicons name="images-outline" size={64} color={COLOR.sub} />
@@ -1133,9 +1197,6 @@ function PostCardLike({ item }) {
         </View>
 
         <View style={styles.actionsRight}>
-          <TouchableOpacity style={styles.visitBtn}>
-            <ThemedText style={styles.visitBtnText}>Visit Store</ThemedText>
-          </TouchableOpacity>
           <TouchableOpacity style={{ marginLeft: 10 }}>
             <Image
               source={require("../../../assets/DownloadSimple.png")}
@@ -1769,6 +1830,7 @@ const styles = StyleSheet.create({
 
   promoWrap: { borderRadius: 20, overflow: "hidden" },
   promoImage: { width: "100%", height: 170 },
+  bannerCarouselItem: { width: width - 32, height: 170 },
 
   statsBottom: {
     backgroundColor: COLOR.primary,

@@ -9,13 +9,14 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { useCameraSearch } from '../config/api.config';
+import { useCameraSearch, useCartQuantity } from '../config/api.config';
 
 const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Nigeria' } }) => {
   const navigation = useNavigation();
@@ -26,14 +27,17 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
     avatar: null,
   });
 
-  const [cartQuantity, setCartQuantity] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
 
   const HOST = 'https://colala.hmstech.xyz';
   const toAbs = (u) => (u?.startsWith('http') ? u : `${HOST}/storage/${u || ''}`);
 
   // Camera search functionality
   const { mutate: cameraSearch, isPending: isCameraSearching } = useCameraSearch();
+  
+  // Use shared cart quantity hook
+  const { data: cartQuantity = 0, isLoading: isCartLoading } = useCartQuantity();
 
   // Load stored user
   const loadUser = async () => {
@@ -59,41 +63,17 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
     }
   };
 
-  // Fetch cart quantity from API
-  const fetchCartQuantity = async () => {
-    try {
-      // Adjust key if you store token differently
-      const token = await AsyncStorage.getItem('auth_token');
-      if (!token) {
-        console.log("⚠️ No token found in AsyncStorage");
-        return;
-      }
 
-      const response = await fetch(
-        'https://colala.hmstech.xyz/api/buyer/cart-quantity',
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-          },
-        }
-      );
-
-      const json = await response.json();
-      console.log("✅ Cart quantity response:", json);
-
-      if (json?.status === 'success') {
-        setCartQuantity(parseInt(json.data?.quantity || 0));
-      }
-    } catch (err) {
-      console.log("❌ Error fetching cart quantity:", err.message);
-    }
+  // Show image picker modal
+  const handleCameraSearch = () => {
+    setShowImagePickerModal(true);
   };
 
-  // Camera search functionality
-  const handleCameraSearch = async () => {
+  // Handle camera image capture
+  const handleCameraCapture = async () => {
     try {
+      setShowImagePickerModal(false);
+      
       // Request camera permissions
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
@@ -113,34 +93,7 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
       });
 
       if (!result.canceled && result.assets[0]) {
-        const imageUri = result.assets[0].uri;
-        setIsSearching(true);
-
-        // Perform camera search
-        cameraSearch(
-          { image: imageUri, type: 'product' },
-          {
-            onSuccess: (data) => {
-              console.log("✅ Camera search successful:", data);
-              setIsSearching(false);
-              
-              // Navigate to camera search results screen
-              navigation.navigate('CameraSearchScreen', {
-                searchResults: data.search_results,
-                extractedText: data.extracted_text,
-                searchQuery: data.search_query,
-              });
-            },
-            onError: (error) => {
-              console.log("❌ Camera search error:", error);
-              setIsSearching(false);
-              Alert.alert(
-                'Search Failed',
-                'Could not analyze the image. Please try again.'
-              );
-            },
-          }
-        );
+        await processImage(result.assets[0].uri);
       }
     } catch (error) {
       console.log("❌ Camera error:", error);
@@ -152,6 +105,73 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
     }
   };
 
+  // Handle gallery image selection
+  const handleGallerySelection = async () => {
+    try {
+      setShowImagePickerModal(false);
+      
+      // Request media library permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant media library permission to select images.'
+        );
+        return;
+      }
+
+      // Launch image library
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await processImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log("❌ Gallery error:", error);
+      setIsSearching(false);
+      Alert.alert(
+        'Error',
+        'Failed to open gallery. Please try again.'
+      );
+    }
+  };
+
+  // Process selected image
+  const processImage = async (imageUri) => {
+    setIsSearching(true);
+
+    // Perform camera search
+    cameraSearch(
+      { image: imageUri, type: 'product' },
+      {
+        onSuccess: (data) => {
+          console.log("✅ Image search successful:", data);
+          setIsSearching(false);
+          
+          // Navigate to camera search results screen
+          navigation.navigate('CameraSearchScreen', {
+            searchResults: data.search_results,
+            extractedText: data.extracted_text,
+            searchQuery: data.search_query,
+          });
+        },
+        onError: (error) => {
+          console.log("❌ Image search error:", error);
+          setIsSearching(false);
+          Alert.alert(
+            'Search Failed',
+            'Could not analyze the image. Please try again.'
+          );
+        },
+      }
+    );
+  };
+
   useEffect(() => {
     loadUser();
   }, []);
@@ -160,13 +180,6 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
   useFocusEffect(
     useCallback(() => {
       loadUser();
-
-      console.log("Screen focused, setting 3s timer to fetch cart...");
-      const timer = setTimeout(() => {
-        fetchCartQuantity();
-      }, 2000);
-
-      return () => clearTimeout(timer);
     }, [])
   );
 
@@ -255,6 +268,52 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
           )}
         </TouchableOpacity>
       </TouchableOpacity>
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={showImagePickerModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImagePickerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Image Source</Text>
+              <TouchableOpacity
+                onPress={() => setShowImagePickerModal(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalOptions}>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={handleCameraCapture}
+              >
+                <View style={styles.optionIcon}>
+                  <Ionicons name="camera" size={32} color="#E53E3E" />
+                </View>
+                <Text style={styles.optionText}>Take Photo</Text>
+                <Text style={styles.optionSubtext}>Use camera to capture image</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={handleGallerySelection}
+              >
+                <View style={styles.optionIcon}>
+                  <Ionicons name="images" size={32} color="#E53E3E" />
+                </View>
+                <Text style={styles.optionText}>Choose from Gallery</Text>
+                <Text style={styles.optionSubtext}>Select from photo library</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -316,4 +375,77 @@ const styles = StyleSheet.create({
     height: 57,
   },
   searchInput: { flex: 1, fontSize: 14, color: '#333' },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    marginHorizontal: 20,
+    maxWidth: 400,
+    width: '100%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalOptions: {
+    padding: 20,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#f8f9fa',
+    marginBottom: 12,
+  },
+  optionIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  optionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  optionSubtext: {
+    fontSize: 12,
+    color: '#666',
+  },
 });

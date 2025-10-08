@@ -273,7 +273,7 @@ const SettingsScreen = () => {
             source={
               user?.profile_picture
                 ? { uri: `https://colala.hmstech.xyz/storage/${user.profile_picture}` }
-                : { uri: "https://i.pravatar.cc/100?img=8" }
+                : require('../../../assets/Avatar 1.png')
             }
             style={styles.profileImg}
           />

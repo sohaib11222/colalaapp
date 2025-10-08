@@ -620,9 +620,9 @@ export default function ShippingDetailsScreen() {
                     <View style={{ marginTop: 8 }}>
                       <View style={styles.addressHead}>
                         <ThemedText style={styles.addrHeader}>Delivery Address</ThemedText>
-                        <TouchableOpacity>
+                        <TouchableOpacity onPress={() => navigation.navigate('SettingsNavigator', { screen: 'EditProfile' })}>
                           <ThemedText style={{ color: COLOR.primary, fontWeight: "600" }}>
-                            Delivery fee/Location
+                            Add Delivery Address
                           </ThemedText>
                         </TouchableOpacity>
                       </View>

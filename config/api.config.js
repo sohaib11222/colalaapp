@@ -324,7 +324,15 @@ export const useProductDetails = (productId, options) =>
 export const useAddToCart = (opts) =>
   useMutation({
     mutationFn: (payload) => http.post(API.ADD_TO_CART, payload),
-    ...opts,
+    onSuccess: (res) => {
+      // Invalidate both cart and cartQuantity queries to update counters everywhere
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: ["cartQuantity"] });
+      opts?.onSuccess?.(res);
+    },
+    onError: (err) => {
+      opts?.onError?.(err);
+    },
   });
 
 export const useCart = (options) =>
@@ -332,6 +340,38 @@ export const useCart = (options) =>
     queryKey: ["cart"],
     queryFn: () => http.get(API.CART),
     staleTime: 60 * 1000,
+    ...options,
+  });
+
+// Shared cart quantity hook for consistent cart counter across components
+export const useCartQuantity = (options) =>
+  useQuery({
+    queryKey: ["cartQuantity"],
+    queryFn: async () => {
+      const token = await AsyncStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('No auth token');
+      }
+      
+      const response = await fetch(
+        'https://colala.hmstech.xyz/api/buyer/cart-quantity',
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
+      
+      const json = await response.json();
+      if (json?.status === 'success') {
+        return parseInt(json.data?.quantity || 0);
+      }
+      throw new Error('Failed to fetch cart quantity');
+    },
+    staleTime: 30 * 1000, // 30 seconds
+    refetchOnWindowFocus: true,
     ...options,
   });
 

@@ -20,7 +20,7 @@ import { useRoute, useNavigation, useFocusEffect } from "@react-navigation/nativ
 import { StatusBar } from "expo-status-bar";
 import { Video, ResizeMode } from 'expo-av';
 import ThemedText from "../../../components/ThemedText";
-import { useProductDetails, useCart } from "../../../config/api.config";
+import { useProductDetails, useCart, useStartChat, useCartQuantity } from "../../../config/api.config";
 import { useAddToCart } from "../../../config/api.config";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -67,42 +67,8 @@ const ProductDetailsScreen = () => {
   const videoRef = useRef(null);
   const viewerVideoRef = useRef(null);
 
-  // Cart quantity state (same approach as HomeHeader)
-  const [cartQuantity, setCartQuantity] = useState(0);
-
-  // Fetch cart quantity from API (same as HomeHeader)
-  const fetchCartQuantity = async () => {
-    try {
-      const token = await AsyncStorage.getItem('auth_token');
-      if (!token) {
-        console.log("⚠️ No token found in AsyncStorage");
-        return;
-      }
-
-      const response = await fetch(
-        'https://colala.hmstech.xyz/api/buyer/cart-quantity',
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-          },
-        }
-      );
-
-      const json = await response.json();
-      console.log("✅ Cart quantity response:", json);
-
-      if (json?.status === 'success') {
-        setCartQuantity(parseInt(json.data?.quantity || 0));
-      }
-    } catch (err) {
-      console.log("❌ Error fetching cart quantity:", err.message);
-    }
-  };
-
-  // Debug cart data
-  console.log("Cart Quantity:", cartQuantity);
+  // Use shared cart quantity hook
+  const { data: cartQuantity = 0 } = useCartQuantity();
 
   // Check if product is saved
   const { mutate: checkSaved } = useCheckSavedItem({
@@ -126,6 +92,9 @@ const ProductDetailsScreen = () => {
     },
   });
 
+  // Chat functionality
+  const { mutate: startChat, isPending: creatingChat } = useStartChat();
+
 
   // Check saved status when component mounts
   useEffect(() => {
@@ -135,16 +104,7 @@ const ProductDetailsScreen = () => {
         type_id: productId.toString(),
       });
     }
-    fetchCartQuantity();
   }, [productId]);
-
-  // Fetch cart quantity when screen is focused (same as HomeHeader)
-  useFocusEffect(
-    useCallback(() => {
-      console.log("ProductDetailsScreen focused, fetching cart quantity...");
-      fetchCartQuantity();
-    }, [])
-  );
 
   // Pull to refresh functionality
   const onRefresh = useCallback(async () => {
@@ -169,6 +129,50 @@ const ProductDetailsScreen = () => {
         type: "product",
         type_id: productId.toString(),
       });
+    }
+  };
+
+  // Handle start chat
+  const handleStartChat = () => {
+    try {
+      const storeId = product?.store?.id;
+      console.log("Starting chat with store ID:", storeId);
+      
+      if (!storeId) {
+        console.error("Store ID not available");
+        Alert.alert("Error", "Store information not available");
+        return;
+      }
+      
+      startChat(
+        { storeId },
+        {
+          onSuccess: (data) => {
+            console.log("Chat created successfully:", data);
+            const { chat_id } = data;
+            
+            navigation.navigate("ServiceNavigator", {
+              screen: "ChatDetails",
+              params: {
+                store: {
+                  id: storeId,
+                  name: product?.store?.name || "Store",
+                  profileImage: product?.store?.logo,
+                },
+                chat_id,
+                store_order_id: storeId,
+              },
+            });
+          },
+          onError: (error) => {
+            console.error("Failed to create chat:", error);
+            Alert.alert("Error", "Failed to start chat. Please try again.");
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error starting chat:", error);
+      Alert.alert("Error", "Failed to start chat. Please try again.");
     }
   };
 
@@ -253,7 +257,7 @@ const ProductDetailsScreen = () => {
         id: raw.store.id,
         name: raw.store.store_name,
         location: raw.store.store_location,
-        rating: 4.5, // or pull from API if you add it later
+        rating: raw.store.average_rating || 0,
         followers: raw.store.followers_count ?? 0,
         sold: Number(raw.store.sold_items_sum_qty ?? 0),
 
@@ -391,10 +395,6 @@ const ProductDetailsScreen = () => {
   const addToCartMutation = useAddToCart({
     onSuccess: (res) => {
       console.log("Cart updated:", JSON.stringify(res, null, 2));
-      // Invalidate cart queries to refresh cart count
-      queryClient.invalidateQueries({ queryKey: ['cart'] });
-      // Fetch updated cart quantity
-      fetchCartQuantity();
       // Show success feedback
       Alert.alert("Success", "Product added to cart successfully!");
     },
@@ -893,7 +893,11 @@ const ProductDetailsScreen = () => {
                 >
                   {item.type === 'video' ? (
                     <View style={styles.videoThumbnailContainer}>
-                      <Image source={{ uri: item.uri }} style={styles.thumbnail} />
+                      <Image 
+                        source={require("../../../assets/vedio-overlay.png")} 
+                        style={styles.thumbnail} 
+                        resizeMode="cover"
+                      />
                       <View style={styles.videoThumbnailOverlay}>
                         <Ionicons name="play" size={16} color="#fff" />
                       </View>
@@ -948,7 +952,7 @@ const ProductDetailsScreen = () => {
                   </ThemedText>
                   <View style={styles.ratingRow}>
                     <Ionicons name="star" size={20} color="red" />
-                    <ThemedText style={styles.rating}>4.5</ThemedText>
+                    <ThemedText style={styles.rating}>{product?.store?.rating || 0}</ThemedText>
                   </View>
                 </View>
 
@@ -984,7 +988,7 @@ const ProductDetailsScreen = () => {
                       style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
                     >
                       {Array.from(
-                        new Set(product.variations.map((v) => v.color))
+                        new Set(product.variations.map((v) => v.color).filter(Boolean))
                       ).map((color, i) => (
                         <TouchableOpacity
                           key={i}
@@ -992,7 +996,7 @@ const ProductDetailsScreen = () => {
                             width: 32,
                             height: 32,
                             borderRadius: 16,
-                            backgroundColor: color.toLowerCase(),
+                            backgroundColor: color?.toLowerCase() || '#ccc',
                             borderWidth: 2,
                             borderColor:
                               selectedColor === color ? "#E53E3E" : "#ccc",
@@ -1015,7 +1019,7 @@ const ProductDetailsScreen = () => {
                       style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
                     >
                       {Array.from(
-                        new Set(product.variations.map((v) => v.size))
+                        new Set(product.variations.map((v) => v.size).filter(Boolean))
                       ).map((size, i) => (
                         <TouchableOpacity
                           key={i}
@@ -1129,27 +1133,36 @@ const ProductDetailsScreen = () => {
     <Ionicons name="call-outline" size={20} color="#000" />
   </TouchableOpacity>
 
-  {/* SMS */}
+  {/* Chat */}
   <TouchableOpacity
     style={styles.contactBtn}
+    onPress={handleStartChat}
+    disabled={creatingChat}
+  >
+    {creatingChat ? (
+      <ActivityIndicator size="small" color="#000" />
+    ) : (
+      <Ionicons name="chatbubble-outline" size={20} color="#000" />
+    )}
+  </TouchableOpacity>
+
+  {/* Reveal Number / Dial */}
+  <TouchableOpacity
+    style={styles.revealBtn}
     onPress={() => {
-      if (storePhoneNumber) {
-        Linking.openURL(`sms:${storePhoneNumber}`).catch(err =>
-          console.log("SMS error:", err)
+      if (showPhone) {
+        // If phone is already revealed, dial the number
+        Linking.openURL(`tel:${storePhoneNumber}`).catch(err =>
+          console.log("Call error:", err)
         );
+      } else {
+        // If phone is not revealed, reveal it
+        setShowPhone(true);
       }
     }}
   >
-    <Ionicons name="chatbubble-outline" size={20} color="#000" />
-  </TouchableOpacity>
-
-  {/* Reveal Number */}
-  <TouchableOpacity
-    style={styles.revealBtn}
-    onPress={() => setShowPhone((s) => !s)}
-  >
     <ThemedText style={{ color: "#fff", fontSize: 12 }}>
-      {showPhone ? storePhoneNumber : "Reveal Phone Number"}
+      {showPhone ? "Call Now" : "Reveal Phone Number"}
     </ThemedText>
   </TouchableOpacity>
 </View>
@@ -1249,7 +1262,7 @@ const ProductDetailsScreen = () => {
                     >
                       <Ionicons name="star" color="red" size={16} />
                       <ThemedText style={{ fontSize: 14, marginLeft: 4 }}>
-                        {product.store?.rating}
+                        {product.store?.rating || 0}
                       </ThemedText>
                     </View>
                   </View>
