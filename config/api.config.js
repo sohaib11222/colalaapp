@@ -44,6 +44,7 @@ const API = {
   SEARCH: `${BASE_URL}/search`,
   CAMERA_SEARCH: `${BASE_URL}/search/camera`,
   STORE_REVIEWS: (id) => `${BASE_URL}/buyer/stores/${id}/reviews`,
+  ORDER_ITEM_REVIEW: (orderItemId) => `${BASE_URL}/buyer/order-items/${orderItemId}/review`,
   Get_All_Products: `${BASE_URL}/buyer/product/get-all`,
   LEADERBOARD_SELLERS: `${BASE_URL}/leaderboard/sellers`,
 
@@ -791,6 +792,42 @@ export const useAddStoreReview = (opts) =>
     onSuccess: (res, vars) => {
       // Refresh the reviews list for this store
       queryClient.invalidateQueries({ queryKey: ["storeReviews", vars.storeId] });
+      opts?.onSuccess?.(res, vars);
+    },
+    onError: (err, vars) => {
+      opts?.onError?.(err, vars);
+    },
+  });
+
+export const useAddProductReview = (opts) =>
+  useMutation({
+    mutationFn: async ({ orderItemId, rating, comment, images }) => {
+      // If images are provided, send multipart/form-data, otherwise JSON
+      const hasImages = Array.isArray(images) && images.length > 0;
+
+      if (hasImages) {
+        const fd = new FormData();
+        fd.append("rating", String(rating ?? ""));
+        fd.append("comment", comment ?? "");
+        images.forEach((uri, i) =>
+          fd.append("images[]", {
+            uri,
+            name: `review_${Date.now()}_${i}.jpg`,
+            type: "image/jpeg",
+          })
+        );
+        return http.post(API.ORDER_ITEM_REVIEW(orderItemId), fd);
+      }
+
+      return http.post(API.ORDER_ITEM_REVIEW(orderItemId), {
+        rating,
+        comment,
+        images: [],
+      });
+    },
+    onSuccess: (res, vars) => {
+      // Refresh order details to show updated review status
+      queryClient.invalidateQueries({ queryKey: ["orderDetails"] });
       opts?.onSuccess?.(res, vars);
     },
     onError: (err, vars) => {

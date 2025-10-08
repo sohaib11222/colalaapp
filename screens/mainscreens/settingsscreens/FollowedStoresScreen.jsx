@@ -11,6 +11,9 @@ import {
   Platform,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  ScrollView,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -106,6 +109,32 @@ const CARD_WIDTH = (width - SCREEN_PADDING * 2 - CARD_GAP) / 2;
 const COVER_HEIGHT = 100;
 const AVATAR_SIZE = 44;
 
+/* ------------ BOTTOM SHEET WRAPPER ------------ */
+const BottomSheet = ({ visible, onClose, title, children }) => {
+  if (!visible) return null;
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <View style={sheetStyles.backdrop}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View style={sheetStyles.sheetContainer}>
+          <View style={sheetStyles.sheetHeader}>
+            <View style={sheetStyles.sheetHandle} />
+            <ThemedText style={sheetStyles.sheetTitle}>{title}</ThemedText>
+            <TouchableOpacity onPress={onClose} style={sheetStyles.sheetClose}>
+              <Ionicons name="close" size={18} color={COLOR.text} />
+            </TouchableOpacity>
+          </View>
+          {children}
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 export default function FollowedStoresScreen() {
   const navigation = useNavigation();
   const [query, setQuery] = useState("");
@@ -114,6 +143,9 @@ export default function FollowedStoresScreen() {
     category: "Category",
     review: "Review",
   });
+
+  // Modal state (like SavedItemsScreen)
+  const [picker, setPicker] = useState(null);
 
   // Query client for refresh functionality
   const queryClient = useQueryClient();
@@ -151,41 +183,118 @@ export default function FollowedStoresScreen() {
     }
   }, [queryClient]);
 
-  // Use API data if available, otherwise fallback to dummy data
+  // Only use API data, no fallback to dummy data
   const allStores = useMemo(() => {
-    if (apiStores.length > 0) {
-      return apiStores.map(mapApiStoreToComponent);
-    }
-    return INITIAL_FOLLOWED;
+    return apiStores.map(mapApiStoreToComponent);
   }, [apiStores]);
 
   const visibleData = useMemo(() => {
-    if (!query.trim()) return allStores;
-    const q = query.toLowerCase();
-    return allStores.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.tags.some((t) => t.toLowerCase().includes(q))
-    );
-  }, [query, allStores]);
+    let filtered = allStores;
+    
+    // Search filter
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      filtered = filtered.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.tags.some((t) => t.toLowerCase().includes(q))
+      );
+    }
+    
+    // Location filter
+    if (filters.location !== "Location") {
+      filtered = filtered.filter((s) => {
+        // Find the original API store data to get actual location
+        const originalStore = apiStores.find(apiStore => String(apiStore.store_id) === s.id);
+        return originalStore?.store_location === filters.location;
+      });
+    }
+    
+    // Category filter
+    if (filters.category !== "Category") {
+      filtered = filtered.filter((s) => {
+        // Find the original API store data to get actual categories
+        const originalStore = apiStores.find(apiStore => String(apiStore.store_id) === s.id);
+        return originalStore?.categories?.some(cat => cat.title === filters.category);
+      });
+    }
+    
+    // Review filter
+    if (filters.review !== "Review") {
+      const minRating = parseFloat(filters.review.replace(/[^\d.]/g, ''));
+      filtered = filtered.filter((s) => s.rating >= minRating);
+    }
+    
+    return filtered;
+  }, [query, allStores, filters]);
 
   const onFilterPress = (key) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]:
-        prev[key] ===
-        (key === "location" ? "Lagos" : key === "category" ? "Phones" : "4.5+")
-          ? key === "location"
-            ? "Location"
-            : key === "category"
-            ? "Category"
-            : "Review"
-          : key === "location"
-          ? "Lagos"
-          : key === "category"
-          ? "Phones"
-          : "4.5+",
-    }));
+    setPicker(key);
+  };
+
+  // Get categories and locations from actual API data
+  const getCategoriesFromAPI = () => {
+    const allCategories = new Set();
+    apiStores.forEach(store => {
+      if (store.categories) {
+        store.categories.forEach(cat => {
+          if (cat.title) {
+            allCategories.add(cat.title);
+          }
+        });
+      }
+    });
+    return ['All', ...Array.from(allCategories).sort()];
+  };
+
+  const getLocationsFromAPI = () => {
+    const allLocations = new Set();
+    apiStores.forEach(store => {
+      if (store.store_location) {
+        allLocations.add(store.store_location);
+      }
+    });
+    return ['All', ...Array.from(allLocations).sort()];
+  };
+
+  // Filter options (using actual API data)
+  const LOCATIONS = getLocationsFromAPI();
+  const CATEGORIES = getCategoriesFromAPI();
+  const RATINGS = ['All', '4.5+ Stars', '4.0+ Stars', '3.5+ Stars', '3.0+ Stars'];
+
+  const renderPicker = (type) => {
+    const options = type === 'location' ? LOCATIONS : type === 'category' ? CATEGORIES : RATINGS;
+    const currentValue = type === 'location' ? filters.location : type === 'category' ? filters.category : filters.review;
+    const isDefault = currentValue === (type === 'location' ? 'Location' : type === 'category' ? 'Category' : 'Review');
+
+    return (
+      <Modal visible={picker === type} transparent animationType="fade" onRequestClose={() => setPicker(null)}>
+        <Pressable style={pickerStyles.modalBackdrop} onPress={() => setPicker(null)}>
+          <View style={pickerStyles.sheet}>
+            {options.map(opt => (
+              <TouchableOpacity 
+                key={opt} 
+                style={pickerStyles.sheetItem} 
+                onPress={() => { 
+                  setFilters((prev) => ({
+                    ...prev,
+                    [type]: opt === 'All' ? (type === 'location' ? 'Location' : type === 'category' ? 'Category' : 'Review') : opt
+                  }));
+                  setPicker(null); 
+                }}
+              >
+                <ThemedText style={[
+                  pickerStyles.sheetText, 
+                  (isDefault ? opt === 'All' : currentValue === opt) && { color: COLOR.primary, fontWeight: '600' }
+                ]}>
+                  {opt}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
+    );
   };
 
   const renderStore = ({ item }) => (
@@ -323,6 +432,25 @@ export default function FollowedStoresScreen() {
           <ActivityIndicator size="large" color={COLOR.primary} />
           <ThemedText style={styles.loadingText}>Loading followed stores...</ThemedText>
         </View>
+      ) : error ? (
+        <View style={styles.loadingContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={COLOR.sub} />
+          <ThemedText style={styles.loadingText}>Failed to load followed stores</ThemedText>
+          <TouchableOpacity 
+            style={[styles.retryButton, { marginTop: 16 }]}
+            onPress={onRefresh}
+          >
+            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+          </TouchableOpacity>
+        </View>
+      ) : allStores.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <Ionicons name="heart-outline" size={48} color={COLOR.sub} />
+          <ThemedText style={styles.loadingText}>No followed stores yet</ThemedText>
+          <ThemedText style={[styles.loadingText, { marginTop: 8, fontSize: 12 }]}>
+            Start following stores to see them here
+          </ThemedText>
+        </View>
       ) : (
         <FlatList
           data={visibleData}
@@ -350,16 +478,22 @@ export default function FollowedStoresScreen() {
           style={{ backgroundColor: COLOR.bg }}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
+              <Ionicons name="search-outline" size={48} color={COLOR.sub} />
               <ThemedText style={styles.emptyTitle}>
-                No followed stores
+                No stores found
               </ThemedText>
               <ThemedText style={styles.emptySub}>
-                Search or explore to follow stores.
+                Try adjusting your search or filters
               </ThemedText>
             </View>
           }
         />
       )}
+
+      {/* Filter Pickers (like SavedItemsScreen) */}
+      {renderPicker('location')}
+      {renderPicker('category')}
+      {renderPicker('review')}
     </SafeAreaView>
   );
 }
@@ -553,6 +687,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
+
+  // Retry button styles
+  retryButton: {
+    backgroundColor: COLOR.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
 });
 
 /* --------- tiny shadow helper --------- */
@@ -568,3 +717,26 @@ function shadow(elevation = 6) {
     default: {},
   });
 }
+
+/* -------- Simple picker styles (like SavedItemsScreen) -------- */
+const pickerStyles = StyleSheet.create({
+  modalBackdrop: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.25)', 
+    justifyContent: 'flex-end' 
+  },
+  sheet: { 
+    backgroundColor: '#fff', 
+    padding: 12, 
+    borderTopLeftRadius: 16, 
+    borderTopRightRadius: 16 
+  },
+  sheetItem: { 
+    paddingVertical: 12, 
+    paddingHorizontal: 6 
+  },
+  sheetText: { 
+    fontSize: 16, 
+    color: COLOR.text 
+  },
+});

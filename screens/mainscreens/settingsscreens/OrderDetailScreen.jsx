@@ -10,12 +10,14 @@ import {
   Modal,
   ActivityIndicator,
   RefreshControl,
+  TextInput,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
-import { useOrderDetails, fileUrl, useStartChat } from "../../../config/api.config"; // ⬅️ NEW
+import { useOrderDetails, fileUrl, useStartChat, useAddProductReview, useAddStoreReview } from "../../../config/api.config"; // ⬅️ NEW
 
 /* ---------- THEME ---------- */
 const COLOR = {
@@ -90,7 +92,7 @@ const InfoRow = ({ left, right, strongRight, topBorder }) => (
 );
 
 /* ---------- Track Order full-screen modal (unchanged UI) ---------- */
-function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status = 0, trackingData = null, orderData = null }) {
+function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status = 0, trackingData = null, orderData = null, onShowFullDetails = null }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [codeOpen, setCodeOpen] = useState(false);
   
@@ -104,9 +106,24 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
   const code = trackingData?.delivery_code || "1415"; // Use API delivery code or fallback
   const trackingStatus = trackingData?.status || "pending";
   const trackingNotes = trackingData?.notes || "Order has been placed and is pending processing.";
+  
+  // Map API status to step index for the modal
+  const getStepIndex = (status) => {
+    switch (status) {
+      case 'pending': return 0;
+      case 'out_for_delivery': return 1;
+      case 'delivered': return 2;
+      case 'completed': return 3;
+      default: return 0;
+    }
+  };
+  
+  const currentStepIndex = getStepIndex(trackingStatus);
 
   const Step = ({ index, title, showWarning, showActions }) => {
-    const filled = index <= status;
+    const filled = index <= currentStepIndex;
+    const isDelivered = index === 2 && currentStepIndex >= 2;
+    
     return (
       <View style={{ flexDirection: "row", marginBottom: 20 }}>
         <View style={{ width: 46, alignItems: "center" }}>
@@ -152,7 +169,16 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
             </View>
           </View>
 
-          {showWarning && (
+          {isDelivered && (
+            <View style={[styles.warnRow, { backgroundColor: "#E8F5E8", borderColor: "#4CAF50" }]}>
+              <Ionicons name="checkmark-circle-outline" size={18} color="#4CAF50" />
+              <ThemedText style={{ color: "#4CAF50", marginLeft: 8, fontSize: 10 }}>
+                Your order has been successfully delivered!
+              </ThemedText>
+            </View>
+          )}
+
+          {showWarning && !isDelivered && (
             <View style={styles.warnRow}>
               <Ionicons name="warning-outline" size={18} color={COLOR.primary} />
               <ThemedText style={{ color: COLOR.primary, marginLeft: 8, fontSize: 10 }}>
@@ -161,7 +187,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
             </View>
           )}
 
-          {showActions && (
+          {showActions && !isDelivered && (
             <>
               <TouchableOpacity style={styles.revealBtn} onPress={() => setConfirmOpen(true)}>
                 <ThemedText style={{ color: "#fff", fontWeight: "600", fontSize: 12 }}>
@@ -211,6 +237,12 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
               styles.pillBtn,
               { backgroundColor: "#fff", borderWidth: 1, borderColor: COLOR.line },
             ]}
+            onPress={() => {
+              if (onShowFullDetails) {
+                onShowFullDetails();
+              }
+              onClose();
+            }}
           >
             <ThemedText style={{ color: COLOR.text, fontSize: 12 }}>Full Details</ThemedText>
           </TouchableOpacity>
@@ -223,8 +255,8 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
 
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
           <Step index={0} title="Order Placed" />
-          <Step index={1} title="Out for Delivery" />
-          {status >= 2 && <Step index={2} title="Delivered" showWarning showActions />}
+          <Step index={1} title="Out for Delivery" showWarning={currentStepIndex >= 1 && currentStepIndex < 2} showActions={currentStepIndex >= 1 && currentStepIndex < 2} />
+          {currentStepIndex >= 2 && <Step index={2} title="Delivered" showWarning={false} showActions={false} />}
         </ScrollView>
 
         {/* Confirm reveal modal */}
@@ -322,10 +354,103 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
   );
 }
 
+/* ---------- Review Modal Components ---------- */
+function ReviewModal({ visible, onClose, type, store, onSubmit, isSubmitting = false }) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [images, setImages] = useState([]);
+
+  const handleSubmit = () => {
+    if (rating === 0 || isSubmitting) return;
+    onSubmit({ rating, comment, images });
+    setRating(0);
+    setComment('');
+    setImages([]);
+    onClose();
+  };
+
+  const StarButton = ({ value, onPress, filled }) => (
+    <TouchableOpacity onPress={onPress} style={{ marginRight: 8 }}>
+      <Ionicons 
+        name={filled ? "star" : "star-outline"} 
+        size={24} 
+        color={filled ? "#E53E3E" : "#ccc"} 
+      />
+    </TouchableOpacity>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <View style={styles.reviewModal}>
+          <View style={styles.reviewModalHeader}>
+            <ThemedText style={styles.reviewModalTitle}>
+              Leave a review
+            </ThemedText>
+            <TouchableOpacity onPress={onClose} style={styles.reviewModalClose}>
+              <Ionicons name="close" size={18} color={COLOR.text} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.ratingSection}>
+            <View style={styles.starRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <StarButton
+                  key={star}
+                  value={star}
+                  filled={star <= rating}
+                  onPress={() => setRating(star)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <ThemedText style={styles.reviewLabel}>Type review</ThemedText>
+          <TextInput
+            value={comment}
+            onChangeText={setComment}
+            placeholder="Type your review"
+            placeholderTextColor={COLOR.sub}
+            multiline
+            style={styles.reviewTextArea}
+          />
+
+          {/* Image upload section */}
+          <View style={styles.imageUploadRow}>
+            <TouchableOpacity style={styles.addImageBtn}>
+              <Ionicons name="image-outline" size={20} color={COLOR.sub} />
+            </TouchableOpacity>
+            {images.map((img, i) => (
+              <Image key={i} source={{ uri: img }} style={styles.imageThumb} />
+            ))}
+          </View>
+
+          <TouchableOpacity 
+            style={[styles.submitReviewBtn, (rating === 0 || isSubmitting) && styles.submitReviewBtnDisabled]} 
+            onPress={handleSubmit}
+            disabled={rating === 0 || isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <ThemedText style={styles.submitReviewBtnText}>Send Review</ThemedText>
+            )}
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
 /* ---------- Store block (unchanged UI) ---------- */
-function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
-  const [expanded, setExpanded] = useState(false);
+function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData = null, isExpanded = false, onToggleExpanded = null, onReviewProduct = null, onReviewStore = null, addingProductReview = false, addingStoreReview = false }) {
+  const [expanded, setExpanded] = useState(isExpanded);
   const navigation = useNavigation();
+  
+  // Sync internal state with external state
+  React.useEffect(() => {
+    setExpanded(isExpanded);
+  }, [isExpanded]);
   
   // Chat functionality
   const { mutate: startChat, isPending: creatingChat } = useStartChat();
@@ -378,13 +503,14 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
 
   const items = showSingleItem ? store.items.slice(0, 1) : store.items;
 
-  // The following values are NOT in the order details API → kept hardcoded
+  // Use real API data for pricing
   const itemsCount = items.reduce((a, b) => a + b.qty, 0);
   const itemsCost = items.reduce((a, b) => a + (Number(b.price) || 0) * (Number(b.qty) || 0), 0);
-  const coupon = 5_000;   // hardcoded
-  const points = 10_000;  // hardcoded
-  const fee = 10_000;     // hardcoded
-  const totalPay = itemsCost - coupon - points + fee;
+  const coupon = 0;   // Set to 0 as per user request - not coming from backend
+  const points = 0;   // Set to 0 as per user request - not coming from backend
+  const fee = Number(orderData?.platform_fee) || 0;     // Use real platform fee from API
+  const shippingFee = Number(orderData?.shipping_total) || 0;  // Use real shipping fee from API
+  const totalPay = Number(orderData?.grand_total) || (itemsCost - coupon - points + fee + shippingFee);
 
   return (
     <View style={styles.section}>
@@ -470,7 +596,7 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
           )}
         </TouchableOpacity>
 
-        {/* Expanded details (address NOT in API → hardcoded) */}
+        {/* Expanded details (address from API) */}
         {expanded && (
           <>
             <ThemedText style={styles.sectionTitle}>Delivery Address</ThemedText>
@@ -478,24 +604,53 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
               <View style={styles.addrRow}>
                 <ThemedText style={styles.addrLabel}>Name</ThemedText>
                 <View style={styles.addrRight}>
-                  <ThemedText style={styles.addrValue}>Adewale Faizah</ThemedText>
-                  <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
+                  <ThemedText style={styles.addrValue}>{orderData?.delivery_address?.label || "Home"}</ThemedText>
+                  <TouchableOpacity 
+                    onPress={async () => {
+                      const nameText = orderData?.delivery_address?.label || "Home";
+                      await Clipboard.setStringAsync(nameText);
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
+                  </TouchableOpacity>
                 </View>
               </View>
               <View style={[styles.addrRow, { marginTop: 8 }]}>
                 <ThemedText style={styles.addrLabel}>Phone number</ThemedText>
                 <View style={styles.addrRight}>
-                  <ThemedText style={styles.addrValue}>0703123456789</ThemedText>
-                  <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
+                  <ThemedText style={styles.addrValue}>{orderData?.delivery_address?.phone || "—"}</ThemedText>
+                  <TouchableOpacity 
+                    onPress={async () => {
+                      const phoneText = orderData?.delivery_address?.phone || "—";
+                      await Clipboard.setStringAsync(phoneText);
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
+                  </TouchableOpacity>
                 </View>
               </View>
               <View style={[styles.addrRow, { marginTop: 8, alignItems: "flex-start" }]}>
                 <ThemedText style={styles.addrLabel}>Address</ThemedText>
                 <View style={styles.addrRight}>
                   <ThemedText style={styles.addrValue}>
-                    No 7 , abcd street , ikeja , Lagos
+                    {orderData?.delivery_address ? 
+                      `${orderData.delivery_address.line1 || ""}${orderData.delivery_address.line2 ? `, ${orderData.delivery_address.line2}` : ""}, ${orderData.delivery_address.city}, ${orderData.delivery_address.state}, ${orderData.delivery_address.country}`.replace(/^,\s*/, '') : 
+                      "No address available"
+                    }
                   </ThemedText>
-                  <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
+                  <TouchableOpacity 
+                    onPress={async () => {
+                      const addressText = orderData?.delivery_address ? 
+                        `${orderData.delivery_address.line1 || ""}${orderData.delivery_address.line2 ? `, ${orderData.delivery_address.line2}` : ""}, ${orderData.delivery_address.city}, ${orderData.delivery_address.state}, ${orderData.delivery_address.country}`.replace(/^,\s*/, '') : 
+                        "No address available";
+                      await Clipboard.setStringAsync(addressText);
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -506,7 +661,8 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
               <InfoRow left="Items Cost" right={currency(itemsCost)} topBorder />
               <InfoRow left="Coupon Discount" right={`-${currency(coupon)}`} topBorder />
               <InfoRow left="Points Discount" right={`-${currency(points)}`} topBorder />
-              <InfoRow left="Delivery fee" right={currency(fee)} topBorder />
+              <InfoRow left="Shipping fee" right={currency(shippingFee)} topBorder />
+              <InfoRow left="Platform fee" right={currency(fee)} topBorder />
               <InfoRow left="Total to pay" right={currency(totalPay)} strongRight topBorder />
             </View>
           </>
@@ -514,13 +670,43 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false }) {
 
         <TouchableOpacity
           activeOpacity={0.8}
-          onPress={() => setExpanded((v) => !v)}
+          onPress={() => {
+            const newExpanded = !expanded;
+            setExpanded(newExpanded);
+            if (onToggleExpanded) {
+              onToggleExpanded(store.id, newExpanded);
+            }
+          }}
           style={styles.expandBtn}
         >
           <ThemedText style={{ color: "#E53E3E", fontSize: 11 }}>
             {expanded ? "Collapse" : "Expand"}
           </ThemedText>
         </TouchableOpacity>
+
+        {/* Review buttons - only show for delivered orders */}
+        {store.status >= 2 && (
+          <View style={styles.reviewButtonsRow}>
+            <TouchableOpacity 
+              style={styles.reviewBtn}
+              onPress={() => onReviewProduct && onReviewProduct(store)}
+              disabled={addingProductReview || addingStoreReview}
+            >
+              <ThemedText style={styles.reviewBtnText}>
+                {addingProductReview ? "Submitting..." : "Review Product"}
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.reviewBtn}
+              onPress={() => onReviewStore && onReviewStore(store)}
+              disabled={addingProductReview || addingStoreReview}
+            >
+              <ThemedText style={styles.reviewBtnText}>
+                {addingStoreReview ? "Submitting..." : "Review Store"}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -599,13 +785,25 @@ export default function SingleOrderDetailsScreen() {
           };
         }) || [];
 
+      // Map API status to UI status (0: pending, 1: out_for_delivery, 2: delivered, 3: completed)
+      const getStatusIndex = (status) => {
+        switch (status) {
+          case 'pending': return 0;
+          case 'out_for_delivery': return 1;
+          case 'delivered': return 2;
+          case 'completed': return 3;
+          default: return 0;
+        }
+      };
+
       return {
         id: String(so.store_id ?? so.id),
         name: storeName,
-        status: 1, // ❗ not in API → kept hardcoded (out for delivery). Adjust when backend provides status.
+        status: getStatusIndex(so.status), // Use real API status
         items,
         store: so.store, // Keep store data for tracking
         profileImage: so.store?.profile_image ? fileUrl(so.store.profile_image) : null, // Store profile image
+        orderTracking: so.order_tracking, // Keep tracking data for modal
       };
     });
 
@@ -618,20 +816,122 @@ export default function SingleOrderDetailsScreen() {
 
   // Tabs (unchanged)
   const STATUS = ["Order placed", "Out for delivery", "Delivered", "Completed"];
+  
   const [statusIdx, setStatusIdx] = useState(0);
+  
+  // Update tab when order data loads
+  React.useEffect(() => {
+    if (transformed?.stores?.length) {
+      // Get the highest status among all stores
+      const maxStatus = Math.max(...transformed.stores.map(s => s.status));
+      setStatusIdx(maxStatus);
+    }
+  }, [transformed]);
 
   // Track modal
   const [trackOpen, setTrackOpen] = useState(false);
   const [trackStoreName, setTrackStoreName] = useState("");
   const [trackStatus, setTrackStatus] = useState(0);
+  
+  // Expanded stores state
+  const [expandedStores, setExpandedStores] = useState(new Set());
 
-  const order = transformed ?? ORDERS_DETAIL[0];
+  // Review modals state
+  const [productReviewVisible, setProductReviewVisible] = useState(false);
+  const [storeReviewVisible, setStoreReviewVisible] = useState(false);
+  const [selectedStore, setSelectedStore] = useState(null);
+  
+  // Toast notification state
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('success'); // 'success' or 'error'
+
+  // Show toast notification
+  const showToast = (message, type = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
+  };
+
+  // Review API hooks
+  const { mutate: addProductReview, isPending: addingProductReview } = useAddProductReview({
+    onSuccess: (response) => {
+      setProductReviewVisible(false);
+      setSelectedStore(null);
+      showToast("Product review submitted successfully!", "success");
+    },
+    onError: (error) => {
+      console.error('Product review error:', error);
+      showToast("Failed to submit product review. Please try again.", "error");
+    }
+  });
+
+  const { mutate: addStoreReview, isPending: addingStoreReview } = useAddStoreReview({
+    onSuccess: (response) => {
+      setStoreReviewVisible(false);
+      setSelectedStore(null);
+      showToast("Store review submitted successfully!", "success");
+    },
+    onError: (error) => {
+      console.error('Store review error:', error);
+      showToast("Failed to submit store review. Please try again.", "error");
+    }
+  });
+
+  // Review handlers
+  const handleReviewProduct = (store) => {
+    setSelectedStore(store);
+    setProductReviewVisible(true);
+  };
+
+  const handleReviewStore = (store) => {
+    setSelectedStore(store);
+    setStoreReviewVisible(true);
+  };
+
+  const handleProductReviewSubmit = ({ rating, comment, images }) => {
+    if (!selectedStore || !selectedStore.items || selectedStore.items.length === 0) return;
+    
+    // For now, review the first item. In a real app, you might want to let user select which item
+    const firstItem = selectedStore.items[0];
+    addProductReview({
+      orderItemId: firstItem.id,
+      rating,
+      comment,
+      images
+    });
+  };
+
+  const handleStoreReviewSubmit = ({ rating, comment, images }) => {
+    if (!selectedStore) return;
+    
+    const storeId = selectedStore.store?.id || selectedStore.id;
+    addStoreReview({
+      storeId,
+      rating,
+      comment,
+      images
+    });
+  };
+
+  // Only use API data, no fallback to dummy data
+  const order = transformed;
 
   const visibleStores = useMemo(() => {
     if (!order?.stores) return [];
-    if (statusIdx === 0 || statusIdx === 3) return order.stores;
+    // Filter stores based on their actual status
     return order.stores.filter((s) => (s.status ?? 0) === statusIdx);
   }, [order, statusIdx]);
+
+  // Function to handle showing full details from modal
+  const handleShowFullDetails = (storeName) => {
+    // Find the store and expand it
+    const storeToExpand = visibleStores.find(s => s.name === storeName);
+    if (storeToExpand) {
+      setExpandedStores(prev => new Set([...prev, storeToExpand.id]));
+    }
+  };
 
   if (isLoading) {
     return (
@@ -663,7 +963,69 @@ export default function SingleOrderDetailsScreen() {
   }
 
   if (isError) {
-    console.warn("Some fields (address, images, per-store status) are not in API → left hardcoded.");
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+              }
+              style={styles.backBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="chevron-back" size={22} color={COLOR.text} />
+            </TouchableOpacity>
+
+            <ThemedText style={styles.headerTitle} pointerEvents="none">
+              Order Details
+            </ThemedText>
+
+            <View style={{ width: 40, height: 40 }} />
+          </View>
+        </View>
+        <View style={styles.loadingContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={COLOR.sub} />
+          <ThemedText style={styles.loadingText}>Failed to load order details</ThemedText>
+          <TouchableOpacity 
+            style={[styles.solidBtn, { marginTop: 16 }]}
+            onPress={handleRefresh}
+          >
+            <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Retry</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!order) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home")
+              }
+              style={styles.backBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="chevron-back" size={22} color={COLOR.text} />
+            </TouchableOpacity>
+
+            <ThemedText style={styles.headerTitle} pointerEvents="none">
+              Order Details
+            </ThemedText>
+
+            <View style={{ width: 40, height: 40 }} />
+          </View>
+        </View>
+        <View style={styles.loadingContainer}>
+          <Ionicons name="document-outline" size={48} color={COLOR.sub} />
+          <ThemedText style={styles.loadingText}>No order data available</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -719,19 +1081,45 @@ export default function SingleOrderDetailsScreen() {
           />
         }
       >
-        {visibleStores.map((s) => (
-          <StoreBlock
-            key={s.id}
-            store={s}
-            orderId={order.id}
-            showSingleItem={statusIdx === 2}
-            onTrack={(storeName, stat) => {
-              setTrackStoreName(storeName);
-              setTrackStatus(stat);
-              setTrackOpen(true);
-            }}
-          />
-        ))}
+        {visibleStores.length > 0 ? (
+          visibleStores.map((s) => (
+            <StoreBlock
+              key={s.id}
+              store={s}
+              orderId={order.id}
+              orderData={apiOrder}
+              showSingleItem={statusIdx === 2}
+              isExpanded={expandedStores.has(s.id)}
+              onToggleExpanded={(storeId, isExpanded) => {
+                setExpandedStores(prev => {
+                  const newSet = new Set(prev);
+                  if (isExpanded) {
+                    newSet.add(storeId);
+                  } else {
+                    newSet.delete(storeId);
+                  }
+                  return newSet;
+                });
+              }}
+              onTrack={(storeName, stat) => {
+                setTrackStoreName(storeName);
+                setTrackStatus(stat);
+                setTrackOpen(true);
+              }}
+              onReviewProduct={handleReviewProduct}
+              onReviewStore={handleReviewStore}
+              addingProductReview={addingProductReview}
+              addingStoreReview={addingStoreReview}
+            />
+          ))
+        ) : (
+          <View style={styles.loadingContainer}>
+            <Ionicons name="storefront-outline" size={48} color={COLOR.sub} />
+            <ThemedText style={styles.loadingText}>
+              No stores found for "{STATUS[statusIdx]}" status
+            </ThemedText>
+          </View>
+        )}
       </ScrollView>
 
       {/* Track Order modal */}
@@ -740,9 +1128,45 @@ export default function SingleOrderDetailsScreen() {
         onClose={() => setTrackOpen(false)}
         storeName={trackStoreName}
         status={Math.min(trackStatus, 2)}
-        trackingData={apiOrder?.order_tracking?.[0]}
+        trackingData={transformed?.stores?.find(s => s.name === trackStoreName)?.orderTracking?.[0]}
         orderData={transformed?.stores?.find(s => s.name === trackStoreName)}
+        onShowFullDetails={() => handleShowFullDetails(trackStoreName)}
       />
+
+      {/* Review Modals */}
+      <ReviewModal
+        visible={productReviewVisible}
+        onClose={() => setProductReviewVisible(false)}
+        type="product"
+        store={selectedStore}
+        onSubmit={handleProductReviewSubmit}
+        isSubmitting={addingProductReview}
+      />
+
+      <ReviewModal
+        visible={storeReviewVisible}
+        onClose={() => setStoreReviewVisible(false)}
+        type="store"
+        store={selectedStore}
+        onSubmit={handleStoreReviewSubmit}
+        isSubmitting={addingStoreReview}
+      />
+
+      {/* Toast Notification */}
+      {toastVisible && (
+        <View style={[
+          styles.toast,
+          toastType === 'success' ? styles.toastSuccess : styles.toastError
+        ]}>
+          <Ionicons 
+            name={toastType === 'success' ? 'checkmark-circle' : 'alert-circle'} 
+            size={20} 
+            color="#fff" 
+            style={{ marginRight: 8 }}
+          />
+          <ThemedText style={styles.toastText}>{toastMessage}</ThemedText>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -1042,5 +1466,144 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 18,
     ...shadow(12),
+  },
+
+  /* Review buttons */
+  reviewButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginHorizontal: 12,
+    marginBottom: 12,
+  },
+  reviewBtn: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewBtnText: {
+    color: COLOR.text,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+
+  /* Review modal */
+  reviewModal: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  reviewModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  reviewModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLOR.text,
+  },
+  reviewModalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ratingSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  starRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reviewLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLOR.text,
+    marginBottom: 8,
+  },
+  reviewTextArea: {
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: COLOR.text,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  imageUploadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  addImageBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  imageThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  submitReviewBtn: {
+    backgroundColor: COLOR.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitReviewBtnDisabled: {
+    backgroundColor: '#ccc',
+  },
+  submitReviewBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  /* Toast notification */
+  toast: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    ...shadow(4),
+  },
+  toastSuccess: {
+    backgroundColor: '#4CAF50',
+  },
+  toastError: {
+    backgroundColor: '#F44336',
+  },
+  toastText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
   },
 });
