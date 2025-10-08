@@ -18,6 +18,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
+import { Video, ResizeMode } from 'expo-av';
 import ThemedText from "../../../components/ThemedText";
 import { useProductDetails, useCart } from "../../../config/api.config";
 import { useAddToCart } from "../../../config/api.config";
@@ -57,8 +58,14 @@ const ProductDetailsScreen = () => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
 
+  // State for video playback
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(-1);
+
   // Ref for main image carousel
   const carouselRef = useRef(null);
+  const videoRef = useRef(null);
+  const viewerVideoRef = useRef(null);
 
   // Cart quantity state (same approach as HomeHeader)
   const [cartQuantity, setCartQuantity] = useState(0);
@@ -165,12 +172,29 @@ const ProductDetailsScreen = () => {
     }
   };
 
-  // Helper function to get all images for viewer
-  const getAllImages = () => {
-    if (product?.images && product.images.length > 0) {
-      return product.images.map(img => ({ uri: `https://colala.hmstech.xyz/storage/${img.path}` }));
+  // Helper function to get all media for viewer
+  const getAllMedia = () => {
+    const media = [];
+    
+    // Add video first if it exists
+    if (hasVideo) {
+      media.push({
+        type: 'video',
+        uri: `https://colala.hmstech.xyz/storage/${product.video}`,
+        id: 'video'
+      });
     }
-    return [];
+    
+    // Add images
+    if (product?.images && product.images.length > 0) {
+      media.push(...product.images.map(img => ({
+        type: 'image',
+        uri: `https://colala.hmstech.xyz/storage/${img.path}`,
+        id: img.id
+      })));
+    }
+    
+    return media;
   };
 
   // Handle image click
@@ -179,15 +203,44 @@ const ProductDetailsScreen = () => {
     setImageViewerVisible(true);
   };
 
-  // Handle image viewer navigation
-  const handleNextImage = () => {
-    const images = getAllImages();
-    if (viewerImageIndex < images.length - 1) {
+  // Handle video play/pause
+  const handleVideoPlay = async (index, isViewer = false) => {
+    const ref = isViewer ? viewerVideoRef : videoRef;
+    
+    if (currentVideoIndex === index && isVideoPlaying) {
+      // Pause current video
+      if (ref.current) {
+        await ref.current.pauseAsync();
+        setIsVideoPlaying(false);
+        setCurrentVideoIndex(-1);
+      }
+    } else {
+      // Play new video
+      if (ref.current) {
+        await ref.current.playAsync();
+        setIsVideoPlaying(true);
+        setCurrentVideoIndex(index);
+      }
+    }
+  };
+
+  // Handle video status update
+  const handleVideoStatusUpdate = (status) => {
+    if (status.didJustFinish) {
+      setIsVideoPlaying(false);
+      setCurrentVideoIndex(-1);
+    }
+  };
+
+  // Handle media viewer navigation
+  const handleNextMedia = () => {
+    const media = getAllMedia();
+    if (viewerImageIndex < media.length - 1) {
       setViewerImageIndex(viewerImageIndex + 1);
     }
   };
 
-  const handlePrevImage = () => {
+  const handlePrevMedia = () => {
     if (viewerImageIndex > 0) {
       setViewerImageIndex(viewerImageIndex - 1);
     }
@@ -568,16 +621,29 @@ const ProductDetailsScreen = () => {
     </View>
   );
 
-  // Helper to map images for FlatList
-  // const mainImage = product?.images?.find((im) => Number(im.is_main) === 1) || product?.images?.[0];
-  // const imageSource = mainImage?.path
-  //   ? { uri: `https://colala.hmstech.xyz/storage/${mainImage.path}` }
-  //   : require("../../../assets/phone5.png");
-  // const allImages = (product.images || []).map((im) => ({
-  //   uri: `https://colala.hmstech.xyz/storage/${im.path}`,
-  // }));
-
+  // Helper to map images and video for FlatList
   const imagesArray = product?.images || [];
+  const hasVideo = product?.video && product.video !== "/tmp/php2hg0uqh6nnnn8Pmk6hP"; // Check if video exists and is not placeholder
+  
+  // Create media array with video first (if exists) then images
+  const allMedia = [];
+  
+  // Add video as first item if it exists
+  if (hasVideo) {
+    allMedia.push({
+      type: 'video',
+      uri: `https://colala.hmstech.xyz/storage/${product.video}`,
+      id: 'video'
+    });
+  }
+  
+  // Add images
+  allMedia.push(...imagesArray.map((im) => ({
+    type: 'image',
+    uri: `https://colala.hmstech.xyz/storage/${im.path}`,
+    id: im.id
+  })));
+  
   const mainImage =
     imagesArray.find((im) => Number(im.is_main) === 1) ||
     imagesArray[0] ||
@@ -585,14 +651,12 @@ const ProductDetailsScreen = () => {
   const imageSource = mainImage?.path
     ? { uri: `https://colala.hmstech.xyz/storage/${mainImage.path}` }
     : require("../../../assets/phone5.png");
-  const allImages = imagesArray.map((im) => ({
-    uri: `https://colala.hmstech.xyz/storage/${im.path}`,
-  }));
 
   // Debug logging
   console.log("Product images:", product?.images);
-  console.log("Images array:", imagesArray);
-  console.log("All images:", allImages);
+  console.log("Product video:", product?.video);
+  console.log("Has video:", hasVideo);
+  console.log("All media:", allMedia);
   console.log("Image source:", imageSource);
 
   const toNaira = (n) => `₦${Number(n || 0).toLocaleString()}`;
@@ -669,18 +733,18 @@ const ProductDetailsScreen = () => {
             </View>
           </View>
 
-          {/* MAIN IMAGE CAROUSEL */}
-          {allImages.length > 1 ? (
+          {/* MAIN MEDIA CAROUSEL */}
+          {allMedia.length > 1 ? (
             <View style={styles.imageCarouselContainer}>
               {console.log(
                 "Rendering carousel with",
-                allImages.length,
-                "images"
+                allMedia.length,
+                "media items"
               )}
-              {console.log("All images data:", allImages)}
+              {console.log("All media data:", allMedia)}
               <FlatList
                 ref={carouselRef}
-                data={allImages}
+                data={allMedia}
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
@@ -692,7 +756,7 @@ const ProductDetailsScreen = () => {
                   );
                   setCurrentImageIndex(index);
                 }}
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                   <TouchableOpacity
                     style={{
                       width: Dimensions.get("window").width,
@@ -700,27 +764,57 @@ const ProductDetailsScreen = () => {
                     }}
                     onPress={handleImageClick}
                   >
-                    <Image
-                      source={item}
-                      style={styles.mainImage}
-                      resizeMode="cover"
-                      onError={(error) => {
-                        console.log("Carousel image load error:", error);
-                      }}
-                      onLoad={() => {
-                        console.log(
-                          "Carousel image loaded successfully:",
-                          item.uri
-                        );
-                      }}
-                    />
+                    {item.type === 'video' ? (
+                      <View style={styles.videoContainer}>
+                        <Video
+                          ref={videoRef}
+                          source={{ uri: item.uri }}
+                          style={styles.mainImage}
+                          resizeMode={ResizeMode.COVER}
+                          shouldPlay={currentVideoIndex === index && isVideoPlaying}
+                          isLooping={false}
+                          onPlaybackStatusUpdate={handleVideoStatusUpdate}
+                          onError={(error) => {
+                            console.log("Carousel video load error:", error);
+                          }}
+                        />
+                        <TouchableOpacity
+                          style={styles.videoPlayButton}
+                          onPress={() => handleVideoPlay(index)}
+                        >
+                          <Ionicons 
+                            name={currentVideoIndex === index && isVideoPlaying ? "pause-circle" : "play-circle"} 
+                            size={60} 
+                            color="rgba(255,255,255,0.8)" 
+                          />
+                        </TouchableOpacity>
+                        <View style={styles.videoOverlay}>
+                          <ThemedText style={styles.videoLabel}>VIDEO</ThemedText>
+                        </View>
+                      </View>
+                    ) : (
+                      <Image
+                        source={{ uri: item.uri }}
+                        style={styles.mainImage}
+                        resizeMode="cover"
+                        onError={(error) => {
+                          console.log("Carousel image load error:", error);
+                        }}
+                        onLoad={() => {
+                          console.log(
+                            "Carousel image loaded successfully:",
+                            item.uri
+                          );
+                        }}
+                      />
+                    )}
                   </TouchableOpacity>
                 )}
-                keyExtractor={(_, index) => index.toString()}
+                keyExtractor={(item) => item.id.toString()}
               />
-              {/* Image indicators */}
+              {/* Media indicators */}
               <View style={styles.imageIndicators}>
-                {allImages.map((_, index) => (
+                {allMedia.map((_, index) => (
                   <View
                     key={index}
                     style={[
@@ -733,28 +827,58 @@ const ProductDetailsScreen = () => {
             </View>
           ) : (
             <TouchableOpacity onPress={handleImageClick}>
-              <Image
-                source={imageSource}
-                style={styles.mainImage}
-                onError={(error) => {
-                  console.log("Single image load error:", error);
-                }}
-                onLoad={() => {
-                  console.log("Single image loaded successfully:", imageSource);
-                }}
-              />
+              {allMedia.length === 1 && allMedia[0].type === 'video' ? (
+                <View style={styles.videoContainer}>
+                  <Video
+                    ref={videoRef}
+                    source={{ uri: allMedia[0].uri }}
+                    style={styles.mainImage}
+                    resizeMode={ResizeMode.COVER}
+                    shouldPlay={currentVideoIndex === 0 && isVideoPlaying}
+                    isLooping={false}
+                    onPlaybackStatusUpdate={handleVideoStatusUpdate}
+                    onError={(error) => {
+                      console.log("Single video load error:", error);
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.videoPlayButton}
+                    onPress={() => handleVideoPlay(0)}
+                  >
+                    <Ionicons 
+                      name={currentVideoIndex === 0 && isVideoPlaying ? "pause-circle" : "play-circle"} 
+                      size={60} 
+                      color="rgba(255,255,255,0.8)" 
+                    />
+                  </TouchableOpacity>
+                  <View style={styles.videoOverlay}>
+                    <ThemedText style={styles.videoLabel}>VIDEO</ThemedText>
+                  </View>
+                </View>
+              ) : (
+                <Image
+                  source={imageSource}
+                  style={styles.mainImage}
+                  onError={(error) => {
+                    console.log("Single image load error:", error);
+                  }}
+                  onLoad={() => {
+                    console.log("Single image loaded successfully:", imageSource);
+                  }}
+                />
+              )}
             </TouchableOpacity>
           )}
 
           <View style={{ backgroundColor: "#F5F7FF" }}>
             <FlatList
               horizontal
-              data={allImages}
+              data={allMedia}
               renderItem={({ item, index }) => (
                 <TouchableOpacity
                   onPress={() => {
                     setCurrentImageIndex(index);
-                    // Scroll the carousel to the selected image
+                    // Scroll the carousel to the selected media
                     if (carouselRef.current) {
                       carouselRef.current.scrollToIndex({
                         index: index,
@@ -767,10 +891,19 @@ const ProductDetailsScreen = () => {
                     index === currentImageIndex && styles.selectedThumbnail
                   ]}
                 >
-                  <Image source={item} style={styles.thumbnail} />
+                  {item.type === 'video' ? (
+                    <View style={styles.videoThumbnailContainer}>
+                      <Image source={{ uri: item.uri }} style={styles.thumbnail} />
+                      <View style={styles.videoThumbnailOverlay}>
+                        <Ionicons name="play" size={16} color="#fff" />
+                      </View>
+                    </View>
+                  ) : (
+                    <Image source={{ uri: item.uri }} style={styles.thumbnail} />
+                  )}
                 </TouchableOpacity>
               )}
-              keyExtractor={(_, index) => index.toString()}
+              keyExtractor={(item) => item.id.toString()}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{
                 paddingHorizontal: 10,
@@ -1275,33 +1408,63 @@ const ProductDetailsScreen = () => {
                 style={styles.imageViewerScroll}
                 contentOffset={{ x: viewerImageIndex * Dimensions.get('window').width, y: 0 }}
               >
-                {getAllImages().map((image, index) => (
-                  <View key={index} style={styles.imageViewerItem}>
-                    <Image
-                      source={image}
-                      style={styles.imageViewerImage}
-                      resizeMode="contain"
-                    />
+                {getAllMedia().map((media, index) => (
+                  <View key={media.id} style={styles.imageViewerItem}>
+                    {media.type === 'video' ? (
+                      <View style={styles.videoViewerContainer}>
+                        <Video
+                          ref={viewerVideoRef}
+                          source={{ uri: media.uri }}
+                          style={styles.imageViewerImage}
+                          resizeMode={ResizeMode.CONTAIN}
+                          shouldPlay={currentVideoIndex === index && isVideoPlaying}
+                          isLooping={false}
+                          onPlaybackStatusUpdate={handleVideoStatusUpdate}
+                          onError={(error) => {
+                            console.log("Viewer video load error:", error);
+                          }}
+                        />
+                        <TouchableOpacity
+                          style={styles.videoViewerPlayButton}
+                          onPress={() => handleVideoPlay(index, true)}
+                        >
+                          <Ionicons 
+                            name={currentVideoIndex === index && isVideoPlaying ? "pause-circle" : "play-circle"} 
+                            size={80} 
+                            color="rgba(255,255,255,0.9)" 
+                          />
+                        </TouchableOpacity>
+                        <View style={styles.videoViewerOverlay}>
+                          <ThemedText style={styles.videoViewerLabel}>VIDEO</ThemedText>
+                        </View>
+                      </View>
+                    ) : (
+                      <Image
+                        source={{ uri: media.uri }}
+                        style={styles.imageViewerImage}
+                        resizeMode="contain"
+                      />
+                    )}
                   </View>
                 ))}
               </ScrollView>
 
               {/* Navigation buttons */}
-              {getAllImages().length > 1 && (
+              {getAllMedia().length > 1 && (
                 <>
                   {viewerImageIndex > 0 && (
                     <TouchableOpacity
                       style={[styles.imageViewerNav, styles.imageViewerNavLeft]}
-                      onPress={handlePrevImage}
+                      onPress={handlePrevMedia}
                     >
                       <Ionicons name="chevron-back" size={30} color="#fff" />
                     </TouchableOpacity>
                   )}
 
-                  {viewerImageIndex < getAllImages().length - 1 && (
+                  {viewerImageIndex < getAllMedia().length - 1 && (
                     <TouchableOpacity
                       style={[styles.imageViewerNav, styles.imageViewerNavRight]}
-                      onPress={handleNextImage}
+                      onPress={handleNextMedia}
                     >
                       <Ionicons name="chevron-forward" size={30} color="#fff" />
                     </TouchableOpacity>
@@ -1309,11 +1472,11 @@ const ProductDetailsScreen = () => {
                 </>
               )}
 
-              {/* Image counter */}
-              {getAllImages().length > 1 && (
+              {/* Media counter */}
+              {getAllMedia().length > 1 && (
                 <View style={styles.imageCounter}>
                   <ThemedText style={styles.imageCounterText}>
-                    {viewerImageIndex + 1} / {getAllImages().length}
+                    {viewerImageIndex + 1} / {getAllMedia().length}
                   </ThemedText>
                 </View>
               )}
@@ -1662,6 +1825,86 @@ const styles = StyleSheet.create({
   imageCounterText: {
     color: "#fff",
     fontSize: 14,
+    fontWeight: "600",
+  },
+
+  // Video styles
+  videoContainer: {
+    position: "relative",
+    width: "100%",
+    height: 250,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoPlayButton: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  videoOverlay: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  videoLabel: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  videoThumbnailContainer: {
+    position: "relative",
+    width: 60,
+    height: 60,
+  },
+  videoThumbnailOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 6,
+  },
+  videoViewerContainer: {
+    position: "relative",
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoViewerPlayButton: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  videoViewerOverlay: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  videoViewerLabel: {
+    color: "#fff",
+    fontSize: 12,
     fontWeight: "600",
   },
 
