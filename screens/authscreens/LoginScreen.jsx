@@ -202,10 +202,10 @@ const LoginScreen = () => {
               </ThemedText>
               <View style={styles.storeButtons}>
                 <TouchableOpacity style={{ marginLeft: -100 }}>
-                  <Image source={require('../../assets/image 58.png')} style={styles.storeImage} />
+                  <Image source={require('../../assets/Frame 2337 (1).png')} style={styles.storeImage} />
                 </TouchableOpacity>
                 <TouchableOpacity style={{ marginRight: 10 }}>
-                  <Image source={require('../../assets/image 57.png')} style={styles.storeImage} />
+                  <Image source={require('../../assets/Frame 2338 (2).png')} style={styles.storeImage} />
                 </TouchableOpacity>
               </View>
             </LinearGradient>

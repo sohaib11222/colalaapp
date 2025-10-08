@@ -204,6 +204,8 @@ export default function StoreDetailsScreen() {
         })
       : [];
 
+    const finalThemeColor = fromApi.theme_color || initialStore?.theme_color || COLOR.primary;
+    
     return {
       id: String(fromApi.id ?? initialStore?.id ?? storeId ?? "0"),
       name,
@@ -212,8 +214,7 @@ export default function StoreDetailsScreen() {
       location,
       cover,
       avatar,
-      theme_color:
-        fromApi.theme_color || initialStore?.theme_color || COLOR.primary,
+      theme_color: finalThemeColor,
       qtySold,
       followers,
       rating,
@@ -229,10 +230,13 @@ export default function StoreDetailsScreen() {
     };
   }, [apiStore, initialStore, storeId]);
 
+
   // Debug logging for banners, announcements, and posts
   console.log("Banners data:", mergedStore?.banners);
   console.log("Announcements data:", mergedStore?.announcements);
   console.log("Posts data:", mergedStore?.posts);
+  console.log("MergedStore object:", mergedStore);
+  console.log("Theme color:", mergedStore?.theme_color);
 
   // ======== Products source (API first, else empty state) ========
   const productsSource = mergedStore?.productsFromApi || [];
@@ -410,7 +414,7 @@ export default function StoreDetailsScreen() {
           key={i}
           name={i <= Math.round(value) ? "star" : "star-outline"}
           size={size}
-          color={COLOR.primary}
+          color={mergedStore?.theme_color || COLOR.primary}
           style={{ marginRight: 2 }}
         />
       ))}
@@ -514,12 +518,12 @@ export default function StoreDetailsScreen() {
             ) : (
               <View style={[styles.storeAvatar, { backgroundColor: "#ddd" }]} />
             )}
-            <ThemedText style={styles.storeName}>
+            <ThemedText style={[styles.storeName, { color: mergedStore?.theme_color || "#E53E3E" }]}>
               {item?.store || mergedStore?.name || "Store"}
             </ThemedText>
           </View>
           <View style={styles.ratingRow}>
-            <Ionicons name="star" color="#E53E3E" size={12} />
+            <Ionicons name="star" color={mergedStore?.theme_color || "#E53E3E"} size={12} />
             <ThemedText style={styles.ratingTxt}>
               {item?.rating ?? mergedStore?.rating ?? "4.5"}
             </ThemedText>
@@ -590,6 +594,18 @@ export default function StoreDetailsScreen() {
     initialStore?.promo || require("../../../assets/storeimage.png")
   );
 
+  // Safety check to ensure mergedStore is available
+  if (!mergedStore) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }} edges={["top"]}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color={COLOR.primary} />
+          <ThemedText style={{ marginTop: 10, color: COLOR.sub }}>Loading store details...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: COLOR.bg }}
@@ -598,7 +614,7 @@ export default function StoreDetailsScreen() {
       {/* Header loading indicator */}
       {!storeRes && (
         <View style={styles.headerLoadingContainer}>
-          <ActivityIndicator size="small" color={COLOR.primary} />
+          <ActivityIndicator size="small" color={mergedStore?.theme_color || COLOR.primary} />
           <ThemedText style={styles.headerLoadingText}>Loading store details...</ThemedText>
         </View>
       )}
@@ -609,8 +625,8 @@ export default function StoreDetailsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[COLOR.primary]}
-            tintColor={COLOR.primary}
+            colors={[mergedStore?.theme_color || COLOR.primary]}
+            tintColor={mergedStore?.theme_color || COLOR.primary}
             title="Pull to refresh"
             titleColor={COLOR.sub}
           />
@@ -660,6 +676,7 @@ export default function StoreDetailsScreen() {
             <TouchableOpacity 
               style={[
                 styles.followBtn, 
+                { backgroundColor: mergedStore?.theme_color || "#E53E3E" },
                 isFollowing && styles.followBtnActive,
                 isTogglingFollow && styles.followBtnDisabled
               ]} 
@@ -720,13 +737,14 @@ export default function StoreDetailsScreen() {
               <ThemedText
                 style={[
                   styles.metaTxt,
-                  { color: COLOR.primary, textDecorationLine: "underline" },
+                  { color: mergedStore?.theme_color || COLOR.primary, textDecorationLine: "underline" },
                 ]}
               >
                 View Store Addresses
               </ThemedText>
             </TouchableOpacity>
           </View>
+          
 
           {/* Your tags block (not in API) — kept as-is */}
           {!!initialStore?.tags &&
@@ -740,13 +758,13 @@ export default function StoreDetailsScreen() {
                     key={`${t}-${i}`}
                     style={[
                       styles.tag,
-                      i === 0 ? styles.tagBlue : styles.tagRed,
+                      i === 0 ? styles.tagBlue : [styles.tagRed, { backgroundColor: mergedStore?.theme_color ? `${mergedStore.theme_color}20` : COLOR.primary + '20' }],
                     ]}
                   >
                     <ThemedText
                       style={[
                         styles.tagTxt,
-                        i === 0 ? styles.tagTxtBlue : styles.tagTxtRed,
+                        i === 0 ? styles.tagTxtBlue : [styles.tagTxtRed, { color: mergedStore?.theme_color || COLOR.primary }],
                       ]}
                     >
                       {t}
@@ -805,7 +823,7 @@ export default function StoreDetailsScreen() {
             </View>
           </View>
 
-          <View style={styles.statsBottom}>
+          <View style={[styles.statsBottom, { backgroundColor: mergedStore?.theme_color || COLOR.primary }]}>
             <Ionicons name="megaphone-outline" size={16} color="#fff" />
             <ThemedText style={styles.announceTxt}>
               {mergedStore?.announcements?.[0]?.message || "New arrivals coming tomorrow"}
@@ -880,7 +898,7 @@ export default function StoreDetailsScreen() {
         {/* Action buttons (kept) */}
         <View style={styles.buttonStack}>
           <TouchableOpacity
-            style={[styles.bigBtn, styles.bigBtnRed]}
+            style={[styles.bigBtn, styles.bigBtnRed, { backgroundColor: mergedStore?.theme_color || COLOR.primary }]}
             onPress={async () => {
               try {
                 const phone = (mergedStore?.phone || "").toString().trim();
@@ -971,7 +989,7 @@ export default function StoreDetailsScreen() {
             <TouchableOpacity
               key={t}
               onPress={() => setTab(t)}
-              style={[styles.tabItem, tab === t && styles.tabActive]}
+              style={[styles.tabItem, tab === t && [styles.tabActive, { backgroundColor: mergedStore?.theme_color || COLOR.primary }]]}
             >
               <ThemedText
                 style={[styles.tabTxt, tab === t && styles.tabTxtActive]}
@@ -1118,11 +1136,14 @@ export default function StoreDetailsScreen() {
         visible={leaveReviewVisible}
         onClose={() => setLeaveReviewVisible(false)}
         onSubmit={handleSubmitReview}
+        mergedStore={mergedStore}
+
       />
       <StoreAddressesModal
         visible={addressesVisible}
         onClose={() => setAddressesVisible(false)}
         addresses={mergedStore?.addresses || []}
+        mergedStore={mergedStore}
       />
       <FiltersModal
         visible={filtersVisible}
@@ -1176,7 +1197,7 @@ function PostCardLike({ item }) {
             <Ionicons
               name={liked ? "heart" : "heart-outline"}
               size={25}
-              color={liked ? COLOR.primary : COLOR.text}
+              color={liked ? (mergedStore?.theme_color || COLOR.primary) : COLOR.text}
             />
             <ThemedText style={styles.actionCount}>{likeCount}</ThemedText>
           </TouchableOpacity>
@@ -1210,7 +1231,7 @@ function PostCardLike({ item }) {
 }
 
 /* ===== Leave Review Sheet (kept) ===== */
-function ReviewSheet({ visible, onClose, onSubmit }) {
+function ReviewSheet({ visible, onClose, onSubmit, mergedStore }) {
   const [rating, setRating] = useState(4);
   const [text, setText] = useState("");
 
@@ -1229,7 +1250,7 @@ function ReviewSheet({ visible, onClose, onSubmit }) {
       <Ionicons
         name={i <= rating ? "star" : "star-outline"}
         size={28}
-        color={COLOR.primary}
+        color={mergedStore?.theme_color || COLOR.primary}
       />
     </TouchableOpacity>
   );
@@ -1314,7 +1335,7 @@ function ReviewSheet({ visible, onClose, onSubmit }) {
 }
 
 /* ===== Store Addresses Modal ===== */
-function StoreAddressesModal({ visible, onClose, addresses }) {
+function StoreAddressesModal({ visible, onClose, addresses, mergedStore }) {
   const openMap = async (addr) => {
     const q = [addr?.full_address, addr?.local_government, addr?.state]
       .filter(Boolean)
@@ -1371,7 +1392,7 @@ function StoreAddressesModal({ visible, onClose, addresses }) {
                 >
                   <View
                     style={{
-                      backgroundColor: COLOR.primary,
+                      backgroundColor: mergedStore?.theme_color || COLOR.primary,
                       paddingHorizontal: 12,
                       paddingVertical: 10,
                       flexDirection: "row",
