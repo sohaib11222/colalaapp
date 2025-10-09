@@ -55,7 +55,7 @@ export default function ShippingSummaryScreen() {
     Object.fromEntries(
       (storesParam || []).map((s) => [
         s.id,
-        { coupon: "", points: "" },
+        { coupon: s.coupon || "", points: s.points || "" },
       ])
     )
   );
@@ -68,9 +68,11 @@ export default function ShippingSummaryScreen() {
     for (const s of storesParam) {
       const itemsCount = s.items.reduce((a, b) => a + (b.qty || 0), 0);
       const itemsCost = s.items.reduce((a, b) => a + Number(b.price || 0) * (b.qty || 0), 0);
+      const couponDiscount = s.discount || 0; // Use the actual discount from API response
+      const pointsDiscount = Math.max(0, Math.floor(Number(s.points || 0))) * 1; // 1 point = ₦1 (hardcoded)
       const deliveryFee = 10000; // hardcoded
-      const totalToPay = itemsCost + deliveryFee;
-      map[s.id] = { itemsCount, itemsCost, deliveryFee, totalToPay };
+      const totalToPay = itemsCost - couponDiscount - pointsDiscount + deliveryFee;
+      map[s.id] = { itemsCount, itemsCost, couponDiscount, pointsDiscount, deliveryFee, totalToPay };
     }
     return map;
   }, [storesParam]);
@@ -197,7 +199,7 @@ export default function ShippingSummaryScreen() {
               ))}
 
               {/* Coupon input (visual only) */}
-              <View style={{ marginTop: 12 }}>
+              {/* <View style={{ marginTop: 12 }}>
                 <ThemedText style={styles.smallLabel}>
                   Do you have a coupon code, input here
                 </ThemedText>
@@ -213,10 +215,10 @@ export default function ShippingSummaryScreen() {
                     <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Apply Code</ThemedText>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </View> */}
 
               {/* Points (balance from API; input is visual only) */}
-              <View style={{ marginTop: 12 }}>
+              {/* <View style={{ marginTop: 12 }}>
                 <View style={styles.pointsHeader}>
                   <ThemedText style={styles.smallLabel}>Discount Points</ThemedText>
                   <ThemedText style={[styles.smallLabel, { color: COLOR.primary }]}>
@@ -238,15 +240,12 @@ export default function ShippingSummaryScreen() {
                     Kindly not that 1 point is equivalent to ₦1
                   </ThemedText>
                 </View>
-              </View>
+              </View> */}
 
               {/* Delivery address (from addresses API + preview.address_id) */}
               <View style={{ marginTop: 12 }}>
                 <View style={styles.pointsHeader}>
                   <ThemedText style={styles.smallLabel}>Delivery Address</ThemedText>
-                  <ThemedText style={[styles.smallLabel, { color: COLOR.primary }]}>
-                    Delivery fee/Location
-                  </ThemedText>
                 </View>
 
                 {/* Selected address card */}
@@ -285,8 +284,8 @@ export default function ShippingSummaryScreen() {
               {/* Cost breakdown */}
               <LinedRow left="No it items" right={String(perStore[store.id]?.itemsCount || 0)} boldRight boxed first />
               <LinedRow left="Items Cost" right={currency(perStore[store.id]?.itemsCost || 0)} boxed />
-              <LinedRow left="Coupon Discount" right={`-${currency(0).slice(1)}`} boxed />
-              <LinedRow left="Points Discount" right={`-${currency(0).slice(1)}`} boxed />
+              <LinedRow left="Coupon Discount" right={`-${currency(perStore[store.id]?.couponDiscount || 0).slice(1)}`} boxed />
+              <LinedRow left="Points Discount" right={`-${currency(perStore[store.id]?.pointsDiscount || 0).slice(1)}`} boxed />
               <LinedRow left="Delivery fee" right={currency(perStore[store.id]?.deliveryFee || 0)} boxed />
               <LinedRow
                 left="Total to pay"

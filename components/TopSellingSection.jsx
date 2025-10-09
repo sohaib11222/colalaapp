@@ -215,7 +215,7 @@ const TopSellingSection = () => {
               </View>
             </View>
             <View style={styles.infoContainer}>
-              <ThemedText style={styles.productTitle}>{item.title}</ThemedText>
+              <ThemedText style={styles.productTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</ThemedText>
 
               <View style={styles.priceRow}>
                 <ThemedText style={styles.price}>{item.price}</ThemedText>
