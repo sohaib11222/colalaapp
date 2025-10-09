@@ -297,7 +297,6 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
                   <Ionicons name="camera" size={32} color="#E53E3E" />
                 </View>
                 <Text style={styles.optionText}>Take Photo</Text>
-                <Text style={styles.optionSubtext}>Use camera to capture image</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -308,7 +307,7 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
                   <Ionicons name="images" size={32} color="#E53E3E" />
                 </View>
                 <Text style={styles.optionText}>Choose from Gallery</Text>
-                <Text style={styles.optionSubtext}>Select from photo library</Text>
+                
               </TouchableOpacity>
             </View>
           </View>
@@ -386,9 +385,9 @@ const styles = StyleSheet.create({
   modalContainer: {
     backgroundColor: 'white',
     borderRadius: 16,
-    marginHorizontal: 20,
+    marginHorizontal: 40,
     maxWidth: 400,
-    width: '100%',
+    width: '90%',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

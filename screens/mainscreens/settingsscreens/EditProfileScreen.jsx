@@ -372,25 +372,43 @@ export default function EditProfileScreen() {
   };
 
   /* ---------- server addresses ---------- */
-  const addressesQuery = useAddresses();
+  const addressesQuery = useAddresses({
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 0, // Always consider data stale to ensure fresh data
+  });
   const addAddress = useAddAddress({
-    onSuccess: () => {
+    onSuccess: (data) => {
       setAddrModal(false);
-      // fields already cleared; list is refetched via invalidate in hook
+      // Force refresh the addresses list immediately
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      // Also refetch to ensure we get the latest data
+      queryClient.refetchQueries({ queryKey: ['addresses'] });
+      console.log("Address added successfully:", data);
     },
     onError: (err) => {
       Alert.alert("Add Address Failed", err?.message || "Please try again.");
     },
   });
   const updateAddress = useUpdateAddress({
-    onSuccess: () => {
+    onSuccess: (data) => {
       setAddrModal(false);
+      // Force refresh the addresses list immediately
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      queryClient.refetchQueries({ queryKey: ['addresses'] });
+      console.log("Address updated successfully:", data);
     },
     onError: (err) => {
       Alert.alert("Update Failed", err?.message || "Please try again.");
     },
   });
   const deleteAddress = useDeleteAddress({
+    onSuccess: (data) => {
+      // Force refresh the addresses list immediately
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      queryClient.refetchQueries({ queryKey: ['addresses'] });
+      console.log("Address deleted successfully:", data);
+    },
     onError: (err) => {
       Alert.alert("Delete Failed", err?.message || "Please try again.");
     },
