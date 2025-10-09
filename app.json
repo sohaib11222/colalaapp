@@ -3,16 +3,43 @@
     "name": "Colala Express",
     "slug": "colalanative",
     "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/appicon.png",
+    "splash": {
+      "image": "./assets/appicon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "plugins": [
       "expo-font",
       "expo-router"
     ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.colala.express",
+      "icon": "./assets/appicon.png"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/appicon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.colala.express"
+    },
+    "web": {
+      "favicon": "./assets/appicon.png"
+    },
     "extra": {
       "router": {},
       "eas": {
         "projectId": "c028f1e0-ecf6-46f9-bb14-705f0bb591f7"
       }
-    },
-    "icon": "./assets/mainimage.png"
+    }
   }
 }
