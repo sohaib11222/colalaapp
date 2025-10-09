@@ -385,12 +385,8 @@ const ProductDetailsScreen = () => {
   const initialReviews = product?.reviews?.length ? product.reviews : [];
   const [reviews, setReviews] = useState(initialReviews);
   const [replyInputs, setReplyInputs] = useState({});
-  const avg =
-    Math.round(
-      (reviews.reduce((s, r) => s + (r.rating || 0), 0) /
-        (reviews.length || 1)) *
-      2
-    ) / 2;
+  // Use product's average_rating from API instead of calculating from reviews
+  const avg = Number(product?.average_rating || 0);
 
   const addToCartMutation = useAddToCart({
     onSuccess: (res) => {
@@ -527,11 +523,11 @@ const ProductDetailsScreen = () => {
       {reviews.length > 0 ? (
         <>
           <View style={{ alignItems: "center", marginTop: 8 }}>
-            <StarRow value={avg || 4} size={28} />
+            <StarRow value={avg} size={28} />
           </View>
           <View style={styles.summaryRow}>
             <ThemedText style={styles.summaryLeft}>
-              {Math.round(avg) || 4} Stars
+              {avg.toFixed(1)} Stars
             </ThemedText>
             <ThemedText style={styles.summaryRight}>
               {reviews.length} Reviews
@@ -952,7 +948,7 @@ const ProductDetailsScreen = () => {
                   </ThemedText>
                   <View style={styles.ratingRow}>
                     <Ionicons name="star" size={20} color="red" />
-                    <ThemedText style={styles.rating}>{product?.store?.rating || 0}</ThemedText>
+                    <ThemedText style={styles.rating}>{product?.average_rating || 0}</ThemedText>
                   </View>
                 </View>
 

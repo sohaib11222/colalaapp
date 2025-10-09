@@ -343,7 +343,7 @@ const ProductsListScreen = () => {
         </View>
 
         <View style={styles.infoContainer}>
-          <ThemedText style={styles.productTitleCard}>{item.title}</ThemedText>
+          <ThemedText style={styles.productTitleCard} numberOfLines={1} ellipsizeMode="tail">{item.title}</ThemedText>
           <View style={styles.priceRow}>
             <ThemedText style={styles.price}>{item.price}</ThemedText>
             {item.originalPrice ? (
