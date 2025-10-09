@@ -531,7 +531,7 @@ export default function StoreDetailsScreen() {
         </View>
 
         <View style={styles.infoContainer}>
-          <ThemedText numberOfLines={2} style={styles.productTitle}>
+          <ThemedText numberOfLines={1} ellipsizeMode="tail" style={styles.productTitle}>
             {item?.title || item?.name || "Product"}
           </ThemedText>
 
