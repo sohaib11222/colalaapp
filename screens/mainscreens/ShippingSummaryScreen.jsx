@@ -187,7 +187,16 @@ export default function ShippingSummaryScreen() {
                     idx > 0 && { borderTopWidth: 1, borderTopColor: COLOR.line },
                   ]}
                 >
-                  <Image source={IMG} style={styles.compactImg} />
+                  <Image 
+                    source={it.image ? { uri: it.image } : IMG} 
+                    style={styles.compactImg}
+                    onError={(error) => {
+                      console.log("Image load error for item:", it.title, "Image URL:", it.image, "Error:", error.nativeEvent.error);
+                    }}
+                    onLoad={() => {
+                      console.log("Image loaded successfully for item:", it.title, "Image URL:", it.image);
+                    }}
+                  />
                   <View style={{ flex: 1 }}>
                     <ThemedText style={styles.compactTitle} numberOfLines={2}>
                       {it.title}
