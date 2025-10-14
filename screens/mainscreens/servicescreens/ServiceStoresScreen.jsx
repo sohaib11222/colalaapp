@@ -152,13 +152,25 @@ export default function ServiceStoresScreen() {
   const apiStores = storesData?.data || [];
   const apiBrands = brandsData?.data || [];
 
-  // Create filter options from API data
-  const storeOptions = apiStores.map(store => ({
-    id: store.id,
-    name: store.store_name,
-    location: store.store_location,
-    profileImage: store.profile_image ? absUrl(`/storage/${store.profile_image}`) : null,
-  }));
+  // Create filter options from services data (more accurate for this screen)
+  const storeOptions = useMemo(() => {
+    if (!servicesData?.data?.services) return [];
+    
+    // Get unique stores from services
+    const uniqueStores = new Map();
+    servicesData.data.services.forEach(service => {
+      if (service.store) {
+        uniqueStores.set(service.store.id, {
+          id: service.store.id,
+          name: service.store.store_name,
+          location: service.store.store_location,
+          profileImage: service.store.profile_image ? absUrl(`/storage/${service.store.profile_image}`) : null,
+        });
+      }
+    });
+    
+    return Array.from(uniqueStores.values());
+  }, [servicesData]);
 
   const brandOptions = apiBrands.map(brand => ({
     id: brand.id,
@@ -175,7 +187,12 @@ export default function ServiceStoresScreen() {
   
   // Helper function to get service image
   const getServiceImage = (service) => {
-    // For now, use default images since service images aren't in the API response
+    // Use actual service media if available
+    if (service.media && service.media.length > 0) {
+      return { uri: absUrl(`/storage/${service.media[0].path}`) };
+    }
+    
+    // Fallback to default images
     const defaultImages = [
       require("../../../assets/Rectangle 32.png"),
       require("../../../assets/Frame 264 (4).png"),
@@ -238,21 +255,38 @@ export default function ServiceStoresScreen() {
     }
     
     // Map services to store format
-    let filteredStores = servicesData.data.services.map((service) => ({
-      id: service.id.toString(),
-      name: "Store Name", // Default since store info isn't in service data
-      price: formatPrice(service.price_from, service.price_to),
-      image: getServiceImage(service),
-      rating: 4.5, // Default rating
-      profileImage: require("../../../assets/Ellipse 18.png"),
-      service: service.name,
-      serviceData: service, // Keep original service data for navigation
-      // Add fields for filtering
-      priceFrom: Number(service.price_from || 0),
-      priceTo: Number(service.price_to || 0),
-      location: "Lagos, Nigeria", // Default location
-      storeName: "Store Name", // Default store name
-    }));
+    let filteredStores = servicesData.data.services.map((service) => {
+      // Get store information from the service
+      const store = service.store || {};
+      
+      // Get service image (use first media item or fallback)
+      const serviceImage = service.media && service.media.length > 0 
+        ? { uri: absUrl(`/storage/${service.media[0].path}`) }
+        : require("../../../assets/Frame 264.png");
+      
+      // Get store profile image
+      const storeProfileImage = store.profile_image 
+        ? { uri: absUrl(`/storage/${store.profile_image}`) }
+        : require("../../../assets/Ellipse 18.png");
+      
+      return {
+        id: service.id.toString(),
+        name: store.store_name || "Store Name",
+        price: formatPrice(service.price_from, service.price_to),
+        image: serviceImage, // Use actual service image
+        rating: Number(store.average_rating || 0) || 4.5,
+        profileImage: storeProfileImage, // Use actual store profile image
+        service: service.name,
+        serviceData: service, // Keep original service data for navigation
+        // Add fields for filtering
+        priceFrom: Number(service.price_from || 0),
+        priceTo: Number(service.price_to || 0),
+        location: store.store_location || "Lagos, Nigeria",
+        storeName: store.store_name || "Store Name",
+        storeId: store.id,
+        storeData: store, // Keep original store data
+      };
+    });
 
     // Apply search filter
     if (searchQuery.trim()) {
