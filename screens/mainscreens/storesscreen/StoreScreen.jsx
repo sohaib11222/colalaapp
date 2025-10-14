@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
+  Text,
   Dimensions,
   Platform,
   RefreshControl,
@@ -20,7 +21,7 @@ import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
 
 // API hooks
-import { useStores, BASE_URL, useCategories } from "../../../config/api.config";
+import { useStores, BASE_URL, useCategories, useCartQuantity } from "../../../config/api.config";
 
 const { width } = Dimensions.get("window");
 
@@ -63,6 +64,9 @@ const HARDCODED_RATING = 4.5;
 export default function StoresScreen() {
   const [query, setQuery] = useState("");
   const navigation = useNavigation();
+  
+  // Use shared cart quantity hook
+  const { data: cartQuantity = 0, isLoading: isCartLoading } = useCartQuantity();
 
   // simple pills (local only; UI unchanged)
   const [filters, setFilters] = useState({
@@ -230,10 +234,19 @@ export default function StoresScreen() {
               accessibilityRole="button"
               accessibilityLabel="Open cart"
             >
-              <Image
-                source={require('../../../assets/cart-icon.png')}
-                style={styles.iconImg}
-              />
+              <View style={styles.cartIconContainer}>
+                <Image
+                  source={require('../../../assets/cart-icon.png')}
+                  style={styles.iconImg}
+                />
+                {cartQuantity > 0 && (
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>
+                      {cartQuantity > 99 ? "99+" : cartQuantity}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -571,6 +584,25 @@ const styles = StyleSheet.create({
 
   // If your PNGs are already colored, remove tintColor.
   iconImg: { width: 22, height: 22, resizeMode: 'contain' },
+
+  cartIconContainer: { position: 'relative' },
+  cartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    backgroundColor: '#E53E3E',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
   searchInput: { flex: 1, fontSize: 14, color: '#333' },
   cameraIcon: { marginLeft: 8 },
 

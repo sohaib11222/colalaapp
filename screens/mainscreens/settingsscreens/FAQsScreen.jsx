@@ -98,17 +98,6 @@ export default function FAQsScreen() {
     }
   }, [queryClient]);
 
-  // Dummy data fallback
-  const DUMMY_FAQS = [
-    {
-      id: "q1",
-      q: "How to setup my store",
-      bullets: ["Download the store app", "Fill your details", "Complete KYC"],
-    },
-    { id: "q2", q: "Do stores get referral bonus", bullets: [] },
-    { id: "q3", q: "Is there exclusive offer for new stores ?", bullets: [] },
-    { id: "q4", q: "Do you offer escrow services", bullets: [] },
-  ];
 
   // Map API data to component format
   const mapApiFaqToComponent = (apiFaq) => {
@@ -121,8 +110,9 @@ export default function FAQsScreen() {
 
   // Process FAQs data
   const FAQS = React.useMemo(() => {
-    if (isLoading || error || !apiData?.data?.faqs) {
-      return DUMMY_FAQS;
+    // If loading or no data yet, return empty array to show loading state
+    if (isLoading || !apiData?.data?.faqs) {
+      return [];
     }
     
     console.log("API FAQs Data:", apiData.data.faqs);
@@ -130,7 +120,7 @@ export default function FAQsScreen() {
   }, [apiData, isLoading, error]);
 
   // Get video URL and thumbnail from API
-  const { videoUrl, thumbnailUrl, originalVideoUrl } = React.useMemo(() => {
+  const { videoUrl, thumbnailUrl, originalVideoUrl, hasVideo } = React.useMemo(() => {
     if (apiData?.data?.category?.video) {
       const originalUrl = apiData.data.category.video;
       console.log("API Video URL:", originalUrl);
@@ -141,18 +131,20 @@ export default function FAQsScreen() {
       return {
         videoUrl: thumbnail || originalUrl,
         thumbnailUrl: thumbnail,
-        originalVideoUrl: originalUrl
+        originalVideoUrl: originalUrl,
+        hasVideo: true
       };
     }
     
     return {
-      videoUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1400&auto=format&fit=crop",
+      videoUrl: null,
       thumbnailUrl: null,
-      originalVideoUrl: null
+      originalVideoUrl: null,
+      hasVideo: false
     };
   }, [apiData]);
 
-  const [openId, setOpenId] = useState(FAQS.length > 0 ? FAQS[0].id : "");
+  const [openId, setOpenId] = useState("");
 
   return (
     <SafeAreaView
@@ -217,79 +209,89 @@ export default function FAQsScreen() {
         {error && !isLoading && (
           <View style={styles.errorContainer}>
             <ThemedText style={styles.errorText}>
-              Failed to load FAQs. Showing default content.
+              Failed to load FAQs. Please try again later.
             </ThemedText>
           </View>
         )}
 
-        {/* Video banner */}
-        <TouchableOpacity 
-          style={styles.videoCard}
-          onPress={() => {
-            if (originalVideoUrl) {
-              handleVideoPlay(originalVideoUrl);
-            }
-          }}
-          activeOpacity={0.9}
-        >
-          <Image
-            source={{
-              uri: videoUrl,
+        {/* Video banner - only show if video exists */}
+        {hasVideo && videoUrl && (
+          <TouchableOpacity 
+            style={styles.videoCard}
+            onPress={() => {
+              if (originalVideoUrl) {
+                handleVideoPlay(originalVideoUrl);
+              }
             }}
-            style={styles.videoImage}
-            resizeMode="cover"
-          />
-          <View style={styles.playOverlay}>
-            <Ionicons name="play" size={26} color="#fff" />
-          </View>
-          {thumbnailUrl && (
-            <View style={styles.youtubeIndicator}>
-              <Ionicons name="logo-youtube" size={20} color="#fff" />
+            activeOpacity={0.9}
+          >
+            <Image
+              source={{
+                uri: videoUrl,
+              }}
+              style={styles.videoImage}
+              resizeMode="cover"
+            />
+            <View style={styles.playOverlay}>
+              <Ionicons name="play" size={26} color="#fff" />
             </View>
-          )}
-        </TouchableOpacity>
+            {thumbnailUrl && (
+              <View style={styles.youtubeIndicator}>
+                <Ionicons name="logo-youtube" size={20} color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
 
         {/* FAQ list */}
         <View style={{ marginTop: 12 }}>
-          {FAQS.map((item) => {
-            const open = item.id === openId;
-            return (
-              <View
-                key={item.id}
-                style={[
-                  styles.card,
-                  open && {
-                    borderColor: COLOR.primary,
-                    backgroundColor: "#fff",
-                  },
-                ]}
-              >
-                <TouchableOpacity
-                  onPress={() => setOpenId(open ? "" : item.id)}
-                  activeOpacity={0.85}
-                  style={styles.cardHead}
+          {FAQS.length > 0 ? (
+            FAQS.map((item) => {
+              const open = item.id === openId;
+              return (
+                <View
+                  key={item.id}
+                  style={[
+                    styles.card,
+                    open && {
+                      borderColor: COLOR.primary,
+                      backgroundColor: "#fff",
+                    },
+                  ]}
                 >
-                  <ThemedText style={styles.cardTitle}>{item.q}</ThemedText>
-                  <Ionicons
-                    name={open ? "chevron-down" : "chevron-forward"}
-                    size={18}
-                    color={COLOR.text}
-                  />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setOpenId(open ? "" : item.id)}
+                    activeOpacity={0.85}
+                    style={styles.cardHead}
+                  >
+                    <ThemedText style={styles.cardTitle}>{item.q}</ThemedText>
+                    <Ionicons
+                      name={open ? "chevron-down" : "chevron-forward"}
+                      size={18}
+                      color={COLOR.text}
+                    />
+                  </TouchableOpacity>
 
-                {open && item.bullets?.length > 0 && (
-                  <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
-                    {item.bullets.map((b, i) => (
-                      <View key={`${item.id}-b${i}`} style={styles.bulletRow}>
-                        <View style={styles.bulletDot} />
-                        <ThemedText style={styles.bulletText}>{b}</ThemedText>
-                      </View>
-                    ))}
-                  </View>
-                )}
+                  {open && item.bullets?.length > 0 && (
+                    <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
+                      {item.bullets.map((b, i) => (
+                        <View key={`${item.id}-b${i}`} style={styles.bulletRow}>
+                          <View style={styles.bulletDot} />
+                          <ThemedText style={styles.bulletText}>{b}</ThemedText>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              );
+            })
+          ) : (
+            !isLoading && !error && (
+              <View style={styles.emptyContainer}>
+                <ThemedText style={styles.emptyText}>No FAQs available</ThemedText>
               </View>
-            );
-          })}
+            )
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -451,5 +453,21 @@ const styles = StyleSheet.create({
     color: COLOR.sub,
     fontSize: 14,
     fontWeight: "500",
+  },
+
+  // Empty state
+  emptyContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    color: COLOR.sub,
+    fontSize: 16,
+    textAlign: "center",
   },
 });

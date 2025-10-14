@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -44,11 +44,32 @@ export default function ShippingSummaryScreen() {
   const { data: walletData } = useWalletBalance();
   const pointsBal = Number(walletData?.data?.loyality_points ?? 0);
 
-  // Fetch addresses and pick the one matching preview.address_id
+  // Fetch addresses and manage selection
   const { data: addrData } = useAddresses();
   const addresses = Array.isArray(addrData?.data) ? addrData.data : [];
-  const selectedAddress =
-    addresses.find((a) => String(a.id) === String(preview?.address_id)) || null;
+  
+  // State for selected address (default to preview.address_id or first address)
+  const [selectedAddressId, setSelectedAddressId] = useState(() => {
+    const previewAddressId = preview?.address_id;
+    if (previewAddressId && addresses.find(a => String(a.id) === String(previewAddressId))) {
+      return String(previewAddressId);
+    }
+    return addresses.length > 0 ? String(addresses[0].id) : null;
+  });
+  
+  const selectedAddress = addresses.find((a) => String(a.id) === selectedAddressId) || null;
+
+  // Update selected address when addresses are loaded
+  useEffect(() => {
+    if (addresses.length > 0 && !selectedAddressId) {
+      const previewAddressId = preview?.address_id;
+      if (previewAddressId && addresses.find(a => String(a.id) === String(previewAddressId))) {
+        setSelectedAddressId(String(previewAddressId));
+      } else {
+        setSelectedAddressId(String(addresses[0].id));
+      }
+    }
+  }, [addresses, preview?.address_id, selectedAddressId]);
 
   // Local inputs just to reflect the UI (coupon/points fields only for display)
   const [inputs, setInputs] = useState(() =>
@@ -123,14 +144,14 @@ export default function ShippingSummaryScreen() {
   });
 
   const proceed = () => {
-    if (!preview?.address_id || !preview?.payment_method) {
-      Alert.alert("Missing info", "Preview not found. Please go back and try again.");
+    if (!selectedAddressId || !preview?.payment_method) {
+      Alert.alert("Missing info", "Please select a delivery address and ensure payment method is set.");
       return;
     }
     if (placeOrderMut.isPending) return;
 
     placeOrderMut.mutate({
-      delivery_address_id: String(preview.address_id),
+      delivery_address_id: String(selectedAddressId),
       payment_method: preview.payment_method, // "flutterwave" | "wallet"
     });
   };
@@ -254,40 +275,71 @@ export default function ShippingSummaryScreen() {
               {/* Delivery address (from addresses API + preview.address_id) */}
               <View style={{ marginTop: 12 }}>
                 <View style={styles.pointsHeader}>
-                  <ThemedText style={styles.smallLabel}>Delivery Address</ThemedText>
+                  <ThemedText style={styles.smallLabel}>
+                    Delivery Address {addresses.length > 0 && `(${addresses.length} available)`}
+                  </ThemedText>
                 </View>
 
-                {/* Selected address card */}
-                <View style={[styles.addrCard, { borderColor: COLOR.primary }]}>
-                  <View style={styles.radioDot} />
-                  <View style={{ marginLeft: 10, flex: 1 }}>
-                    <ThemedText style={styles.addrLabel}>Phone number</ThemedText>
-                    <ThemedText style={styles.addrValue}>
-                      {selectedAddress?.phone || selectedAddress?.phone_number || "—"}
-                    </ThemedText>
+                {/* Address selection - show all available addresses */}
+                {addresses.length > 0 ? (
+                  addresses.map((address, index) => {
+                    const isSelected = String(address.id) === selectedAddressId;
+                    return (
+                      <TouchableOpacity
+                        key={address.id}
+                        style={[
+                          styles.addrCard,
+                          { 
+                            borderColor: isSelected ? COLOR.primary : COLOR.line,
+                            marginBottom: index < addresses.length - 1 ? 12 : 0
+                          }
+                        ]}
+                        onPress={() => setSelectedAddressId(String(address.id))}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[
+                          styles.radioDot,
+                          { 
+                            backgroundColor: isSelected ? COLOR.primary : "transparent",
+                            borderWidth: isSelected ? 0 : 1,
+                            borderColor: isSelected ? COLOR.primary : COLOR.line
+                          }
+                        ]} />
+                        <View style={{ marginLeft: 10, flex: 1 }}>
+                          <ThemedText style={styles.addrLabel}>Phone number</ThemedText>
+                          <ThemedText style={styles.addrValue}>
+                            {address?.phone || address?.phone_number || "—"}
+                          </ThemedText>
 
-                    <ThemedText style={[styles.addrLabel, { marginTop: 6 }]}>Address</ThemedText>
-                    <ThemedText style={styles.addrValue}>
-                      {selectedAddress?.address ||
-                        selectedAddress?.line ||
-                        selectedAddress?.street ||
-                        "—"}
-                    </ThemedText>
+                          <ThemedText style={[styles.addrLabel, { marginTop: 6 }]}>Address</ThemedText>
+                          <ThemedText style={styles.addrValue}>
+                            {address?.address ||
+                              address?.line ||
+                              address?.street ||
+                              "—"}
+                          </ThemedText>
+                          
+                          {/* Show city/state if available */}
+                          {(address?.city || address?.state) && (
+                            <ThemedText style={[styles.addrValue, { marginTop: 4, fontSize: 12, color: COLOR.sub }]}>
+                              {[address?.city, address?.state].filter(Boolean).join(", ")}
+                            </ThemedText>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
+                  <View style={styles.addrCard}>
+                    <View style={[styles.radioDot, { backgroundColor: "transparent", borderWidth: 1 }]} />
+                    <View style={{ marginLeft: 10, flex: 1 }}>
+                      <ThemedText style={styles.addrLabel}>No addresses found</ThemedText>
+                      <ThemedText style={styles.addrValue}>
+                        Please add an address in your profile
+                      </ThemedText>
+                    </View>
                   </View>
-                </View>
-
-                {/* Unselected demo card (kept to preserve layout) */}
-                <View style={styles.addrCard}>
-                  <View style={[styles.radioDot, { backgroundColor: "transparent", borderWidth: 1 }]} />
-                  <View style={{ marginLeft: 10, flex: 1 }}>
-                    <ThemedText style={styles.addrLabel}>Phone number</ThemedText>
-                    <ThemedText style={styles.addrValue}>0703123456789</ThemedText>
-                    <ThemedText style={[styles.addrLabel, { marginTop: 6 }]}>Address</ThemedText>
-                    <ThemedText style={styles.addrValue}>
-                      No 7 , abcd street , ikeja , Lagos
-                    </ThemedText>
-                  </View>
-                </View>
+                )}
               </View>
 
               {/* Cost breakdown */}

@@ -18,7 +18,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
-import { useServicesByCategory } from "../../../config/api.config";
+import { useServicesByCategory, useCartQuantity } from "../../../config/api.config";
 import { useAllBrands } from "../../../config/api.config";
 import { useStores } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
@@ -127,6 +127,9 @@ export default function ServiceStoresScreen() {
   
   // Fetch services by category from API
   const { data: servicesData, isLoading, error } = useServicesByCategory(categoryId);
+  
+  // Use shared cart quantity hook
+  const { data: cartQuantity = 0, isLoading: isCartLoading } = useCartQuantity();
   
   // API calls for filters
   const { data: storesData, isLoading: storesLoading } = useStores();
@@ -365,10 +368,19 @@ export default function ServiceStoresScreen() {
               accessibilityRole="button"
               accessibilityLabel="Open cart"
             >
-              <Image
-                source={require("../../../assets/cart-icon.png")}
-                style={styles.iconImg}
-              />
+              <View style={styles.cartIconContainer}>
+                <Image
+                  source={require("../../../assets/cart-icon.png")}
+                  style={styles.iconImg}
+                />
+                {cartQuantity > 0 && (
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>
+                      {cartQuantity > 99 ? "99+" : cartQuantity}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -862,6 +874,25 @@ const styles = StyleSheet.create({
 
   // If your PNGs are already colored, remove tintColor.
   iconImg: { width: 22, height: 22, resizeMode: "contain" },
+
+  cartIconContainer: { position: 'relative' },
+  cartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    backgroundColor: '#E53E3E',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
   headerTitle: {
     position: "absolute",
     left: 160,

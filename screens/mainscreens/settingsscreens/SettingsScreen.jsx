@@ -10,13 +10,14 @@ import {
   Platform,
   RefreshControl,
   ActivityIndicator,
+  Text,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ThemedText from "../../../components/ThemedText";
 
-import { useWalletBalance } from "../../../config/api.config";
+import { useWalletBalance, useCartQuantity } from "../../../config/api.config";
 
 const COLOR = {
   primary: "#E53E3E",
@@ -37,6 +38,9 @@ const SettingsScreen = () => {
 
   // Wallet balance hook
   const { data: walletData, isLoading: walletLoading, refetch, isFetching } = useWalletBalance();
+  
+  // Use shared cart quantity hook
+  const { data: cartQuantity = 0, isLoading: isCartLoading } = useCartQuantity();
 
   // Refresh functionality
   const handleRefresh = async () => {
@@ -243,10 +247,19 @@ const SettingsScreen = () => {
               accessibilityRole="button"
               accessibilityLabel="Open cart"
             >
-              <Image
-                source={require("../../../assets/cart-icon.png")}
-                style={styles.iconImg}
-              />
+              <View style={styles.cartIconContainer}>
+                <Image
+                  source={require("../../../assets/cart-icon.png")}
+                  style={styles.iconImg}
+                />
+                {cartQuantity > 0 && (
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>
+                      {cartQuantity > 99 ? "99+" : cartQuantity}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -701,6 +714,25 @@ const styles = StyleSheet.create({
 
   // If your PNGs are already colored, remove tintColor.
   iconImg: { width: 22, height: 22, resizeMode: "contain" },
+
+  cartIconContainer: { position: 'relative' },
+  cartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    backgroundColor: '#E53E3E',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
 });
 
 export default SettingsScreen;

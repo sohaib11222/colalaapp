@@ -25,7 +25,8 @@ import {
   usePosts,
   useTogglePostLike,
   useAddPostComment,
-  useGetPostComments
+  useGetPostComments,
+  useCartQuantity
 } from "../../config/api.config";
 
 /* -------------------- THEME -------------------- */
@@ -59,60 +60,75 @@ const timeAgo = (iso) => {
 };
 
 /* -------------------- HEADER (UI unchanged) -------------------- */
-const FeedHeader = ({ navigation }) => (
-  <View style={styles.header}>
-    <View style={styles.headerTopRow}>
-      <ThemedText font="oleo" style={styles.headerTitle}>
-        Social Feeds
-      </ThemedText>
-      <View style={styles.iconRow}>
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate("ServiceNavigator", { screen: "Cart" })
-          }
-          style={[styles.iconButton, styles.iconPill]}
-          accessibilityRole="button"
-          accessibilityLabel="Open cart"
-        >
-          <Image
-            source={require("../../assets/cart-icon.png")}
-            style={styles.iconImg}
-          />
-        </TouchableOpacity>
+const FeedHeader = ({ navigation }) => {
+  // Use shared cart quantity hook
+  const { data: cartQuantity = 0, isLoading: isCartLoading } = useCartQuantity();
 
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate("ServiceNavigator", { screen: "Notifications" })
-          }
-          style={[styles.iconButton, styles.iconPill]}
-          accessibilityRole="button"
-          accessibilityLabel="Open notifications"
-        >
-          <Image
-            source={require("../../assets/bell-icon.png")}
-            style={styles.iconImg}
-          />
-        </TouchableOpacity>
-      </View>
-    </View>
-
-    {/* Search */}
-      <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => navigation.navigate('AuthNavigator', { screen: 'Search' })}
-              style={styles.searchContainer}>
-              <TextInput
-                placeholder="Search any product, shop or category"
-                placeholderTextColor="#888"
-                style={styles.searchInput}
-                editable={false}                // stop editing
-                showSoftInputOnFocus={false}    // stop keyboard
-                pointerEvents="none"            // let TouchableOpacity catch taps
+  return (
+    <View style={styles.header}>
+      <View style={styles.headerTopRow}>
+        <ThemedText font="oleo" style={styles.headerTitle}>
+          Social Feeds
+        </ThemedText>
+        <View style={styles.iconRow}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("ServiceNavigator", { screen: "Cart" })
+            }
+            style={[styles.iconButton, styles.iconPill]}
+            accessibilityRole="button"
+            accessibilityLabel="Open cart"
+          >
+            <View style={styles.cartIconContainer}>
+              <Image
+                source={require("../../assets/cart-icon.png")}
+                style={styles.iconImg}
               />
-              {/* <Image source={require('../../assets/camera-icon.png')} style={styles.iconImg} /> */}
-            </TouchableOpacity>
-  </View>
-);
+              {cartQuantity > 0 && (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>
+                    {cartQuantity > 99 ? "99+" : cartQuantity}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("ServiceNavigator", { screen: "Notifications" })
+            }
+            style={[styles.iconButton, styles.iconPill]}
+            accessibilityRole="button"
+            accessibilityLabel="Open notifications"
+          >
+            <Image
+              source={require("../../assets/bell-icon.png")}
+              style={styles.iconImg}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Search */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => navigation.navigate('AuthNavigator', { screen: 'Search' })}
+        style={styles.searchContainer}
+      >
+        <TextInput
+          placeholder="Search any product, shop or category"
+          placeholderTextColor="#888"
+          style={styles.searchInput}
+          editable={false}                // stop editing
+          showSoftInputOnFocus={false}    // stop keyboard
+          pointerEvents="none"            // let TouchableOpacity catch taps
+        />
+        {/* <Image source={require('../../assets/camera-icon.png')} style={styles.iconImg} /> */}
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 /* -------------------- POST CARD (UI unchanged) -------------------- */
 const PostCard = ({ item, onOpenComments, onOpenOptions, onToggleLike, isLastItem, navigation }) => {
@@ -1232,6 +1248,25 @@ const styles = StyleSheet.create({
 
   // If your PNGs are already colored, remove tintColor.
   iconImg: { width: 22, height: 22, resizeMode: "contain" },
+
+  cartIconContainer: { position: 'relative' },
+  cartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    backgroundColor: '#E53E3E',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
 
   // Comments loading and error states
   commentsLoadingContainer: {

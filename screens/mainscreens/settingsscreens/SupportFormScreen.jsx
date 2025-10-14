@@ -62,6 +62,11 @@ export default function SupportFormScreen() {
     },
     onError: (error) => {
       console.log("Create ticket error:", error);
+      console.log("Error details:", {
+        status: error?.status,
+        message: error?.message,
+        data: error?.data
+      });
       Alert.alert("Error", "Failed to create support ticket. Please try again.");
     },
   });
@@ -104,21 +109,40 @@ export default function SupportFormScreen() {
       return;
     }
 
-    // Create form data
-    const formData = new FormData();
-    formData.append("category", category);
-    formData.append("subject", `${category} - ${description.trim().substring(0, 50)}`);
-    formData.append("description", description.trim());
-    
+    const subject = `${category} - ${description.trim().substring(0, 50)}`;
+    const descriptionText = description.trim();
+
+    // Debug logging
+    console.log("Support Form Data:", {
+      category,
+      subject,
+      description: descriptionText,
+      hasImage: !!imageUri,
+    });
+
     if (imageUri) {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append("category", category);
+      formData.append("subject", subject);
+      formData.append("description", descriptionText);
       formData.append("image", {
         uri: imageUri,
         type: "image/jpeg",
         name: "support_image.jpg",
       });
-    }
 
-    createTicket(formData);
+      console.log("Sending FormData with image");
+      createTicket(formData);
+    } else {
+      // Send JSON for text-only tickets
+      console.log("Sending JSON without image");
+      createTicket({
+        category,
+        subject,
+        description: descriptionText,
+      });
+    }
   };
 
   return (
@@ -351,26 +375,34 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   attachmentButton: {
-    width: 60,
-    height: 60,
+    width: 80,
+    height: 80,
     borderRadius: 8,
     backgroundColor: COLOR.lightGray,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: COLOR.line,
+    overflow: "hidden",
   },
   attachmentPlaceholder: {
     alignItems: "center",
     justifyContent: "center",
+    width: "100%",
+    height: "100%",
   },
   imagePreview: {
     position: "relative",
+    width: "100%",
+    height: "100%",
   },
   previewImage: {
-    width: 120,
-    height: 120,
+    width: "100%",
+    height: "100%",
     borderRadius: 8,
+    resizeMode: "cover",
+    minHeight: 60,
+    minWidth: 60,
   },
   removeImage: {
     position: "absolute",

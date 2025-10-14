@@ -152,6 +152,17 @@ export const http = {
 
   post: (url, body, config) => {
     const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+    
+    // Debug logging for support tickets
+    if (url.includes('/support/tickets')) {
+      console.log("HTTP POST - Support Ticket:", {
+        url,
+        isFormData,
+        bodyType: typeof body,
+        bodyKeys: isFormData ? Array.from(body.entries()) : Object.keys(body || {}),
+      });
+    }
+    
     return api
       .post(url, body, {
         ...(config || {}),
@@ -548,21 +559,34 @@ export const useCreateSupportTicket = (opts) =>
   useMutation({
     // expects: { category, subject, description, order_id?, store_order_id?, image? }
     mutationFn: async (payload) => {
+      // Check if payload is FormData (from file upload) or regular object
+      if (payload instanceof FormData) {
+        console.log("API Request - Support Ticket (FormData):", {
+          url: API.SUPPORT_TICKETS,
+          hasImage: payload.has('image'),
+          category: payload.get('category'),
+          subject: payload.get('subject'),
+          description: payload.get('description'),
+        });
+        
+        // Log all FormData entries for debugging
+        console.log("FormData entries:", Array.from(payload.entries()));
+        
+        return http.post(API.SUPPORT_TICKETS, payload);
+      }
+
+      // Handle regular JSON payload
       const { image, ...rest } = payload || {};
+      
+      console.log("API Request - Support Ticket (JSON):", {
+        url: API.SUPPORT_TICKETS,
+        payload: {
+          ...rest,
+          order_id: rest.order_id ?? null,
+          store_order_id: rest.store_order_id ?? null,
+        }
+      });
 
-      // If backend supports file upload, switch to FormData here:
-      // const fd = new FormData();
-      // Object.entries(rest).forEach(([k, v]) => fd.append(k, v ?? ""));
-      // if (image) {
-      //   fd.append("attachment", {
-      //     uri: image,
-      //     name: "attachment.jpg",
-      //     type: "image/jpeg",
-      //   });
-      // }
-      // return http.post(API.SUPPORT_TICKETS, fd);
-
-      // JSON post (no attachment)
       return http.post(API.SUPPORT_TICKETS, {
         ...rest,
         order_id: rest.order_id ?? null,
@@ -969,11 +993,7 @@ export const useCameraSearch = () => {
       formData.append('type', type);
 
       // use axios instance so interceptors add Authorization
-      const res = await http.post(API.CAMERA_SEARCH, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const res = await http.post(API.CAMERA_SEARCH, formData);
 
       // backend returns: { status, data: { extracted_text, search_results, search_query }, message }
       return {

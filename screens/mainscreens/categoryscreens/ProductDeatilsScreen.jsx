@@ -1142,6 +1142,13 @@ const ProductDetailsScreen = () => {
     )}
   </TouchableOpacity>
 
+  {/* Phone Number Display */}
+  {showPhone && (
+    <View style={styles.phoneDisplay}>
+      <ThemedText style={styles.phoneNumber}>{storePhoneNumber}</ThemedText>
+    </View>
+  )}
+
   {/* Reveal Number / Dial */}
   <TouchableOpacity
     style={styles.revealBtn}
@@ -1647,6 +1654,18 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 1,
     padding: 10,
+  },
+  phoneDisplay: {
+    backgroundColor: "#f0f0f0",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+    alignItems: "center",
+  },
+  phoneNumber: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#000",
   },
   revealBtn: {
     flex: 1,

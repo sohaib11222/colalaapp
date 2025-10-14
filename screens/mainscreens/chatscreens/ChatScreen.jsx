@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
+  Text,
   Dimensions,
   Platform,
   SafeAreaView,
@@ -16,7 +17,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import ThemedText from "../../../components/ThemedText";
-import { useChats } from "../../../config/api.config";
+import { useChats, useCartQuantity } from "../../../config/api.config";
 
 const { width } = Dimensions.get("window");
 const COLOR = {
@@ -124,6 +125,9 @@ export default function ChatListScreen({ navigation }) {
 
   // Fetch chats with error handling
   const { data, isLoading, error, refetch, isFetching } = useChats();
+  
+  // Use shared cart quantity hook
+  const { data: cartQuantity = 0, isLoading: isCartLoading } = useCartQuantity();
 
   // Refresh functionality
   const handleRefresh = async () => {
@@ -240,10 +244,19 @@ export default function ChatListScreen({ navigation }) {
                 accessibilityRole="button"
                 accessibilityLabel="Open cart"
               >
-                <Image
-                  source={require("../../../assets/cart-icon.png")}
-                  style={styles.iconImg}
-                />
+                <View style={styles.cartIconContainer}>
+                  <Image
+                    source={require("../../../assets/cart-icon.png")}
+                    style={styles.iconImg}
+                  />
+                  {cartQuantity > 0 && (
+                    <View style={styles.cartBadge}>
+                      <Text style={styles.cartBadgeText}>
+                        {cartQuantity > 99 ? "99+" : cartQuantity}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -424,6 +437,25 @@ const styles = StyleSheet.create({
   iconButton: { marginLeft: 9 },
   iconPill: { backgroundColor: "#fff", padding: 6, borderRadius: 25 },
   iconImg: { width: 22, height: 22, resizeMode: "contain" },
+
+  cartIconContainer: { position: 'relative' },
+  cartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    backgroundColor: '#E53E3E',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",

@@ -160,14 +160,12 @@ const TopSellingSection = () => {
       store: product.store?.store_name || "Store Name",
       store_image: getStoreAvatar(product.store),
       location: product.store?.store_location || "Lagos, Nigeria",
-      rating: 4.5, // Default rating since not in API
+      rating: product.average_rating || 4.5, // Use API rating if available
       price: formatPrice(product.discount_price || product.price),
       originalPrice: product.discount_price ? formatPrice(product.price) : null,
       image: getMainImage(product.images),
-      tagImages: [
-        require("../assets/freedel.png"),
-        require("../assets/bulk.png"),
-      ],
+      tagImages: product.tagImages || [], // Only show tags if they exist in API
+      hasTags: product.tagImages && product.tagImages.length > 0, // Flag to check if tags exist
     }));
   }, [apiData]);
 
@@ -226,17 +224,19 @@ const TopSellingSection = () => {
                 )}
               </View>
 
-              {/* Tag Images */}
-              <View style={styles.tagsRow}>
-                {item.tagImages.map((tagImg, index) => (
-                  <Image
-                    key={index}
-                    source={tagImg}
-                    style={styles.tagIcon}
-                    resizeMode="contain"
-                  />
-                ))}
-              </View>
+              {/* Tag Images - Only show if tags exist */}
+              {item.hasTags && item.tagImages.length > 0 && (
+                <View style={styles.tagsRow}>
+                  {item.tagImages.map((tagImg, index) => (
+                    <Image
+                      key={index}
+                      source={tagImg}
+                      style={styles.tagIcon}
+                      resizeMode="contain"
+                    />
+                  ))}
+                </View>
+              )}
 
               <View style={styles.rowBetween}>
                 <View style={styles.locationRow}>

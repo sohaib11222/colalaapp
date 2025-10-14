@@ -9,12 +9,13 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
+  Text,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText"; // 👈 import ThemedText
 
-import { useServicesCategories } from "../../../config/api.config";
+import { useServicesCategories, useCartQuantity } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
 
 
@@ -28,6 +29,9 @@ const ServicesScreen = () => {
   
   // Query client for refresh functionality
   const queryClient = useQueryClient();
+  
+  // Use shared cart quantity hook
+  const { data: cartQuantity = 0, isLoading: isCartLoading } = useCartQuantity();
   
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
@@ -101,10 +105,19 @@ const ServicesScreen = () => {
               accessibilityRole="button"
               accessibilityLabel="Open cart"
             >
-              <Image
-                source={require("../../../assets/cart-icon.png")}
-                style={styles.iconImg}
-              />
+              <View style={styles.cartIconContainer}>
+                <Image
+                  source={require("../../../assets/cart-icon.png")}
+                  style={styles.iconImg}
+                />
+                {cartQuantity > 0 && (
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>
+                      {cartQuantity > 99 ? "99+" : cartQuantity}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -335,6 +348,25 @@ const styles = StyleSheet.create({
 
   // If your PNGs are already colored, remove tintColor.
   iconImg: { width: 22, height: 22, resizeMode: "contain" },
+
+  cartIconContainer: { position: 'relative' },
+  cartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    backgroundColor: '#E53E3E',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
   
   // Loading and error states
   loadingContainer: {
