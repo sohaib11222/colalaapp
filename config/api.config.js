@@ -109,20 +109,52 @@ api.interceptors.request.use(
   (err) => Promise.reject(err)
 );
 
+// Import navigation utilities
+import { handleTokenExpiration } from '../utils/navigationUtils';
+
 api.interceptors.response.use(
   (r) => {
     console.log('API Response - Status:', r.status);
     console.log('API Response - Data:', r.data);
     return r;
   },
-  (error) => {
+  async (error) => {
     const status = error?.response?.status;
     const data = error?.response?.data;
     const message =
       data?.message || error?.message || "Something went wrong. Please try again.";
+    
     console.log('API Response Error - Status:', status);
     console.log('API Response Error - Data:', data);
     console.log('API Response Error - Message:', message);
+    
+    // Handle token expiration and unauthorized access
+    if (status === 401 || status === 403) {
+      console.log("🔒 Token expired or unauthorized access detected");
+      
+      // Check if this is a token-related error
+      const isTokenError = 
+        message?.toLowerCase().includes('token') ||
+        message?.toLowerCase().includes('unauthorized') ||
+        message?.toLowerCase().includes('expired') ||
+        data?.message?.toLowerCase().includes('token') ||
+        data?.message?.toLowerCase().includes('unauthorized') ||
+        data?.message?.toLowerCase().includes('expired');
+      
+      if (isTokenError) {
+        // Perform logout
+        await handleTokenExpiration();
+        
+        // Return a specific error that components can handle
+        return Promise.reject({ 
+          status, 
+          data, 
+          message: "Session expired. Please login again.",
+          isTokenExpired: true 
+        });
+      }
+    }
+    
     return Promise.reject({ status, data, message });
   }
 );

@@ -18,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import ThemedText from "../../../components/ThemedText";
 
 import { useWalletBalance, useCartQuantity } from "../../../config/api.config";
+import { performLogout } from "../../../utils/navigationUtils";
 
 const COLOR = {
   primary: "#E53E3E",
@@ -192,35 +193,7 @@ const SettingsScreen = () => {
   };
 
   const handleLogout = async () => {
-    try {
-      console.log("Logging out user...");
-
-      // Clear all stored data
-      await AsyncStorage.multiRemove([
-        'auth_token',
-        'auth_user',
-        'user_data',
-        'cart_data',
-        'saved_items',
-        'followed_stores'
-      ]);
-
-      console.log("User data cleared successfully");
-
-      // Navigate to login screen or reset navigation stack
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'AuthNavigator' }],
-      });
-
-    } catch (error) {
-      console.error("Error during logout:", error);
-      // Even if there's an error, try to navigate to login
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'AuthNavigator' }],
-      });
-    }
+    await performLogout(false); // Don't show alert for manual logout
   };
 
   const handleDeleteAccount = () => {

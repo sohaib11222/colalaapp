@@ -7,6 +7,7 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ThemedText from "./ThemedText";
@@ -14,32 +15,6 @@ import { useNavigation } from "@react-navigation/native";
 import { useStores } from "../config/api.config";
 
 const { width } = Dimensions.get("window");
-
-const topStores = [
-  {
-    id: "1",
-    name: "Sasha Stores",
-    rating: 4.5,
-    tags: ["Electronics", "Phones"],
-    backgroundImage: require("../assets/Rectangle 30.png"),
-    profileImage: require("../assets/Ellipse 18.png"),
-    qtySold: 100,
-    followers: 5,
-    products: 100,
-  },
-  {
-    id: "2",
-    name: "Sasha Stores",
-    rating: 4.5,
-    tags: ["Fashion", "Trousers"],
-    backgroundImage: require("../assets/Rectangle 30 (2).png"),
-    profileImage: require("../assets/Ellipse 61.png"),
-    qtySold: 100,
-    followers: 5,
-    products: 100,
-  },
-  // Add more stores as needed...
-];
 
 const TopStoresSection = () => {
   const navigation = useNavigation();
@@ -88,7 +63,7 @@ const TopStoresSection = () => {
   // Process API data and limit to 4 items
   const processedStores = React.useMemo(() => {
     if (!apiData?.data || apiData.data.length === 0) {
-      return topStores.slice(0, 4);
+      return [];
     }
 
     return apiData.data.slice(0, 4).map((store) => {
@@ -108,6 +83,57 @@ const TopStoresSection = () => {
       };
     });
   }, [apiData]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <ThemedText style={styles.title}>Top Stores</ThemedText>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#E53E3E" />
+          <ThemedText style={styles.loadingText}>Loading top stores...</ThemedText>
+        </View>
+      </View>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <ThemedText style={styles.title}>Top Stores</ThemedText>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#E53E3E" />
+          <ThemedText style={styles.emptyTitle}>Unable to load stores</ThemedText>
+          <ThemedText style={styles.emptyText}>
+            There was an error loading the top stores. Please try again later.
+          </ThemedText>
+        </View>
+      </View>
+    );
+  }
+
+  // Empty state
+  if (processedStores.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <ThemedText style={styles.title}>Top Stores</ThemedText>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="storefront-outline" size={48} color="#E53E3E" />
+          <ThemedText style={styles.emptyTitle}>No top stores</ThemedText>
+          <ThemedText style={styles.emptyText}>
+            There are currently no top stores available. Check back later for updates.
+          </ThemedText>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -344,5 +370,39 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "#ccc",
     marginHorizontal: 10,
+  },
+  
+  // Loading and Empty state styles
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

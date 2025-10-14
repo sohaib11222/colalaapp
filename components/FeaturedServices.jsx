@@ -87,9 +87,38 @@ const FeaturedServices = () => {
             <ThemedText style={styles.viewAll}>View All</ThemedText>
           </TouchableOpacity>
         </View>
-        <View style={styles.errorContainer}>
-          <ThemedText style={styles.errorText}>
-            Error loading services: {error.message}
+        <View style={styles.emptyContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#E53E3E" />
+          <ThemedText style={styles.emptyTitle}>Unable to load services</ThemedText>
+          <ThemedText style={styles.emptyText}>
+            There was an error loading the featured services. Please try again later.
+          </ThemedText>
+        </View>
+      </View>
+    );
+  }
+
+  // Empty state
+  if (services.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <ThemedText style={styles.title}>Features Services</ThemedText>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("ServiceNavigator", {
+                screen: "ServicesScreen",
+              })
+            }
+          >
+            <ThemedText style={styles.viewAll}>View All</ThemedText>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="construct-outline" size={48} color="#E53E3E" />
+          <ThemedText style={styles.emptyTitle}>No featured services</ThemedText>
+          <ThemedText style={styles.emptyText}>
+            There are currently no featured services available. Check back later for updates.
           </ThemedText>
         </View>
       </View>
@@ -274,24 +303,35 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 40,
+    paddingHorizontal: 20,
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 12,
+    fontSize: 14,
     color: "#666",
-    fontSize: 14,
+    textAlign: "center",
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
+  emptyContainer: {
     alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 40,
+    paddingHorizontal: 20,
   },
-  errorText: {
-    color: "#E53E3E",
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyText: {
     fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

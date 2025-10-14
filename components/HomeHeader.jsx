@@ -17,6 +17,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useCameraSearch, useCartQuantity } from '../config/api.config';
+import { performLogout } from '../utils/navigationUtils';
 
 const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Nigeria' } }) => {
   const navigation = useNavigation();
@@ -163,6 +164,13 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
         onError: (error) => {
           console.log("❌ Image search error:", error);
           setIsSearching(false);
+          
+          // Check if it's a token expiration error
+          if (error?.isTokenExpired) {
+            // Token expiration is already handled by the API interceptor
+            return;
+          }
+          
           Alert.alert(
             'Search Failed',
             'Could not analyze the image. Please try again.'

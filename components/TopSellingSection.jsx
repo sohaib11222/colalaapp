@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
@@ -17,70 +18,6 @@ import { useGetTopSelling, useAddToCart } from "../config/api.config";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
-
-// Dummy data for fallback
-const dummyProducts = [
-  {
-    id: "1",
-    title: "Dell Inspiron Laptop",
-    store: "Sasha Stores",
-    store_image: require("../assets/Ellipse 18.png"),
-    location: "Lagos, Nigeria",
-    rating: 4.5,
-    price: "₦2,000,000",
-    originalPrice: "₦3,000,000",
-    image: require("../assets/Frame 264.png"),
-    tagImages: [
-      require("../assets/freedel.png"),
-      require("../assets/bulk.png"),
-    ],
-  },
-  {
-    id: "2",
-    title: "Dell Inspiron Laptop",
-    store: "Sasha Stores",
-    store_image: require("../assets/Ellipse 18.png"),
-    location: "Lagos, Nigeria",
-    rating: 4.5,
-    price: "₦2,000,000",
-    originalPrice: "₦3,000,000",
-    image: require("../assets/Frame 264 (1).png"),
-    tagImages: [
-      require("../assets/freedel.png"),
-      require("../assets/bulk.png"),
-    ],
-  },
-  {
-    id: "3",
-    title: "Dell Inspiron Laptop",
-    store: "Sasha Stores",
-    store_image: require("../assets/Ellipse 18.png"),
-    location: "Lagos, Nigeria",
-    rating: 4.5,
-    price: "₦2,000,000",
-    originalPrice: "₦3,000,000",
-    image: require("../assets/Frame 264 (2).png"),
-    tagImages: [
-      require("../assets/freedel.png"),
-      require("../assets/bulk.png"),
-    ],
-  },
-  {
-    id: "4",
-    title: "Dell Inspiron Laptop",
-    store: "Sasha Stores",
-    store_image: require("../assets/Ellipse 18.png"),
-    location: "Lagos, Nigeria",
-    rating: 4.5,
-    price: "₦2,000,000",
-    originalPrice: "₦3,000,000",
-    image: require("../assets/Frame 264 (3).png"),
-    tagImages: [
-      require("../assets/freedel.png"),
-      require("../assets/bulk.png"),
-    ],
-  },
-];
 
 const TopSellingSection = () => {
   const navigation = useNavigation();
@@ -151,7 +88,7 @@ const TopSellingSection = () => {
   // Process API data and limit to 4 items
   const processedProducts = React.useMemo(() => {
     if (!apiData?.data || apiData.data.length === 0) {
-      return dummyProducts.slice(0, 4);
+      return [];
     }
 
     return apiData.data.slice(0, 4).map((product, index) => ({
@@ -168,6 +105,60 @@ const TopSellingSection = () => {
       hasTags: product.tagImages && product.tagImages.length > 0, // Flag to check if tags exist
     }));
   }, [apiData]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <View style={styles.headerRow}>
+          <ThemedText style={styles.title}>Top Selling</ThemedText>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#E53E3E" />
+          <ThemedText style={styles.loadingText}>Loading top selling products...</ThemedText>
+        </View>
+      </View>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <View style={styles.headerRow}>
+          <ThemedText style={styles.title}>Top Selling</ThemedText>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#E53E3E" />
+          <ThemedText style={styles.emptyTitle}>Unable to load products</ThemedText>
+          <ThemedText style={styles.emptyText}>
+            There was an error loading the top selling products. Please try again later.
+          </ThemedText>
+        </View>
+      </View>
+    );
+  }
+
+  // Empty state
+  if (processedProducts.length === 0) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <View style={styles.headerRow}>
+          <ThemedText style={styles.title}>Top Selling</ThemedText>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="trending-up-outline" size={48} color="#E53E3E" />
+          <ThemedText style={styles.emptyTitle}>No top selling products</ThemedText>
+          <ThemedText style={styles.emptyText}>
+            There are currently no top selling products available. Check back later for updates.
+          </ThemedText>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -387,5 +378,39 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 12,
     marginRight: 6,
+  },
+  
+  // Loading and Empty state styles
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
