@@ -933,7 +933,7 @@ const ProductDetailsScreen = () => {
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
+          </View>z
 
           {selectedTab === "Description" ? (
             <DescriptionCard />
