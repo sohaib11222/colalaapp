@@ -27,8 +27,8 @@ const LoginScreen = () => {
   const [checkingToken, setCheckingToken] = useState(true); // loading flag
 
   // controlled inputs
-  const [email, setEmail] = useState('hmstech11@gmail.com');
-  const [password, setPassword] = useState('newpassword123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   // ---- Check token on mount ----
   useEffect(() => {

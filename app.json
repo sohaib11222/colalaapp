@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Colala Mall",
-    "slug": "colalanative",
+    "slug": "colala-mall",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/appicon.png",
@@ -38,7 +38,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "c028f1e0-ecf6-46f9-bb14-705f0bb591f7"
+        "projectId": "9eed35ab-65f7-4dd3-a5e3-2c5007fdb1a7"
       }
     }
   }

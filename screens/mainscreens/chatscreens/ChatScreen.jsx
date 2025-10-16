@@ -35,72 +35,7 @@ const COLOR = {
   line: "#ECEEF2",
 };
 
-// ---- Fallback mock (kept hardcoded when API empty)
-const CHATS = [
-  {
-    id: "1",
-    chat_id: 1,
-    name: "Sasha Stores",
-    avatar: "https://i.pravatar.cc/100?img=65",
-    lastMessage: "How will i get my goods delivered ?",
-    time: "Today / 07:22 AM",
-    unread: 1,
-    store_order_id: 1,
-  },
-  {
-    id: "2",
-    chat_id: 2,
-    name: "Vee Stores",
-    avatar: "https://i.pravatar.cc/100?img=47",
-    lastMessage: "How will i get my goods delivered ?",
-    time: "Today / 07:22 AM",
-    unread: 1,
-    store_order_id: 2,
-  },
-  {
-    id: "3",
-    chat_id: 3,
-    name: "Adam Stores",
-    avatar: "https://i.pravatar.cc/100?img=36",
-    lastMessage: "How will i get my goods delivered ?",
-    time: "Today / 07:22 AM",
-    unread: 0,
-    store_order_id: 3,
-  },
-  {
-    id: "4",
-    chat_id: 4,
-    name: "Scent Villa Stores",
-    avatar:
-      "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=200&auto=format&fit=crop",
-    lastMessage: "How will i get my goods delivered ?",
-    time: "Today / 07:22 AM",
-    unread: 0,
-    store_order_id: 4,
-  },
-  {
-    id: "5",
-    chat_id: 5,
-    name: "Power Stores",
-    avatar:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=200&auto=format&fit=crop",
-    lastMessage: "How will i get my goods delivered ?",
-    time: "Today / 07:22 AM",
-    unread: 0,
-    store_order_id: 5,
-  },
-  {
-    id: "6",
-    chat_id: 6,
-    name: "Creamlia Stores",
-    avatar:
-      "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=200&auto=format&fit=crop",
-    lastMessage: "How will i get my goods delivered ?",
-    time: "Today / 07:22 AM",
-    unread: 0,
-    store_order_id: 6,
-  },
-];
+// Removed dummy data - only show real API data
 
 // format “Today / 07:22 AM”
 const formatTime = (iso) => {
@@ -282,7 +217,7 @@ export default function ChatListScreen({ navigation }) {
     }));
   }, [data]);
 
-  const source = apiChats.length ? apiChats : CHATS;
+  const source = apiChats; // Only use real API data, no fallback to dummy data
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -477,8 +412,12 @@ export default function ChatListScreen({ navigation }) {
               initialNumToRender={10}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
+                  <Ionicons name="chatbubbles-outline" size={48} color={COLOR.sub} />
                   <ThemedText style={styles.emptyText}>
-                    No chats found
+                    No chats available
+                  </ThemedText>
+                  <ThemedText style={styles.emptySubText}>
+                    Start a conversation with a store
                   </ThemedText>
                 </View>
               }
@@ -661,7 +600,15 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: COLOR.sub,
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 12,
+  },
+  emptySubText: {
+    color: COLOR.sub,
     fontSize: 14,
+    marginTop: 4,
+    textAlign: 'center',
   },
 
   // Image Picker Modal styles
