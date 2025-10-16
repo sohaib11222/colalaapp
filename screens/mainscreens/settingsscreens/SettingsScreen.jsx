@@ -314,7 +314,7 @@ const SettingsScreen = () => {
           <ThemedText style={styles.holdingText}>
             {walletLoading
               ? "Loading..."
-              : `${formatCurrency(walletData?.data?.reward_balance || 0)} locked in holding wallet`
+              : `${formatCurrency(walletData?.data?.escrow_balance || 0)} locked in holding wallet`
             }{" "}
             <ThemedText
               style={{

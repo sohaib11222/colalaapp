@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText"; // <-- adjust path if needed
+import EscrowDetailModal from "../../../components/EscrowDetailModal";
 
 import { useEscrowWallet } from "../../../config/api.config";
 import { useEscrowWalletHistory } from "../../../config/api.config";
@@ -40,7 +41,7 @@ const LOCKS = Array.from({ length: 6 }).map((_, i) => ({
   when: whenText,
 }));
 
-const LockRow = ({ item, onPressStore }) => (
+const LockRow = ({ item, onPressStore, onPressDetails }) => (
   <View style={styles.rowCard}>
     <View style={styles.leadingIcon}>
       <Ionicons name="lock-closed-outline" size={22} color={COLOR.text} />
@@ -48,8 +49,8 @@ const LockRow = ({ item, onPressStore }) => (
 
     <View style={{ flex: 1 }}>
       <ThemedText style={styles.rowTitle}>{item.title}</ThemedText>
-      <TouchableOpacity onPress={onPressStore} activeOpacity={0.8}>
-        <ThemedText style={styles.rowLink}>{item.store}</ThemedText>
+      <TouchableOpacity onPress={onPressDetails} activeOpacity={0.8}>
+        <ThemedText style={styles.rowLink}>View Details</ThemedText>
       </TouchableOpacity>
     </View>
 
@@ -68,6 +69,10 @@ export default function EscrowWalletScreen() {
   
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Modal state
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedEscrowItem, setSelectedEscrowItem] = useState(null);
 
   // Fetch escrow wallet data
   const { data: walletData, isLoading: walletLoading, error: walletError } = useEscrowWallet();
@@ -124,9 +129,22 @@ export default function EscrowWalletScreen() {
       amount: formatCurrency(item.amount),
       store: item.description || "View Details",
       when: formatDate(item.created_at),
-      type: item.type || "transaction"
+      type: item.type || "transaction",
+      rawData: item // Store the original data for modal
     }));
   }, [historyData]);
+
+  // Handle modal opening
+  const handleOpenModal = (item) => {
+    setSelectedEscrowItem(item.rawData);
+    setModalVisible(true);
+  };
+
+  // Handle modal closing
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setSelectedEscrowItem(null);
+  };
 
   // Loading state
   if (walletLoading || historyLoading) {
@@ -263,6 +281,7 @@ export default function EscrowWalletScreen() {
               // wire to product details if you have one
               // navigation.navigate("ProductDetails", { id: ... })
             }}
+            onPressDetails={() => handleOpenModal(item)}
           />
         )}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
@@ -278,6 +297,13 @@ export default function EscrowWalletScreen() {
             </ThemedText>
           </View>
         }
+      />
+      
+      {/* Escrow Detail Modal */}
+      <EscrowDetailModal
+        visible={modalVisible}
+        onClose={handleCloseModal}
+        escrowItem={selectedEscrowItem}
       />
     </SafeAreaView>
   );

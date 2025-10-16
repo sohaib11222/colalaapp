@@ -101,8 +101,10 @@ export default function SearchScreen() {
 
     /* ---------- Cards (same designs you had) ---------- */
     const renderProductCard = ({ item }) => {
-        const imageUri = item.images?.length
-            ? { uri: imgUrl(item.images[0].path) }
+        // Get the main image (is_main: 1) or first image if no main image
+        const mainImage = item.images?.find(img => img.is_main === 1) || item.images?.[0];
+        const imageUri = mainImage
+            ? { uri: imgUrl(mainImage.path) }
             : require("../../assets/Frame 264.png");
         const storeAvatar = item.store?.profile_image
             ? { uri: imgUrl(item.store.profile_image) }
@@ -326,10 +328,11 @@ export default function SearchScreen() {
                         data={productData?.data || []}
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={({ item }) => {
-                            const img =
-                                item.images?.length
-                                    ? { uri: imgUrl(item.images[0].path) }
-                                    : require("../../assets/Frame 264.png");
+                            // Get the main image (is_main: 1) or first image if no main image
+                            const mainImage = item.images?.find(img => img.is_main === 1) || item.images?.[0];
+                            const img = mainImage
+                                ? { uri: imgUrl(mainImage.path) }
+                                : require("../../assets/Frame 264.png");
                             const storeAvatar = item.store?.profile_image
                                 ? { uri: imgUrl(item.store.profile_image) }
                                 : require("../../assets/Ellipse 18.png");
