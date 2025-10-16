@@ -250,6 +250,7 @@ const CategoryScreen = () => {
             <Image
               source={{ uri: item.image_url }}
               style={styles.categoryImage}
+              resizeMode="cover"
             />
           )}
           <View style={styles.categoryTextContainer}>
@@ -274,68 +275,68 @@ const CategoryScreen = () => {
           </View>
         </TouchableOpacity>
 
-        {/* For each SUBCATEGORY: show its name in the red header row, and BELOW it render its CHILDREN grid */}
+        {/* Show subcategories in both red bar and grid */}
         {item.isExpanded && subs.length > 0 && (
           <View style={styles.subCategoryContainer}>
-            {subs.map((sub) => {
-              const grand = Array.isArray(sub.children) ? sub.children : [];
-              return (
-                <View key={`sub-${sub.id}`} style={{ marginBottom: 8 }}>
-                  {/* This bar shows ONLY the subcategory name + View All */}
-                  <View style={styles.subHeader}>
+            {subs.map((sub) => (
+              <View key={`sub-${sub.id}`} style={{ marginBottom: 12 }}>
+                {/* Red bar showing subcategory name + View All */}
+                <View style={styles.subHeader}>
+                  <View style={styles.subHeaderLeft}>
+                    {!!sub.image_url && (
+                      <Image
+                        source={{ uri: sub.image_url }}
+                        style={styles.subHeaderImage}
+                        resizeMode="cover"
+                      />
+                    )}
                     <ThemedText style={styles.subTitle}>{sub.title}</ThemedText>
-                    <TouchableOpacity
-                      onPress={() =>
-                        navigation.navigate("ProductsList", {
-                          categoryId: sub.id,
-                          categoryTitle: sub.title,
-                          // IMPORTANT: fetch from the parent that actually has products right now
-                          fetchCategoryId: item.id,
-                          products: grand.map((g) => ({
-                            title: g.title,
-                            image_url: g.image_url,
-                            count: g.products_count ?? 0,
-                          })),
-                        })
-                      }
-                    >
-                      <ThemedText style={styles.viewAll}>View All</ThemedText>
-                    </TouchableOpacity>
                   </View>
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate("ProductsList", {
+                        categoryId: sub.id,
+                        categoryTitle: sub.title,
+                        fetchCategoryId: item.id,
+                        products: [],
+                      })
+                    }
+                  >
+                    <ThemedText style={styles.viewAll}>View All</ThemedText>
+                  </TouchableOpacity>
+                </View>
 
-                  {/* BELOW: child categories of the subcategory (grandchildren of parent) */}
-                  <View style={styles.itemRow}>
-                    {grand.map((g) => (
-                      <View key={`grand-${g.id}`} style={styles.subItem}>
-                        {!!g.image_url && (
-                          <Image
-                            source={{ uri: g.image_url }}
-                            style={styles.subImage}
-                          />
-                        )}
-                        <View
-                          style={{
-                            backgroundColor: "#F7F7F7",
-                            padding: 4,
-                            zIndex: 1,
-                            marginTop: -5,
-                            borderBottomRightRadius: 5,
-                            borderBottomLeftRadius: 5,
-                          }}
-                        >
-                          <ThemedText style={styles.subItemTitle}>
-                            {g.title}
-                          </ThemedText>
-                          <ThemedText style={styles.subCount}>
-                            {g.products_count ?? 0} Products
-                          </ThemedText>
-                        </View>
-                      </View>
-                    ))}
+                {/* Grid showing the same subcategories */}
+                <View style={styles.itemRow}>
+                  <View style={styles.subItem}>
+                    {!!sub.image_url && (
+                      <Image
+                        source={{ uri: sub.image_url }}
+                        style={styles.subImage}
+                        resizeMode="cover"
+                      />
+                    )}
+                    <View
+                      style={{
+                        backgroundColor: "#F7F7F7",
+                        padding: 4,
+                        zIndex: 1,
+                        marginTop: -5,
+                        borderBottomRightRadius: 5,
+                        borderBottomLeftRadius: 5,
+                      }}
+                    >
+                      <ThemedText style={styles.subItemTitle}>
+                        {sub.title}
+                      </ThemedText>
+                      <ThemedText style={styles.subCount}>
+                        {sub.products_count ?? 0} Products
+                      </ThemedText>
+                    </View>
                   </View>
                 </View>
-              );
-            })}
+              </View>
+            ))}
           </View>
         )}
       </View>
@@ -594,11 +595,23 @@ const styles = StyleSheet.create({
   subHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginVertical: 6,
     paddingHorizontal: 8,
     backgroundColor: "#E53E3E",
     borderRadius: 5,
     paddingVertical: 7,
+  },
+  subHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  subHeaderImage: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 8,
   },
   subTitle: { fontWeight: "400", fontSize: 12, color: "#fff" },
   viewAll: {
@@ -609,7 +622,7 @@ const styles = StyleSheet.create({
   },
 
   itemRow: { flexDirection: "row", flexWrap: "wrap" },
-  subItem: { width: "30.3%", margin: 5 },
+  subItem: { width: "100%", margin: 5 },
   subImage: { width: "100%", height: 80, borderRadius: 8 },
   subItemTitle: { fontSize: 12, marginTop: 4, fontWeight: "600" },
   subCount: { fontSize: 10, color: "#777" },
