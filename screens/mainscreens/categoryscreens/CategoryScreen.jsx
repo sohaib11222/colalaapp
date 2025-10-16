@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
   },
 
   itemRow: { flexDirection: "row", flexWrap: "wrap" },
-  subItem: { width: "100%", margin: 5 },
+  subItem: { width: "30.3%", margin: 5 },
   subImage: { width: "100%", height: 80, borderRadius: 8 },
   subItemTitle: { fontSize: 12, marginTop: 4, fontWeight: "600" },
   subCount: { fontSize: 10, color: "#777" },

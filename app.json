@@ -36,10 +36,7 @@
       "favicon": "./assets/appicon.png"
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "9eed35ab-65f7-4dd3-a5e3-2c5007fdb1a7"
-      }
+      "router": {}
     }
   }
 }
