@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,12 @@ import {
   Dimensions,
   RefreshControl,
   Linking,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
+import { Video, ResizeMode } from "expo-av";
 import ThemedText from "../../../components/ThemedText";
 
 import { useServicesDetail } from "../../../config/api.config";
@@ -22,8 +24,6 @@ import { useSavedToggleItem } from "../../../config/api.config";
 import { useCheckSavedItem } from "../../../config/api.config";
 import { useStartServiceChat } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
-
-
 
 const ServiceDetailsScreen = () => {
   const { params } = useRoute();
@@ -37,7 +37,7 @@ const ServiceDetailsScreen = () => {
         <ThemedText style={styles.errorText}>
           Service information not available. Please try again.
         </ThemedText>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.retryButton}
           onPress={() => navigation.goBack()}
         >
@@ -50,14 +50,30 @@ const ServiceDetailsScreen = () => {
   // State for saved status
   const [isSaved, setIsSaved] = useState(false);
   const [isCheckingSaved, setIsCheckingSaved] = useState(true);
-  
+
   // State for image viewer
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // State for main image/media
+  const [mainImageIndex, setMainImageIndex] = useState(0);
+  const [isShowingVideo, setIsShowingVideo] = useState(false);
+
+  // Video state
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(-1);
+  const [videoLoadError, setVideoLoadError] = useState(false);
+  
+  // Phone number reveal state
+  const [isPhoneRevealed, setIsPhoneRevealed] = useState(false);
+
+  // Video refs
+  const videoRef = useRef(null);
+  const viewerVideoRef = useRef(null);
+
   // Query client for refresh functionality
   const queryClient = useQueryClient();
-  
+
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
 
@@ -91,7 +107,8 @@ const ServiceDetailsScreen = () => {
   });
 
   // Service chat functionality
-  const { mutate: startServiceChat, isPending: creatingServiceChat } = useStartServiceChat();
+  const { mutate: startServiceChat, isPending: creatingServiceChat } =
+    useStartServiceChat();
 
   // Check saved status when component mounts
   useEffect(() => {
@@ -103,14 +120,37 @@ const ServiceDetailsScreen = () => {
     }
   }, [service?.id]);
 
+  // Set initial display state when service data loads
+  useEffect(() => {
+    if (serviceInfo) {
+      // Reset video error state
+      setVideoLoadError(false);
+      // Reset phone reveal state
+      setIsPhoneRevealed(false);
+      
+      // If video is available, show video by default
+      if (hasVideo(serviceInfo)) {
+        setIsShowingVideo(true);
+        // Auto-start video playback
+        setTimeout(() => {
+          handleVideoPlay(0);
+        }, 1000); // Small delay to ensure video is loaded
+      } else {
+        setIsShowingVideo(false);
+      }
+    }
+  }, [serviceInfo]);
+
   // Pull to refresh functionality
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       // Invalidate and refetch service details query
-      await queryClient.invalidateQueries({ queryKey: ['serviceDetails', service?.id] });
+      await queryClient.invalidateQueries({
+        queryKey: ["serviceDetails", service?.id],
+      });
     } catch (error) {
-      console.log('Refresh error:', error);
+      console.log("Refresh error:", error);
     } finally {
       setRefreshing(false);
     }
@@ -131,33 +171,33 @@ const ServiceDetailsScreen = () => {
     try {
       const serviceId = service?.id;
       const storeId = serviceInfo?.store?.id || serviceInfo?.store_id;
-      
+
       if (!serviceId) {
         console.error("Service ID not available");
         return;
       }
-      
+
       if (!storeId) {
         console.error("Store ID not available");
         return;
       }
-      
+
       console.log("Starting service chat:", { serviceId, storeId });
-      
+
       startServiceChat(
         { storeId, serviceId },
         {
           onSuccess: (data) => {
             console.log("Service chat created successfully:", data);
             const { chat_id } = data;
-            
+
             navigation.navigate("ServiceNavigator", {
               screen: "ChatDetails",
               params: {
                 store: {
                   id: storeId,
                   name: serviceInfo?.store?.store_name || "Service Store",
-                  profileImage: serviceInfo?.store?.profile_image 
+                  profileImage: serviceInfo?.store?.profile_image
                     ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
                     : require("../../../assets/Ellipse 18.png"),
                 },
@@ -175,7 +215,7 @@ const ServiceDetailsScreen = () => {
                 store: {
                   id: storeId,
                   name: serviceInfo?.store?.store_name || "Service Store",
-                  profileImage: serviceInfo?.store?.profile_image 
+                  profileImage: serviceInfo?.store?.profile_image
                     ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
                     : require("../../../assets/Ellipse 18.png"),
                 },
@@ -189,19 +229,46 @@ const ServiceDetailsScreen = () => {
     }
   };
 
-  // Handle video play
-  const handleVideoPlay = () => {
-    const videoUri = getFirstVideo(serviceInfo?.media);
-    if (videoUri) {
-      // TODO: Implement video player
-      console.log("Play video:", videoUri);
-      // You can integrate with react-native-video or expo-av here
+  // Handle video play/pause
+  const handleVideoPlay = async (index = 0, isViewer = false) => {
+    const ref = isViewer ? viewerVideoRef : videoRef;
+
+    if (currentVideoIndex === index && isVideoPlaying) {
+      // Pause current video
+      if (ref.current) {
+        try {
+          await ref.current.pauseAsync();
+          setIsVideoPlaying(false);
+          setCurrentVideoIndex(-1);
+        } catch (error) {
+          console.log("Error pausing video:", error);
+        }
+      }
+    } else {
+      // Play new video
+      if (ref.current) {
+        try {
+          await ref.current.playAsync();
+          setIsVideoPlaying(true);
+          setCurrentVideoIndex(index);
+        } catch (error) {
+          console.log("Error playing video:", error);
+        }
+      }
+    }
+  };
+
+  // Handle video status update
+  const handleVideoStatusUpdate = (status) => {
+    if (status.didJustFinish) {
+      // Don't stop video, let it loop automatically
+      // The video will restart automatically due to isLooping={true}
     }
   };
 
   // Handle image click
   const handleImageClick = () => {
-    setCurrentImageIndex(0);
+    setCurrentImageIndex(mainImageIndex);
     setImageViewerVisible(true);
   };
 
@@ -213,46 +280,70 @@ const ServiceDetailsScreen = () => {
   };
 
   // Helper function to get service image
-  const getServiceImage = (media) => {
+  const getServiceImage = (media, index = 0) => {
     if (media && media.length > 0) {
-      return { uri: `https://colala.hmstech.xyz/storage/${media[0].path}` };
+      const imageMedia = media.filter((item) => item.type === "image");
+      if (imageMedia.length > 0) {
+        const selectedIndex = Math.min(index, imageMedia.length - 1);
+        return {
+          uri: `https://colala.hmstech.xyz/storage/${imageMedia[selectedIndex].path}`,
+        };
+      }
     }
     return require("../../../assets/Frame 264.png"); // Default image
   };
 
-  // Helper function to check if media has video
-  const hasVideo = (media) => {
-    return media && media.some(item => item.type === 'video');
+  // Helper function to check if service has video
+  const hasVideo = (serviceInfo) => {
+    return serviceInfo?.video && serviceInfo.video.trim() !== "";
   };
 
-  // Helper function to get first video
-  const getFirstVideo = (media) => {
-    if (media && media.length > 0) {
-      const video = media.find(item => item.type === 'video');
-      return video ? { uri: `https://colala.hmstech.xyz/storage/${video.path}` } : null;
+  // Helper function to get video URI
+  const getVideoUri = (serviceInfo) => {
+    if (serviceInfo?.video && serviceInfo.video.trim() !== "") {
+      return { uri: `https://colala.hmstech.xyz/storage/${serviceInfo.video}` };
     }
     return null;
   };
 
-  // Helper function to get all images for viewer
-  const getAllImages = (media) => {
-    if (media && media.length > 0) {
-      return media
-        .filter(item => item.type === 'image')
-        .map(item => ({ uri: `https://colala.hmstech.xyz/storage/${item.path}` }));
+  // Helper function to get all media for viewer
+  const getAllMedia = () => {
+    const media = [];
+
+    // Add video first if it exists
+    if (hasVideo(serviceInfo)) {
+      media.push({
+        type: "video",
+        uri: getVideoUri(serviceInfo).uri,
+        id: "video",
+      });
     }
-    return [getServiceImage(media)];
+
+    // Add images
+    if (serviceInfo?.media && serviceInfo.media.length > 0) {
+      media.push(
+        ...serviceInfo.media
+          .filter((item) => item.type === "image")
+          .map((item) => ({
+            type: "image",
+            uri: `https://colala.hmstech.xyz/storage/${item.path}`,
+            id: item.id,
+          }))
+      );
+    }
+
+    return media;
   };
 
-  // Handle image viewer navigation
-  const handleNextImage = () => {
-    const images = getAllImages(serviceInfo?.media);
-    if (currentImageIndex < images.length - 1) {
+  // Handle media viewer navigation
+  const handleNextMedia = () => {
+    const media = getAllMedia();
+    if (currentImageIndex < media.length - 1) {
       setCurrentImageIndex(currentImageIndex + 1);
     }
   };
 
-  const handlePrevImage = () => {
+  const handlePrevMedia = () => {
     if (currentImageIndex > 0) {
       setCurrentImageIndex(currentImageIndex - 1);
     }
@@ -266,14 +357,14 @@ const ServiceDetailsScreen = () => {
         price: formatPrice(sub.price_from, sub.price_to),
       }));
     }
-    // Fallback to dummy data
+    // If no sub_services, show the main service price
     return [
-      { name: "General", price: "₦10,000 - ₦50,000" },
-      { name: "Male Wear", price: "₦15,000 - ₦60,000" },
-      { name: "Female wear", price: "₦20,000 - ₦80,000" },
-      { name: "Kids Wear", price: "₦8,000 - ₦30,000" },
-      { name: "Wedding Wears", price: "₦50,000 - ₦200,000" },
-      { name: "Tents", price: "₦30,000 - ₦100,000" },
+      {
+        name: "Service Price",
+        price: serviceInfo?.discount_price
+          ? `₦${Number(serviceInfo.discount_price).toLocaleString()}`
+          : formatPrice(serviceInfo?.price_from, serviceInfo?.price_to),
+      },
     ];
   };
 
@@ -303,7 +394,7 @@ const ServiceDetailsScreen = () => {
   // Use API data or fallback to dummy data
   const serviceInfo = serviceData?.data || service;
   const priceBreakdown = getPriceBreakdown(serviceInfo?.sub_services);
-  
+
   // Store phone number for contact functionality
   const storePhoneNumber = serviceInfo?.store?.store_phone || "08077601234"; // Default fallback
 
@@ -313,40 +404,42 @@ const ServiceDetailsScreen = () => {
       {isLoading && (
         <View style={styles.headerLoadingContainer}>
           <ActivityIndicator size="small" color="#E53E3E" />
-          <ThemedText style={styles.headerLoadingText}>Loading service details...</ThemedText>
+          <ThemedText style={styles.headerLoadingText}>
+            Loading service details...
+          </ThemedText>
         </View>
       )}
 
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#E53E3E']}
-            tintColor={'#E53E3E'}
+            colors={["#E53E3E"]}
+            tintColor={"#E53E3E"}
             title="Pull to refresh"
-            titleColor={'#6C727A'}
+            titleColor={"#6C727A"}
           />
         }
       >
         <StatusBar style="dark" />
-      {/* Top Image */}
-      <View style={styles.topHeader}>
-        <TouchableOpacity
-          style={{
-            padding: 3,
-            borderColor: "#ccc",
-            borderWidth: 1,
-            borderRadius: 20,
-          }}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="chevron-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <ThemedText style={styles.topHeaderTitle}>Service Details</ThemedText>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {/* <TouchableOpacity
+        {/* Top Image */}
+        <View style={styles.topHeader}>
+          <TouchableOpacity
+            style={{
+              padding: 3,
+              borderColor: "#ccc",
+              borderWidth: 1,
+              borderRadius: 20,
+            }}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <ThemedText style={styles.topHeaderTitle}>Service Details</ThemedText>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {/* <TouchableOpacity
             style={{
               padding: 5,
               borderColor: "#ccc",
@@ -356,257 +449,408 @@ const ServiceDetailsScreen = () => {
           >
             <Ionicons name="ellipsis-vertical" size={22} color="#000" />
           </TouchableOpacity> */}
+            <TouchableOpacity
+              style={{
+                padding: 5,
+                borderColor: "#ccc",
+                borderWidth: 1,
+                borderRadius: 30,
+              }}
+              onPress={handleHeartPress}
+              disabled={isToggling || isCheckingSaved}
+            >
+              {isToggling || isCheckingSaved ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                <Ionicons
+                  name={isSaved ? "heart" : "heart-outline"}
+                  size={22}
+                  color={isSaved ? "#E53E3E" : "#000"}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.imageContainer}>
           <TouchableOpacity
-            style={{
-              padding: 5,
-              borderColor: "#ccc",
-              borderWidth: 1,
-              borderRadius: 30,
-            }}
-            onPress={handleHeartPress}
-            disabled={isToggling || isCheckingSaved}
+            onPress={
+              isShowingVideo ? () => handleVideoPlay(0) : handleImageClick
+            }
           >
-            {isToggling || isCheckingSaved ? (
-              <ActivityIndicator size="small" color="#000" />
+            {isShowingVideo ? (
+              <View style={styles.videoContainer}>
+                <Video
+                  ref={videoRef}
+                  source={{ uri: getVideoUri(serviceInfo).uri }}
+                  style={styles.mainImage}
+                  resizeMode={ResizeMode.COVER}
+                  shouldPlay={currentVideoIndex === 0 && isVideoPlaying}
+                  isLooping={true}
+                  onPlaybackStatusUpdate={handleVideoStatusUpdate}
+                  onError={(error) => {
+                    console.log("Video load error:", error);
+                    setVideoLoadError(true);
+                  }}
+                  onLoad={() => {
+                    console.log("Video loaded successfully");
+                    setVideoLoadError(false);
+                  }}
+                />
+                <TouchableOpacity
+                  style={styles.videoPlayButton}
+                  onPress={() => handleVideoPlay(0)}
+                >
+                  <Ionicons
+                    name={
+                      currentVideoIndex === 0 && isVideoPlaying
+                        ? "pause-circle"
+                        : "play-circle"
+                    }
+                    size={60}
+                    color="rgba(255,255,255,0.8)"
+                  />
+                </TouchableOpacity>
+                <View style={styles.videoOverlay}>
+                  <ThemedText style={styles.videoLabel}>VIDEO</ThemedText>
+                </View>
+              </View>
             ) : (
-              <Ionicons 
-                name={isSaved ? "heart" : "heart-outline"} 
-                size={22} 
-                color={isSaved ? "#E53E3E" : "#000"} 
+              <Image
+                source={getServiceImage(serviceInfo?.media, mainImageIndex)}
+                style={styles.mainImage}
               />
             )}
           </TouchableOpacity>
-        </View>
-      </View>
 
-      <View style={styles.imageContainer}>
-        <TouchableOpacity onPress={hasVideo(serviceInfo?.media) ? handleVideoPlay : handleImageClick}>
-          <Image
-            source={getServiceImage(serviceInfo?.media)}
-            style={styles.mainImage}
-          />
-          {hasVideo(serviceInfo?.media) && (
-            <View style={styles.videoIcon}>
-              <Ionicons name="play-circle" size={50} color="#fff" />
-            </View>
-          )}
-        </TouchableOpacity>
-
-        {/* Store Info Overlay */}
-        <View style={styles.storeOverlay}>
-          <Image
-            source={require("../../../assets/Ellipse 18.png")}
-            style={styles.avatar}
-          />
-          <ThemedText style={styles.storeName}>Service Store</ThemedText>
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={14} color="#E53E3E" />
-            <ThemedText
-              style={[
-                styles.ratingText,
-                {
-                  color: "#fff",
-                },
-              ]}
-            >
-              4.5
+          {/* Store Info Overlay */}
+          <View style={styles.storeOverlay}>
+            <Image
+              source={
+                serviceInfo?.store?.profile_image
+                  ? {
+                      uri: `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`,
+                    }
+                  : require("../../../assets/Ellipse 18.png")
+              }
+              style={styles.avatar}
+            />
+            <ThemedText style={styles.storeName}>
+              {serviceInfo?.store?.store_name || "Service Store"}
             </ThemedText>
-          </View>
-        </View>
-      </View>
-
-      {/* Gallery */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.gallery}
-      >
-        {serviceInfo?.media?.map((media, index) => (
-          <Image
-            key={index}
-            source={{ uri: `https://colala.hmstech.xyz/storage/${media.path}` }}
-            style={styles.thumbnail}
-          />
-        )) ||
-          [getServiceImage(serviceInfo?.media)].map((img, index) => (
-            <Image key={index} source={img} style={styles.thumbnail} />
-          ))}
-      </ScrollView>
-
-      <View style={styles.details}>
-        <View style={styles.headerRow}>
-          <ThemedText style={styles.title}>
-            {serviceInfo?.name || "Service Name"}
-          </ThemedText>
-          <View style={styles.ratingRow}>
-            <Ionicons name="star" size={16} color="#E53E3E" />
-            <ThemedText style={styles.ratingText}>4.5</ThemedText>
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={14} color="#E53E3E" />
+              <ThemedText
+                style={[
+                  styles.ratingText,
+                  {
+                    color: "#fff",
+                  },
+                ]}
+              >
+                {serviceInfo?.store?.average_rating || 4.5}
+              </ThemedText>
+            </View>
           </View>
         </View>
 
-        <ThemedText style={styles.price}>
-          {serviceInfo?.discount_price
-            ? `₦${Number(serviceInfo.discount_price).toLocaleString()}`
-            : formatPrice(serviceInfo?.price_from, serviceInfo?.price_to)}
-        </ThemedText>
-        <View style={styles.divider} />
-        {/* Description */}
-        <ThemedText style={styles.sectionTitle}>Description</ThemedText>
-        <ThemedText style={styles.description}>
-          {serviceInfo?.full_description ||
-            serviceInfo?.short_description ||
-            "Service description not available"}
-        </ThemedText>
-        <View style={styles.divider} />
-
-        {/* Price Breakdown */}
-        <ThemedText style={styles.sectionTitle}>Price Breakdown</ThemedText>
-        {priceBreakdown.map((item, index) => {
-          const isFirst = index === 0;
-          const isLast = index === priceBreakdown.length - 1;
-          return (
-            <View
-              key={index}
+        {/* Gallery */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.gallery}
+        >
+          {/* Video thumbnail */}
+          {hasVideo(serviceInfo) && (
+            <TouchableOpacity
+              onPress={() => {
+                setIsShowingVideo(true);
+                setMainImageIndex(0);
+              }}
               style={[
-                styles.priceRow,
-                isFirst && styles.firstPriceRow,
-                isLast && styles.lastPriceRow,
+                styles.thumbnailContainer,
+                isShowingVideo && styles.selectedThumbnail,
               ]}
             >
-              <ThemedText style={styles.breakdownLabel}>{item.name}</ThemedText>
-              <ThemedText style={styles.breakdownPrice}>
-                {item.price}
-              </ThemedText>
-            </View>
-          );
-        })}
-
-        {/* Action Buttons */}
-        <View style={styles.actions}>
-          {/* WhatsApp */}
-          <TouchableOpacity 
-            style={styles.iconBtn}
-            onPress={() => {
-              if (storePhoneNumber) {
-                const phone = storePhoneNumber.replace(/\D/g, ""); // clean digits
-                Linking.openURL(`https://wa.me/${phone}`).catch(err =>
-                  console.log("WhatsApp error:", err)
-                );
-              }
-            }}
-          >
-            <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-          </TouchableOpacity>
-          
-          {/* Call */}
-          <TouchableOpacity 
-            style={styles.iconBtn}
-            onPress={() => {
-              if (storePhoneNumber) {
-                Linking.openURL(`tel:${storePhoneNumber}`).catch(err =>
-                  console.log("Call error:", err)
-                );
-              }
-            }}
-          >
-            <Ionicons name="call-outline" size={20} color="#000" />
-          </TouchableOpacity>
-          
-          {/* SMS */}
-          <TouchableOpacity 
-            style={styles.iconBtn}
-            onPress={() => {
-              if (storePhoneNumber) {
-                Linking.openURL(`sms:${storePhoneNumber}`).catch(err =>
-                  console.log("SMS error:", err)
-                );
-              }
-            }}
-          >
-            <Ionicons name="chatbox-outline" size={20} color="#000" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.messageBtn}
-            onPress={handleStartServiceChat}
-            disabled={creatingServiceChat}
-          >
-            {creatingServiceChat ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <ThemedText style={styles.messageText}>Message Store</ThemedText>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Image Viewer Modal */}
-      <Modal
-        visible={imageViewerVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setImageViewerVisible(false)}
-      >
-        <View style={styles.imageViewerContainer}>
-          <TouchableOpacity
-            style={styles.imageViewerClose}
-            onPress={() => setImageViewerVisible(false)}
-          >
-            <Ionicons name="close" size={30} color="#fff" />
-          </TouchableOpacity>
-          
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            style={styles.imageViewerScroll}
-            contentOffset={{ x: currentImageIndex * Dimensions.get('window').width, y: 0 }}
-          >
-            {getAllImages(serviceInfo?.media).map((image, index) => (
-              <View key={index} style={styles.imageViewerItem}>
+              <View style={styles.videoThumbnailContainer}>
                 <Image
-                  source={image}
-                  style={styles.imageViewerImage}
-                  resizeMode="contain"
+                  source={require("../../../assets/vedio-overlay.png")}
+                  style={styles.thumbnail}
+                  resizeMode="cover"
                 />
+                <View style={styles.videoThumbnailOverlay}>
+                  <Ionicons name="play" size={16} color="#fff" />
+                </View>
               </View>
-            ))}
-          </ScrollView>
-
-          {/* Navigation buttons */}
-          {getAllImages(serviceInfo?.media).length > 1 && (
-            <>
-              {currentImageIndex > 0 && (
-                <TouchableOpacity
-                  style={[styles.imageViewerNav, styles.imageViewerNavLeft]}
-                  onPress={handlePrevImage}
-                >
-                  <Ionicons name="chevron-back" size={30} color="#fff" />
-                </TouchableOpacity>
-              )}
-              
-              {currentImageIndex < getAllImages(serviceInfo?.media).length - 1 && (
-                <TouchableOpacity
-                  style={[styles.imageViewerNav, styles.imageViewerNavRight]}
-                  onPress={handleNextImage}
-                >
-                  <Ionicons name="chevron-forward" size={30} color="#fff" />
-                </TouchableOpacity>
-              )}
-            </>
+            </TouchableOpacity>
           )}
 
-          {/* Image counter */}
-          {getAllImages(serviceInfo?.media).length > 1 && (
-            <View style={styles.imageCounter}>
-              <ThemedText style={styles.imageCounterText}>
-                {currentImageIndex + 1} / {getAllImages(serviceInfo?.media).length}
+          {/* Image thumbnails */}
+          {serviceInfo?.media
+            ?.filter((item) => item.type === "image")
+            .map((media, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => {
+                  setIsShowingVideo(false);
+                  setMainImageIndex(index);
+                }}
+                style={[
+                  styles.thumbnailContainer,
+                  !isShowingVideo &&
+                    mainImageIndex === index &&
+                    styles.selectedThumbnail,
+                ]}
+              >
+                <Image
+                  source={{
+                    uri: `https://colala.hmstech.xyz/storage/${media.path}`,
+                  }}
+                  style={styles.thumbnail}
+                />
+              </TouchableOpacity>
+            )) ||
+            [getServiceImage(serviceInfo?.media)].map((img, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => {
+                  setIsShowingVideo(false);
+                  setMainImageIndex(index);
+                }}
+                style={[
+                  styles.thumbnailContainer,
+                  !isShowingVideo &&
+                    mainImageIndex === index &&
+                    styles.selectedThumbnail,
+                ]}
+              >
+                <Image source={img} style={styles.thumbnail} />
+              </TouchableOpacity>
+            ))}
+        </ScrollView>
+
+        <View style={styles.details}>
+          <View style={styles.headerRow}>
+            <ThemedText style={styles.title}>
+              {serviceInfo?.name || "Service Name"}
+            </ThemedText>
+            <View style={styles.ratingRow}>
+              <Ionicons name="star" size={16} color="#E53E3E" />
+              <ThemedText style={styles.ratingText}>
+                {serviceInfo?.store?.average_rating || 4.5}
               </ThemedText>
             </View>
-          )}
+          </View>
+
+          <ThemedText style={styles.price}>
+            {serviceInfo?.discount_price
+              ? `₦${Number(serviceInfo.discount_price).toLocaleString()}`
+              : formatPrice(serviceInfo?.price_from, serviceInfo?.price_to)}
+          </ThemedText>
+          <View style={styles.divider} />
+          {/* Description */}
+          <ThemedText style={styles.sectionTitle}>Description</ThemedText>
+          <ThemedText style={styles.description}>
+            {serviceInfo?.full_description ||
+              serviceInfo?.short_description ||
+              "Service description not available"}
+          </ThemedText>
+          <View style={styles.divider} />
+
+          {/* Price Breakdown */}
+          <ThemedText style={styles.sectionTitle}>Price Breakdown</ThemedText>
+          {priceBreakdown.map((item, index) => {
+            const isFirst = index === 0;
+            const isLast = index === priceBreakdown.length - 1;
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.priceRow,
+                  isFirst && styles.firstPriceRow,
+                  isLast && styles.lastPriceRow,
+                ]}
+              >
+                <ThemedText style={styles.breakdownLabel}>
+                  {item.name}
+                </ThemedText>
+                <ThemedText style={styles.breakdownPrice}>
+                  {item.price}
+                </ThemedText>
+              </View>
+            );
+          })}
+
+          {/* Action Buttons */}
+          <View style={styles.actions}>
+            {/* WhatsApp */}
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => {
+                if (storePhoneNumber) {
+                  const phone = storePhoneNumber.replace(/\D/g, ""); // clean digits
+                  Linking.openURL(`https://wa.me/${phone}`).catch((err) =>
+                    console.log("WhatsApp error:", err)
+                  );
+                }
+              }}
+            >
+              <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+            </TouchableOpacity>
+
+            {/* Call */}
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => {
+                if (storePhoneNumber) {
+                  Linking.openURL(`tel:${storePhoneNumber}`).catch((err) =>
+                    console.log("Call error:", err)
+                  );
+                }
+              }}
+            >
+              <Ionicons name="call-outline" size={20} color="#000" />
+            </TouchableOpacity>
+
+             {/* SMS */}
+             <TouchableOpacity
+               style={styles.iconBtn}
+               onPress={handleStartServiceChat}
+             >
+               <Ionicons name="chatbox-outline" size={20} color="#000" />
+             </TouchableOpacity>
+
+             <TouchableOpacity
+               style={styles.messageBtn}
+               onPress={() => {
+                 if (isPhoneRevealed) {
+                   // If phone is already revealed, make the call
+                   if (storePhoneNumber) {
+                     Linking.openURL(`tel:${storePhoneNumber}`).catch((err) =>
+                       console.log("Call error:", err)
+                     );
+                   }
+                 } else {
+                   // If phone is not revealed, reveal it
+                   setIsPhoneRevealed(true);
+                 }
+               }}
+             >
+               <ThemedText style={styles.messageText}>
+                 {isPhoneRevealed ? (storePhoneNumber || "Call Store") : "Reveal Number"}
+               </ThemedText>
+             </TouchableOpacity>
+          </View>
         </View>
-      </Modal>
-    </ScrollView>
+
+        {/* Image Viewer Modal */}
+        <Modal
+          visible={imageViewerVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setImageViewerVisible(false)}
+        >
+          <View style={styles.imageViewerContainer}>
+            <TouchableOpacity
+              style={styles.imageViewerClose}
+              onPress={() => setImageViewerVisible(false)}
+            >
+              <Ionicons name="close" size={30} color="#fff" />
+            </TouchableOpacity>
+
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              style={styles.imageViewerScroll}
+              contentOffset={{
+                x: currentImageIndex * Dimensions.get("window").width,
+                y: 0,
+              }}
+            >
+              {getAllMedia().map((media, index) => (
+                <View key={media.id} style={styles.imageViewerItem}>
+                  {media.type === "video" ? (
+                    <View style={styles.videoViewerContainer}>
+                      <Video
+                        ref={viewerVideoRef}
+                        source={{ uri: media.uri }}
+                        style={styles.imageViewerImage}
+                        resizeMode={ResizeMode.CONTAIN}
+                        shouldPlay={
+                          currentVideoIndex === index && isVideoPlaying
+                        }
+                        isLooping={true}
+                        onPlaybackStatusUpdate={handleVideoStatusUpdate}
+                        onError={(error) => {
+                          console.log("Viewer video load error:", error);
+                        }}
+                      />
+                      <TouchableOpacity
+                        style={styles.videoViewerPlayButton}
+                        onPress={() => handleVideoPlay(index, true)}
+                      >
+                        <Ionicons
+                          name={
+                            currentVideoIndex === index && isVideoPlaying
+                              ? "pause-circle"
+                              : "play-circle"
+                          }
+                          size={80}
+                          color="rgba(255,255,255,0.9)"
+                        />
+                      </TouchableOpacity>
+                      <View style={styles.videoViewerOverlay}>
+                        <ThemedText style={styles.videoViewerLabel}>
+                          VIDEO
+                        </ThemedText>
+                      </View>
+                    </View>
+                  ) : (
+                    <Image
+                      source={{ uri: media.uri }}
+                      style={styles.imageViewerImage}
+                      resizeMode="contain"
+                    />
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+
+            {/* Navigation buttons */}
+            {getAllMedia().length > 1 && (
+              <>
+                {currentImageIndex > 0 && (
+                  <TouchableOpacity
+                    style={[styles.imageViewerNav, styles.imageViewerNavLeft]}
+                    onPress={handlePrevMedia}
+                  >
+                    <Ionicons name="chevron-back" size={30} color="#fff" />
+                  </TouchableOpacity>
+                )}
+
+                {currentImageIndex < getAllMedia().length - 1 && (
+                  <TouchableOpacity
+                    style={[styles.imageViewerNav, styles.imageViewerNavRight]}
+                    onPress={handleNextMedia}
+                  >
+                    <Ionicons name="chevron-forward" size={30} color="#fff" />
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+
+            {/* Media counter */}
+            {getAllMedia().length > 1 && (
+              <View style={styles.imageCounter}>
+                <ThemedText style={styles.imageCounterText}>
+                  {currentImageIndex + 1} / {getAllMedia().length}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+        </Modal>
+      </ScrollView>
     </>
   );
 };
@@ -650,15 +894,79 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: "relative",
   },
-  videoIcon: {
+  videoContainer: {
+    position: "relative",
+  },
+  videoPlayButton: {
     position: "absolute",
     top: "50%",
     left: "50%",
-    transform: [{ translateX: -25 }, { translateY: -25 }],
-    backgroundColor: "#000000CC",
-    borderRadius: 25,
-    width: 50,
-    height: 50,
+    transform: [{ translateX: -30 }, { translateY: -30 }],
+    backgroundColor: "rgba(0,0,0,0.3)",
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoOverlay: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  videoLabel: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  videoViewerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  videoViewerPlayButton: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -40 }, { translateY: -40 }],
+    backgroundColor: "rgba(0,0,0,0.3)",
+    borderRadius: 40,
+    width: 80,
+    height: 80,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoViewerOverlay: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  videoViewerLabel: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  videoThumbnailContainer: {
+    position: "relative",
+  },
+  videoThumbnailOverlay: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -8 }, { translateY: -8 }],
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 8,
+    width: 16,
+    height: 16,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -695,7 +1003,16 @@ const styles = StyleSheet.create({
   },
 
   gallery: { flexDirection: "row", padding: 10 },
-  thumbnail: { width: 60, height: 60, borderRadius: 10, marginRight: 8 },
+  thumbnailContainer: {
+    marginRight: 8,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  selectedThumbnail: {
+    borderColor: "#E53E3E",
+  },
+  thumbnail: { width: 60, height: 60, borderRadius: 8 },
   details: { paddingHorizontal: 16 },
   headerRow: {
     flexDirection: "row",
@@ -816,17 +1133,17 @@ const styles = StyleSheet.create({
   },
   imageViewerScroll: {
     flex: 1,
-    width: Dimensions.get('window').width,
+    width: Dimensions.get("window").width,
   },
   imageViewerItem: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height,
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
     justifyContent: "center",
     alignItems: "center",
   },
   imageViewerImage: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height,
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
   },
   imageViewerNav: {
     position: "absolute",

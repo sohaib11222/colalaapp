@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, TextInput, StyleSheet, Image, TouchableOpacity,
-  Dimensions, SafeAreaView, ScrollView, Modal, FlatList, Alert, ActivityIndicator
+  Dimensions, SafeAreaView, ScrollView, Modal, FlatList, Alert, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -121,10 +121,19 @@ const RegisterScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <Image source={require('../../assets/registermain1.png')} style={styles.topImage} />
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Image source={require('../../assets/registermain1.png')} style={styles.topImage} />
 
-        <View style={styles.card}>
+          <View style={styles.card}>
           <ThemedText style={styles.title}>Register</ThemedText>
           <ThemedText style={styles.subtitle}>Create a free account today</ThemedText>
 
@@ -210,7 +219,8 @@ const RegisterScreen = () => {
             </TouchableOpacity>
           </ThemedText>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Country Modal */}
       <Modal visible={showModal} animationType="slide" transparent>

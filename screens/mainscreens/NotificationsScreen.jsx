@@ -14,8 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ThemedText from "../../components/ThemedText";
-
-const BASE_URL = "https://colala.hmstech.xyz/api";
+import { http } from "../../config/api.config";
+import { performLogout } from "../../utils/navigationUtils";
 
 /* ---- THEME ---- */
 const COLOR = {
@@ -35,14 +35,7 @@ export default function NotificationsScreen() {
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem("auth_token");
-      const res = await fetch(`${BASE_URL}/notifications`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      const json = await res.json();
+      const json = await http.get("/notifications");
       if (json.status === "success") {
         const mapped = json.data.map((n) => ({
           id: String(n.id),
@@ -57,6 +50,13 @@ export default function NotificationsScreen() {
       }
     } catch (err) {
       console.error(err);
+      
+      // Check if it's a token expiration error
+      if (err?.isTokenExpired) {
+        // Token expiration is already handled by the API interceptor
+        return;
+      }
+      
       Alert.alert("Error", "Could not load notifications.");
     } finally {
       setLoading(false);
@@ -65,20 +65,20 @@ export default function NotificationsScreen() {
 
   const markRead = async (id) => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      await fetch(`${BASE_URL}/notifications/mark-as-read/${id}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      await http.post(`/notifications/mark-as-read/${id}`);
       // Optimistically update state
       setItems((prev) =>
         prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
       );
     } catch (err) {
       console.error(err);
+      
+      // Check if it's a token expiration error
+      if (err?.isTokenExpired) {
+        // Token expiration is already handled by the API interceptor
+        return;
+      }
+      
       Alert.alert("Error", "Failed to mark as read.");
     }
   };

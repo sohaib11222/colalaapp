@@ -9,15 +9,17 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
+  Text,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText"; // 👈 import ThemedText
 
-import { useServicesCategories } from "../../../config/api.config";
+import {
+  useServicesCategories,
+  useCartQuantity,
+} from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
-
-
 
 const { width } = Dimensions.get("window");
 
@@ -25,19 +27,23 @@ const CARD_WIDTH = (width - 48) / 3;
 
 const ServicesScreen = () => {
   const navigation = useNavigation();
-  
+
   // Query client for refresh functionality
   const queryClient = useQueryClient();
-  
+
+  // Use shared cart quantity hook
+  const { data: cartQuantity = 0, isLoading: isCartLoading } =
+    useCartQuantity();
+
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Fetch services categories from API
   const { data: servicesData, isLoading, error } = useServicesCategories();
-  
+
   // Helper function to get image URL
   const getImageUrl = (imagePath) => {
     if (!imagePath) return require("../../../assets/Rectangle 32 (1).png");
@@ -47,15 +53,16 @@ const ServicesScreen = () => {
   // Filter services based on search query
   const filteredServices = useMemo(() => {
     if (!servicesData?.data) return [];
-    
+
     if (!searchQuery.trim()) {
       return servicesData.data;
     }
-    
+
     const query = searchQuery.toLowerCase().trim();
-    return servicesData.data.filter(service => 
-      service.title?.toLowerCase().includes(query) ||
-      service.description?.toLowerCase().includes(query)
+    return servicesData.data.filter(
+      (service) =>
+        service.title?.toLowerCase().includes(query) ||
+        service.description?.toLowerCase().includes(query)
     );
   }, [servicesData, searchQuery]);
 
@@ -64,9 +71,9 @@ const ServicesScreen = () => {
     setRefreshing(true);
     try {
       // Invalidate and refetch services categories query
-      await queryClient.invalidateQueries({ queryKey: ['servicesCategories'] });
+      await queryClient.invalidateQueries({ queryKey: ["servicesCategories"] });
     } catch (error) {
-      console.log('Refresh error:', error);
+      console.log("Refresh error:", error);
     } finally {
       setRefreshing(false);
     }
@@ -101,10 +108,19 @@ const ServicesScreen = () => {
               accessibilityRole="button"
               accessibilityLabel="Open cart"
             >
-              <Image
-                source={require("../../../assets/cart-icon.png")}
-                style={styles.iconImg}
-              />
+              <View style={styles.cartIconContainer}>
+                <Image
+                  source={require("../../../assets/cart-icon.png")}
+                  style={styles.iconImg}
+                />
+                {cartQuantity > 0 && (
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>
+                      {cartQuantity > 99 ? "99+" : cartQuantity}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -124,7 +140,7 @@ const ServicesScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-            
+
         {/* 🔍 Search Inside Header */}
         <View style={styles.searchContainer}>
           <TextInput
@@ -145,7 +161,9 @@ const ServicesScreen = () => {
       {isLoading && (
         <View style={styles.headerLoadingContainer}>
           <ActivityIndicator size="small" color="#E53E3E" />
-          <ThemedText style={styles.headerLoadingText}>Loading services...</ThemedText>
+          <ThemedText style={styles.headerLoadingText}>
+            Loading services...
+          </ThemedText>
         </View>
       )}
 
@@ -158,23 +176,31 @@ const ServicesScreen = () => {
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#E53E3E" />
-            <ThemedText style={styles.loadingText}>Loading services...</ThemedText>
+            <ThemedText style={styles.loadingText}>
+              Loading services...
+            </ThemedText>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>Failed to load services</ThemedText>
+            <ThemedText style={styles.errorText}>
+              Failed to load services
+            </ThemedText>
           </View>
         ) : filteredServices.length === 0 ? (
           <View style={styles.emptyContainer}>
             <ThemedText style={styles.emptyText}>
-              {searchQuery.trim() ? `No services found for "${searchQuery}"` : "No services available"}
+              {searchQuery.trim()
+                ? `No services found for "${searchQuery}"`
+                : "No services available"}
             </ThemedText>
             {searchQuery.trim() && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.clearSearchButton}
                 onPress={() => setSearchQuery("")}
               >
-                <ThemedText style={styles.clearSearchText}>Clear Search</ThemedText>
+                <ThemedText style={styles.clearSearchText}>
+                  Clear Search
+                </ThemedText>
               </TouchableOpacity>
             )}
           </View>
@@ -193,10 +219,10 @@ const ServicesScreen = () => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                colors={['#E53E3E']}
-                tintColor={'#E53E3E'}
+                colors={["#E53E3E"]}
+                tintColor={"#E53E3E"}
                 title="Pull to refresh"
-                titleColor={'#6C727A'}
+                titleColor={"#6C727A"}
               />
             }
             renderItem={({ item }) => (
@@ -209,7 +235,10 @@ const ServicesScreen = () => {
                   })
                 }
               >
-                <Image source={getImageUrl(item.image)} style={styles.cardImage} />
+                <Image
+                  source={getImageUrl(item.image)}
+                  style={styles.cardImage}
+                />
                 <View style={styles.cardInfo}>
                   <ThemedText style={styles.cardTitle}>{item.title}</ThemedText>
                   <ThemedText style={styles.cardListings}>
@@ -335,7 +364,26 @@ const styles = StyleSheet.create({
 
   // If your PNGs are already colored, remove tintColor.
   iconImg: { width: 22, height: 22, resizeMode: "contain" },
-  
+
+  cartIconContainer: { position: "relative" },
+  cartBadge: {
+    position: "absolute",
+    top: -6,
+    right: -8,
+    backgroundColor: "#E53E3E",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+
   // Loading and error states
   loadingContainer: {
     flex: 1,

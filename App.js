@@ -1,6 +1,6 @@
 
 // App.js
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { NavigationContainer } from "@react-navigation/native";
@@ -9,10 +9,13 @@ import { useFonts } from "expo-font";
 import RootNavigator from "./navigation/RootNavigator";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./config/api.config";
+import { setNavigationRef } from "./utils/navigationUtils";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
+  const navigationRef = useRef();
+
   const [fontsLoaded] = useFonts({
     "Manrope-Thin": require("./assets/fonts/manrope-thin.otf"),
     "Manrope-Light": require("./assets/fonts/manrope-light.otf"),
@@ -29,11 +32,18 @@ export default function App() {
     if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
+  // Set navigation reference for logout functionality
+  useEffect(() => {
+    if (navigationRef.current) {
+      setNavigationRef(navigationRef.current);
+    }
+  }, []);
+
   if (!fontsLoaded) return null;
 
   return (
     <QueryClientProvider client={queryClient}>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <RootNavigator />
       </NavigationContainer>
     </QueryClientProvider>

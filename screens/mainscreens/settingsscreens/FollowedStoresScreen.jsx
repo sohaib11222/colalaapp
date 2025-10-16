@@ -152,6 +152,22 @@ export default function FollowedStoresScreen() {
   
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Search/filter loading state
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Debounced search effect
+  React.useEffect(() => {
+    if (query.trim()) {
+      setIsSearching(true);
+      const timer = setTimeout(() => {
+        setIsSearching(false);
+      }, 300); // 300ms delay
+      return () => clearTimeout(timer);
+    } else {
+      setIsSearching(false);
+    }
+  }, [query]);
 
   // API Integration
   const { data: followedStoresRes, isLoading, error } = useGetFollowedStores();
@@ -185,8 +201,12 @@ export default function FollowedStoresScreen() {
 
   // Only use API data, no fallback to dummy data
   const allStores = useMemo(() => {
+    // Only process data if we have API data and not loading
+    if (isLoading || !apiStores || apiStores.length === 0) {
+      return [];
+    }
     return apiStores.map(mapApiStoreToComponent);
-  }, [apiStores]);
+  }, [apiStores, isLoading]);
 
   const visibleData = useMemo(() => {
     let filtered = allStores;
@@ -408,8 +428,12 @@ export default function FollowedStoresScreen() {
           placeholderTextColor="#888"
           style={styles.searchInput}
         />
-        {/* spacer to balance layout */}
-        <View style={{ width: 20 }} />
+        {/* Search loading indicator */}
+        {isSearching ? (
+          <ActivityIndicator size="small" color={COLOR.primary} />
+        ) : (
+          <View style={{ width: 20 }} />
+        )}
       </View>
 
       {/* Filters row (3 pills) */}
@@ -435,29 +459,97 @@ export default function FollowedStoresScreen() {
 
       {/* Grid */}
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLOR.primary} />
-          <ThemedText style={styles.loadingText}>Loading followed stores...</ThemedText>
+        <View style={styles.skeletonContainer}>
+          <View style={styles.skeletonGrid}>
+            {[1, 2, 3, 4].map((i) => (
+              <View key={i} style={styles.skeletonCard}>
+                <View style={styles.skeletonCover} />
+                <View style={styles.skeletonAvatar} />
+                <View style={styles.skeletonContent}>
+                  <View style={styles.skeletonTitle} />
+                  <View style={styles.skeletonTags}>
+                    <View style={styles.skeletonTag} />
+                    <View style={styles.skeletonTag} />
+                  </View>
+                  <View style={styles.skeletonButton} />
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
       ) : error ? (
-        <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={COLOR.sub} />
-          <ThemedText style={styles.loadingText}>Failed to load followed stores</ThemedText>
-          <TouchableOpacity 
-            style={[styles.retryButton, { marginTop: 16 }]}
-            onPress={onRefresh}
-          >
-            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
-          </TouchableOpacity>
-        </View>
-      ) : allStores.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <Ionicons name="heart-outline" size={48} color={COLOR.sub} />
-          <ThemedText style={styles.loadingText}>No followed stores yet</ThemedText>
-          <ThemedText style={[styles.loadingText, { marginTop: 8, fontSize: 12 }]}>
-            Start following stores to see them here
-          </ThemedText>
-        </View>
+        <ScrollView
+          contentContainerStyle={styles.emptyScrollContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLOR.primary]}
+              tintColor={COLOR.primary}
+              title="Pull to refresh"
+              titleColor={COLOR.sub}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          alwaysBounceVertical={true}
+        >
+          <View style={styles.loadingContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color={COLOR.sub} />
+            <ThemedText style={styles.loadingText}>Failed to load followed stores</ThemedText>
+            <TouchableOpacity 
+              style={[styles.retryButton, { marginTop: 16 }]}
+              onPress={onRefresh}
+            >
+              <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+            </TouchableOpacity>
+            <ThemedText style={[styles.loadingText, { marginTop: 12, fontSize: 11, fontStyle: 'italic' }]}>
+              Or pull down to refresh
+            </ThemedText>
+          </View>
+          
+          {/* Extra content to ensure scrollability */}
+          <View style={styles.extraContent}>
+            <ThemedText style={[styles.loadingText, { fontSize: 10, opacity: 0.5 }]}>
+              Swipe up to refresh
+            </ThemedText>
+          </View>
+        </ScrollView>
+      ) : !isLoading && !error && followedStoresRes && allStores.length === 0 ? (
+        <ScrollView
+          contentContainerStyle={styles.emptyScrollContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLOR.primary]}
+              tintColor={COLOR.primary}
+              title="Pull to refresh"
+              titleColor={COLOR.sub}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          alwaysBounceVertical={true}
+        >
+          <View style={styles.loadingContainer}>
+            <Ionicons name="heart-outline" size={48} color={COLOR.sub} />
+            <ThemedText style={styles.loadingText}>No followed stores yet</ThemedText>
+            <ThemedText style={[styles.loadingText, { marginTop: 8, fontSize: 12 }]}>
+              Start following stores to see them here
+            </ThemedText>
+            <ThemedText style={[styles.loadingText, { marginTop: 12, fontSize: 11, fontStyle: 'italic' }]}>
+              Pull down to refresh and check for new stores
+            </ThemedText>
+          </View>
+          
+          {/* Extra content to ensure scrollability */}
+          <View style={styles.extraContent}>
+            <ThemedText style={[styles.loadingText, { fontSize: 10, opacity: 0.5 }]}>
+              Swipe up to refresh
+            </ThemedText>
+          </View>
+        </ScrollView>
       ) : (
         <FlatList
           data={visibleData}
@@ -694,6 +786,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 60,
   },
+  emptyScrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 600, // Increased height to ensure scrollability
+    paddingVertical: 60,
+  },
+  extraContent: {
+    marginTop: 40,
+    alignItems: "center",
+  },
   loadingText: {
     color: COLOR.sub,
     marginTop: 12,
@@ -730,6 +833,65 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
+  },
+
+  // Skeleton loading styles
+  skeletonContainer: {
+    flex: 1,
+    paddingHorizontal: SCREEN_PADDING,
+    paddingTop: 8,
+  },
+  skeletonGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: CARD_GAP,
+  },
+  skeletonCard: {
+    width: (width - SCREEN_PADDING * 2 - CARD_GAP) / 2,
+    backgroundColor: COLOR.card,
+    borderRadius: 12,
+    overflow: "hidden",
+    ...shadow(2),
+  },
+  skeletonCover: {
+    height: COVER_HEIGHT,
+    backgroundColor: "#E0E0E0",
+  },
+  skeletonAvatar: {
+    position: "absolute",
+    top: COVER_HEIGHT - AVATAR_SIZE / 2,
+    left: 12,
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: "#E0E0E0",
+  },
+  skeletonContent: {
+    padding: 12,
+    paddingTop: AVATAR_SIZE / 2 + 6,
+  },
+  skeletonTitle: {
+    height: 16,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  skeletonTags: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 12,
+  },
+  skeletonTag: {
+    height: 20,
+    width: 60,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 10,
+  },
+  skeletonButton: {
+    height: 32,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 6,
   },
 });
 
