@@ -14,14 +14,16 @@ import {
   Modal,
   KeyboardAvoidingView,
   ScrollView,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from 'expo-image-picker';
 import ThemedText from "../../../components/ThemedText";
 
 // API hooks
-import { useStores, BASE_URL, useCategories, useCartQuantity } from "../../../config/api.config";
+import { useStores, BASE_URL, useCategories, useCartQuantity, useCameraSearch } from "../../../config/api.config";
 
 const { width } = Dimensions.get("window");
 
@@ -67,6 +69,124 @@ export default function StoresScreen() {
   
   // Use shared cart quantity hook
   const { data: cartQuantity = 0, isLoading: isCartLoading } = useCartQuantity();
+  
+  // Camera search functionality
+  const { mutate: cameraSearch, isPending: isCameraSearching } = useCameraSearch();
+  const [isSearching, setIsSearching] = useState(false);
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
+
+  // Show image picker modal
+  const handleCameraSearch = () => {
+    setShowImagePickerModal(true);
+  };
+
+  // Handle camera image capture
+  const handleCameraCapture = async () => {
+    try {
+      setShowImagePickerModal(false);
+      
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant camera permission to search with images.'
+        );
+        return;
+      }
+
+      // Launch camera
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await processImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log("❌ Camera error:", error);
+      setIsSearching(false);
+      Alert.alert(
+        'Error',
+        'Failed to open camera. Please try again.'
+      );
+    }
+  };
+
+  // Handle gallery image selection
+  const handleGallerySelection = async () => {
+    try {
+      setShowImagePickerModal(false);
+      
+      // Request media library permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant media library permission to select images.'
+        );
+        return;
+      }
+
+      // Launch image library
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await processImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log("❌ Gallery error:", error);
+      setIsSearching(false);
+      Alert.alert(
+        'Error',
+        'Failed to open gallery. Please try again.'
+      );
+    }
+  };
+
+  // Process selected image
+  const processImage = async (imageUri) => {
+    setIsSearching(true);
+
+    // Perform camera search
+    cameraSearch(
+      { image: imageUri, type: 'product' },
+      {
+        onSuccess: (data) => {
+          console.log("✅ Image search successful:", data);
+          setIsSearching(false);
+          
+          // Navigate to camera search results screen
+          navigation.navigate('CameraSearchScreen', {
+            searchResults: data.search_results,
+            extractedText: data.extracted_text,
+            searchQuery: data.search_query,
+          });
+        },
+        onError: (error) => {
+          console.log("❌ Image search error:", error);
+          setIsSearching(false);
+          
+          // Check if it's a token expiration error
+          if (error?.isTokenExpired) {
+            // Token expiration is already handled by the API interceptor
+            return;
+          }
+          
+          Alert.alert(
+            'Search Failed',
+            'Could not analyze the image. Please try again.'
+          );
+        },
+      }
+    );
+  };
 
   // simple pills (local only; UI unchanged)
   const [filters, setFilters] = useState({
@@ -266,20 +386,33 @@ export default function StoresScreen() {
         </View>
 
         {/* Search */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate('AuthNavigator', { screen: 'Search' })}
-          style={styles.searchContainer}>
-          <TextInput
-            placeholder="Search any product, shop or category"
-            placeholderTextColor="#888"
-            style={styles.searchInput}
-            editable={false}                // stop editing
-            showSoftInputOnFocus={false}    // stop keyboard
-            pointerEvents="none"            // let TouchableOpacity catch taps
-          />
-          {/* <Image source={require('../../../assets/camera-icon.png')} style={styles.iconImg} /> */}
-        </TouchableOpacity>
+        <View style={styles.searchContainer}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('AuthNavigator', { screen: 'Search' })}
+            style={styles.searchInputContainer}
+          >
+            <TextInput
+              placeholder="Search any product, shop or category"
+              placeholderTextColor="#888"
+              style={styles.searchInput}
+              editable={false}                // stop editing
+              showSoftInputOnFocus={false}    // stop keyboard
+              pointerEvents="none"            // let TouchableOpacity catch taps
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={handleCameraSearch} 
+            disabled={isCameraSearching || isSearching}
+            style={styles.cameraButton}
+          >
+            {isCameraSearching || isSearching ? (
+              <ActivityIndicator size="small" color="#888" />
+            ) : (
+              <Image source={require('../../../assets/camera-icon.png')} style={styles.iconImg} />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Filters (UI only; values are placeholders) */}
@@ -350,6 +483,50 @@ export default function StoresScreen() {
         setSelectedReview={setSelectedReview}
         setFilters={setFilters}
       />
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={showImagePickerModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImagePickerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <ThemedText style={styles.modalTitle}>Select Image Source</ThemedText>
+              <TouchableOpacity
+                onPress={() => setShowImagePickerModal(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalOptions}>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={handleCameraCapture}
+              >
+                <View style={styles.optionIcon}>
+                  <Ionicons name="camera" size={32} color="#E53E3E" />
+                </View>
+                <ThemedText style={styles.optionText}>Take Photo</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={handleGallerySelection}
+              >
+                <View style={styles.optionIcon}>
+                  <Ionicons name="images" size={32} color="#E53E3E" />
+                </View>
+                <ThemedText style={styles.optionText}>Choose from Gallery</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -578,6 +755,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 60,
   },
+  searchInputContainer: { flex: 1 },
+  cameraButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
   iconRow: { flexDirection: 'row' },
   iconButton: { marginLeft: 9 },
   iconPill: { backgroundColor: '#fff', padding: 6, borderRadius: 25 },
@@ -696,6 +878,75 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   ctaText: { color: "#fff", fontWeight: "400", fontSize: 9 },
+
+  // Image Picker Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    marginHorizontal: 40,
+    maxWidth: 400,
+    width: '90%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalOptions: {
+    padding: 20,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#f8f9fa',
+    marginBottom: 12,
+  },
+  optionIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  optionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
 });
 
 /* --------- tiny shadow helper --------- */

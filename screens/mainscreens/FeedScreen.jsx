@@ -19,6 +19,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
+import * as ImagePicker from 'expo-image-picker';
 import ThemedText from "../../components/ThemedText";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -26,7 +27,8 @@ import {
   useTogglePostLike,
   useAddPostComment,
   useGetPostComments,
-  useCartQuantity
+  useCartQuantity,
+  useCameraSearch
 } from "../../config/api.config";
 
 /* -------------------- THEME -------------------- */
@@ -60,9 +62,10 @@ const timeAgo = (iso) => {
 };
 
 /* -------------------- HEADER (UI unchanged) -------------------- */
-const FeedHeader = ({ navigation }) => {
+const FeedHeader = ({ navigation, onCameraSearch, isCameraSearching, isSearching }) => {
   // Use shared cart quantity hook
   const { data: cartQuantity = 0, isLoading: isCartLoading } = useCartQuantity();
+
 
   return (
     <View style={styles.header}>
@@ -111,21 +114,33 @@ const FeedHeader = ({ navigation }) => {
       </View>
 
       {/* Search */}
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => navigation.navigate('AuthNavigator', { screen: 'Search' })}
-        style={styles.searchContainer}
-      >
-        <TextInput
-          placeholder="Search any product, shop or category"
-          placeholderTextColor="#888"
-          style={styles.searchInput}
-          editable={false}                // stop editing
-          showSoftInputOnFocus={false}    // stop keyboard
-          pointerEvents="none"            // let TouchableOpacity catch taps
-        />
-        {/* <Image source={require('../../assets/camera-icon.png')} style={styles.iconImg} /> */}
-      </TouchableOpacity>
+      <View style={styles.searchContainer}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('AuthNavigator', { screen: 'Search' })}
+          style={styles.searchInputContainer}
+        >
+          <TextInput
+            placeholder="Search any product, shop or category"
+            placeholderTextColor="#888"
+            style={styles.searchInput}
+            editable={false}                // stop editing
+            showSoftInputOnFocus={false}    // stop keyboard
+            pointerEvents="none"            // let TouchableOpacity catch taps
+          />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={onCameraSearch} 
+          disabled={isCameraSearching || isSearching}
+          style={styles.cameraButton}
+        >
+          {isCameraSearching || isSearching ? (
+            <ActivityIndicator size="small" color="#888" />
+          ) : (
+            <Image source={require('../../assets/camera-icon.png')} style={styles.iconImg} />
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -296,7 +311,7 @@ const handleLikePress = async () => {
             }}
           >
             <Image
-              source={require("../../assets/DownloadSimple.png")}
+              source={require("../../assets/DownloadSimple (1).png")}
               style={{ width: 30, height: 30 }}
             />
           </TouchableOpacity>
@@ -321,40 +336,70 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
     enabled: visible && !!post?.id,
   });
 
-  // Process API comments data
+  // Process API comments data and sort by created_at descending (latest first)
   const apiComments = useMemo(() => {
     if (!commentsData?.data?.data) return [];
 
-    return commentsData.data.data.map((comment) => {
-      // Ensure user is a string, not an object
-      const userName = typeof comment.user === 'object' 
-        ? (comment.user?.full_name || "Unknown")
-        : (comment.user || "Unknown");
-      
-      const userAvatar = typeof comment.user === 'object' && comment.user?.profile_picture
-        ? absUrl(
-          comment.user.profile_picture.startsWith("/storage")
-            ? comment.user.profile_picture
-            : `/storage/${comment.user.profile_picture}`
-        )
-        : currentUser.avatar;
+    return commentsData.data.data
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // Sort latest first
+      .map((comment) => {
+        // Ensure user is a string, not an object
+        const userName = typeof comment.user === 'object' 
+          ? (comment.user?.full_name || "Unknown")
+          : (comment.user || "Unknown");
+        
+        // Handle profile picture with better error handling
+        let userAvatar = require("../../assets/Ellipse 18.png"); // Default fallback
+        
+        if (typeof comment.user === 'object' && comment.user?.profile_picture) {
+          const profilePic = comment.user.profile_picture.trim();
+          if (profilePic !== '') {
+            try {
+              const avatarPath = profilePic.startsWith("/storage") 
+                ? profilePic 
+                : `/storage/${profilePic}`;
+              userAvatar = { uri: absUrl(avatarPath) };
+              console.log('Using profile picture for', comment.user.full_name, ':', absUrl(avatarPath));
+            } catch (error) {
+              console.log('Error processing profile picture for', comment.user.full_name, ':', error);
+              userAvatar = require("../../assets/Ellipse 18.png");
+            }
+          }
+        }
 
-      return {
-        id: String(comment.id),
-        user: userName,
-        time: timeAgo(comment.created_at),
-        avatar: userAvatar,
-        body: comment.body || "",
-        likes: 0,
-        replies: comment.replies || [],
-      };
-    });
+        const commentData = {
+          id: String(comment.id),
+          user: userName,
+          time: timeAgo(comment.created_at),
+          avatar: userAvatar,
+          body: comment.body || "",
+          likes: 0,
+          replies: comment.replies || [],
+          created_at: comment.created_at, // Keep original timestamp for sorting
+        };
+        
+        console.log('Final comment data for:', userName, 'avatar:', userAvatar);
+        return commentData;
+      });
   }, [commentsData]);
 
+  // Local comments state - reset when post changes
   const [localComments, setLocalComments] = useState([]);
 
-  // Combine API comments with local comments
-  const comments = [...apiComments, ...localComments];
+  // Reset local comments when post changes
+  React.useEffect(() => {
+    setLocalComments([]);
+  }, [post?.id]);
+
+  // Combine API comments with local comments and sort by created_at
+  const comments = useMemo(() => {
+    const allComments = [...apiComments, ...localComments];
+    return allComments.sort((a, b) => {
+      const aTime = a.created_at || new Date().toISOString();
+      const bTime = b.created_at || new Date().toISOString();
+      return new Date(bTime) - new Date(aTime);
+    });
+  }, [apiComments, localComments]);
 
   const startReply = (c) => {
     const username = typeof c.user === 'string' ? c.user : (c.user?.full_name || "Unknown");
@@ -378,16 +423,22 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
         id: String(created?.id ?? `c-${Date.now()}`),
         user: created?.user?.full_name ?? currentUser.name,
         time: "Just now",
-        avatar: created?.user?.profile_picture
-          ? absUrl(
-            created.user.profile_picture.startsWith("/storage")
-              ? created.user.profile_picture
-              : `/storage/${created.user.profile_picture}`
-          )
-          : currentUser.avatar,
+        avatar: (() => {
+          if (created?.user?.profile_picture) {
+            const profilePic = created.user.profile_picture.trim();
+            if (profilePic !== '') {
+              const avatarPath = profilePic.startsWith("/storage") 
+                ? profilePic 
+                : `/storage/${profilePic}`;
+              return { uri: absUrl(avatarPath) };
+            }
+          }
+          return require("../../assets/Ellipse 18.png");
+        })(),
         body: created?.body ?? trimmed,
         likes: 0,
         replies: [],
+        created_at: new Date().toISOString(), // Add timestamp for proper sorting
       };
       setLocalComments((prev) => [...prev, newComment]);
       setText("");
@@ -411,7 +462,7 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
           activeOpacity={1}
           onPress={onClose}
         />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { width: '100%' }]}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <ThemedText font="oleo" style={styles.sheetTitle}>
@@ -447,15 +498,22 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
             <FlatList
               data={comments}
               keyExtractor={(i) => i.id}
-              style={{ maxHeight: 420 }}
+              style={{ maxHeight: 420, width: '100%' }}
               showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
                 <View style={{ paddingBottom: 4 }}>
                   {/* main comment */}
                   <View style={styles.commentRow}>
                     <Image
-                      source={{ uri: item.avatar }}
+                      source={item.avatar}
                       style={styles.commentAvatar}
+                      defaultSource={require("../../assets/Ellipse 18.png")}
+                      onError={(error) => {
+                        console.log('Image load error for comment:', item.user, 'error:', error);
+                      }}
+                      onLoad={() => {
+                        console.log('Image loaded successfully for comment:', item.user);
+                      }}
                     />
                     <View style={{ flex: 1 }}>
                       <View
@@ -477,7 +535,7 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
                         <TouchableOpacity onPress={() => startReply(item)}>
                           <ThemedText style={styles.replyText}>Reply</ThemedText>
                         </TouchableOpacity>
-                        <View
+                        {/* <View
                           style={{ flexDirection: "row", alignItems: "center" }}
                         >
                           <Ionicons
@@ -489,7 +547,7 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
                             {" "}
                             {item.likes}
                           </ThemedText>
-                        </View>
+                        </View> */}
                       </View>
                     </View>
                   </View>
@@ -500,8 +558,9 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
                       {item.replies.map((r) => (
                         <View key={r.id} style={styles.replyContainer}>
                           <Image
-                            source={{ uri: r.avatar }}
+                            source={r.avatar}
                             style={styles.commentAvatar}
+                            defaultSource={require("../../assets/Ellipse 18.png")}
                           />
                           <View style={{ flex: 1 }}>
                             <View
@@ -673,6 +732,124 @@ export default function FeedScreen() {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportProcessingVisible, setReportProcessingVisible] = useState(false);
   const [reportMessage, setReportMessage] = useState("");
+  
+  // Camera search functionality
+  const { mutate: cameraSearch, isPending: isCameraSearching } = useCameraSearch();
+  const [isSearching, setIsSearching] = useState(false);
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
+
+  // Show image picker modal
+  const handleCameraSearch = () => {
+    setShowImagePickerModal(true);
+  };
+
+  // Handle camera image capture
+  const handleCameraCapture = async () => {
+    try {
+      setShowImagePickerModal(false);
+      
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant camera permission to search with images.'
+        );
+        return;
+      }
+
+      // Launch camera
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await processImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log("❌ Camera error:", error);
+      setIsSearching(false);
+      Alert.alert(
+        'Error',
+        'Failed to open camera. Please try again.'
+      );
+    }
+  };
+
+  // Handle gallery image selection
+  const handleGallerySelection = async () => {
+    try {
+      setShowImagePickerModal(false);
+      
+      // Request media library permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant media library permission to select images.'
+        );
+        return;
+      }
+
+      // Launch image library
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await processImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log("❌ Gallery error:", error);
+      setIsSearching(false);
+      Alert.alert(
+        'Error',
+        'Failed to open gallery. Please try again.'
+      );
+    }
+  };
+
+  // Process selected image
+  const processImage = async (imageUri) => {
+    setIsSearching(true);
+
+    // Perform camera search
+    cameraSearch(
+      { image: imageUri, type: 'product' },
+      {
+        onSuccess: (data) => {
+          console.log("✅ Image search successful:", data);
+          setIsSearching(false);
+          
+          // Navigate to camera search results screen
+          navigation.navigate('CameraSearchScreen', {
+            searchResults: data.search_results,
+            extractedText: data.extracted_text,
+            searchQuery: data.search_query,
+          });
+        },
+        onError: (error) => {
+          console.log("❌ Image search error:", error);
+          setIsSearching(false);
+          
+          // Check if it's a token expiration error
+          if (error?.isTokenExpired) {
+            // Token expiration is already handled by the API interceptor
+            return;
+          }
+          
+          Alert.alert(
+            'Search Failed',
+            'Could not analyze the image. Please try again.'
+          );
+        },
+      }
+    );
+  };
 
   // pagination
   const [page, setPage] = useState(1);
@@ -838,7 +1015,14 @@ export default function FeedScreen() {
         <FlatList
           data={POSTS}
           keyExtractor={(it) => it.id}
-          ListHeaderComponent={() => <FeedHeader navigation={navigation} />}
+          ListHeaderComponent={() => (
+            <FeedHeader 
+              navigation={navigation} 
+              onCameraSearch={handleCameraSearch}
+              isCameraSearching={isCameraSearching}
+              isSearching={isSearching}
+            />
+          )}
           contentContainerStyle={{ paddingBottom: 32 }}
           refreshControl={
             <RefreshControl
@@ -894,6 +1078,50 @@ export default function FeedScreen() {
         onShare={handleShare}
         onReport={handleReport}
       />
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={showImagePickerModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImagePickerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <ThemedText style={styles.modalTitle}>Select Image Source</ThemedText>
+              <TouchableOpacity
+                onPress={() => setShowImagePickerModal(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalOptions}>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={handleCameraCapture}
+              >
+                <View style={styles.optionIcon}>
+                  <Ionicons name="camera" size={32} color="#E53E3E" />
+                </View>
+                <ThemedText style={styles.optionText}>Take Photo</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={handleGallerySelection}
+              >
+                <View style={styles.optionIcon}>
+                  <Ionicons name="images" size={32} color="#E53E3E" />
+                </View>
+                <ThemedText style={styles.optionText}>Choose from Gallery</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Share Popup */}
       <Modal
@@ -1055,7 +1283,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 60,
   },
-  searchInput: { flex: 1, fontSize: 14, color: "#333" },
+  searchInputContainer: { flex: 1 },
+  searchInput: { fontSize: 14, color: "#333" },
+  cameraButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
   cameraIcon: { marginLeft: 8 },
 
   /* Post card */
@@ -1145,6 +1378,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end",
     backgroundColor: "rgba(0,0,0,0.55)",
+    width: '100%',
   },
   sheet: {
     backgroundColor: "#fff",
@@ -1153,6 +1387,8 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    width: '100%',
+    maxHeight: '90%',
   },
   sheetHandle: {
     alignSelf: "center",
@@ -1178,7 +1414,12 @@ const styles = StyleSheet.create({
   },
 
   /* Comments */
-  commentRow: { flexDirection: "row", paddingVertical: 10 },
+  commentRow: { 
+    flexDirection: "row", 
+    paddingVertical: 10, 
+    width: '100%',
+    paddingHorizontal: 0,
+  },
   commentAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
   commentName: { fontWeight: "700", color: COLOR.text },
   commentTime: { color: COLOR.sub, fontSize: 12 },
@@ -1218,6 +1459,7 @@ const styles = StyleSheet.create({
     paddingLeft: 14,
     marginTop: 12,
     marginBottom: 6,
+    width: '100%',
   },
   input: { flex: 1, height: 46, fontSize: 12, color: COLOR.text },
   sendBtn: {
@@ -1420,5 +1662,74 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+
+  // Image Picker Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    marginHorizontal: 40,
+    maxWidth: 400,
+    width: '90%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalOptions: {
+    padding: 20,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#f8f9fa',
+    marginBottom: 12,
+  },
+  optionIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  optionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
   },
 });

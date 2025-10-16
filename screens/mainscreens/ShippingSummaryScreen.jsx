@@ -132,10 +132,21 @@ export default function ShippingSummaryScreen() {
         return;
       }
 
-      // Default (wallet / others) — unchanged
+      // Default (wallet / others) — navigate to orders or home
       const orderNo = res?.data?.order_no || "Order Placed";
-      Alert.alert("Success", `Order placed successfully.\n${orderNo}`, [
-        { text: "OK", onPress: () => navigation.navigate("MainNavigator") },
+      Alert.alert("Success", `Order placed successfully.\nOrder Number: ${orderNo}`, [
+        { 
+          text: "View Orders", 
+          onPress: () => navigation.navigate("MainNavigator", { 
+            screen: "Orders" // Navigate to orders screen if available
+          }) 
+        },
+        { 
+          text: "Continue Shopping", 
+          onPress: () => navigation.navigate("MainNavigator", { 
+            screen: "Home" // Navigate to home screen
+          }) 
+        },
       ]);
     },
     onError: (err) => {

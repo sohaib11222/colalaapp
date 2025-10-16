@@ -156,6 +156,10 @@ export default function ShippingDetailsScreen() {
   /* ---------- Payment modal + chosen method ---------- */
   const [payOpen, setPayOpen] = useState(false);
   const [payMethod, setPayMethod] = useState(""); // 'flutterwave' | 'wallet'
+  
+  /* ---------- Top-up modal ---------- */
+  const [topUpModalVisible, setTopUpModalVisible] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("");
 
   // Chat functionality
   const { mutate: startChat, isPending: creatingChat } = useStartChat();
@@ -234,6 +238,30 @@ export default function ShippingDetailsScreen() {
     } catch (error) {
       console.error("Error starting chat:", error);
     }
+  };
+
+  // Handle top-up amount input
+  const handleTopUpAmount = () => {
+    const amount = parseFloat(topUpAmount);
+    if (!amount || amount <= 0) {
+      Alert.alert("Invalid Amount", "Please enter a valid amount greater than 0.");
+      return;
+    }
+    
+    if (amount < 100) {
+      Alert.alert("Minimum Amount", "Minimum top-up amount is ₦100.");
+      return;
+    }
+    
+    setTopUpModalVisible(false);
+    setTopUpAmount("");
+    
+    // Navigate to Flutterwave with the entered amount
+    navigation.navigate('FlutterwaveWebView', { 
+      amount: amount, 
+      order_id: 'topup_' + Date.now(), 
+      isTopUp: true 
+    });
   };
 
   // Handle coupon application
@@ -719,11 +747,7 @@ export default function ShippingDetailsScreen() {
               </ThemedText>
               <TouchableOpacity 
                 style={styles.topupBtn}
-                onPress={() => navigation.navigate('FlutterwaveWebView', { 
-                  amount: 1000, 
-                  order_id: 'topup_' + Date.now(), 
-                  isTopUp: true 
-                })}
+                onPress={() => setTopUpModalVisible(true)}
               >
                 <ThemedText style={{ color: COLOR.primary, fontWeight: "700" }}>Top Up</ThemedText>
               </TouchableOpacity>
@@ -801,17 +825,98 @@ export default function ShippingDetailsScreen() {
                   <ThemedText style={styles.walletAmount}>{currency(wallet.shopping_balance)}</ThemedText>
                   <TouchableOpacity 
                     style={styles.topupBtn}
-                    onPress={() => navigation.navigate('FlutterwaveWebView', { 
-                      amount: 1000, 
-                      order_id: 'topup_' + Date.now(), 
-                      isTopUp: true 
-                    })}
+                    onPress={() => setTopUpModalVisible(true)}
                   >
                     <ThemedText style={{ color: COLOR.primary, fontWeight: "700" }}>Top Up</ThemedText>
                   </TouchableOpacity>
                 </View>
               </LinearGradient>
             )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ===== Top-up Amount Modal ===== */}
+      <Modal 
+        visible={topUpModalVisible} 
+        transparent 
+        animationType="slide" 
+        onRequestClose={() => setTopUpModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.sheetOverlay}
+        >
+          <TouchableOpacity 
+            style={{ flex: 1 }} 
+            activeOpacity={1} 
+            onPress={() => setTopUpModalVisible(false)} 
+          />
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetTop}>
+              <ThemedText style={styles.sheetTitle}>Top Up Wallet</ThemedText>
+              <TouchableOpacity 
+                onPress={() => setTopUpModalVisible(false)} 
+                style={styles.sheetClose}
+              >
+                <Ionicons name="close" size={18} color={COLOR.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.topUpContent}>
+              <ThemedText style={styles.topUpLabel}>Enter Amount</ThemedText>
+              <View style={styles.amountInputContainer}>
+                <ThemedText style={styles.currencySymbol}>₦</ThemedText>
+                <TextInput
+                  value={topUpAmount}
+                  onChangeText={setTopUpAmount}
+                  placeholder="0"
+                  placeholderTextColor={COLOR.sub}
+                  keyboardType="numeric"
+                  style={styles.amountInput}
+                  autoFocus
+                />
+              </View>
+              
+              <ThemedText style={styles.minAmountText}>
+                Minimum amount: ₦100
+              </ThemedText>
+
+              <View style={styles.quickAmounts}>
+                <TouchableOpacity 
+                  style={styles.quickAmountBtn}
+                  onPress={() => setTopUpAmount("1000")}
+                >
+                  <ThemedText style={styles.quickAmountText}>₦1,000</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.quickAmountBtn}
+                  onPress={() => setTopUpAmount("5000")}
+                >
+                  <ThemedText style={styles.quickAmountText}>₦5,000</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.quickAmountBtn}
+                  onPress={() => setTopUpAmount("10000")}
+                >
+                  <ThemedText style={styles.quickAmountText}>₦10,000</ThemedText>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.proceedBtn,
+                  (!topUpAmount || parseFloat(topUpAmount) < 100) && { opacity: 0.5 }
+                ]}
+                disabled={!topUpAmount || parseFloat(topUpAmount) < 100}
+                onPress={handleTopUpAmount}
+              >
+                <ThemedText style={styles.proceedTxt}>
+                  Proceed to Payment
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -1178,5 +1283,67 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     ...shadow(10),
+  },
+
+  /* Top-up Modal Styles */
+  topUpContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  topUpLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLOR.text,
+    marginBottom: 12,
+  },
+  amountInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderColor: COLOR.primary,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 60,
+    marginBottom: 8,
+  },
+  currencySymbol: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: COLOR.primary,
+    marginRight: 8,
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: "700",
+    color: COLOR.text,
+    height: "100%",
+  },
+  minAmountText: {
+    fontSize: 12,
+    color: COLOR.sub,
+    marginBottom: 20,
+  },
+  quickAmounts: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+  quickAmountBtn: {
+    backgroundColor: COLOR.chip,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flex: 1,
+    marginHorizontal: 4,
+    alignItems: "center",
+  },
+  quickAmountText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLOR.text,
   },
 });

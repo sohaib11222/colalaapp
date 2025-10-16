@@ -282,9 +282,21 @@ const onRefresh = async () => {
                 {/* white card over header */}
                 <View style={styles.itemsCard}>
                   {store.items.map((it, idx) => (
-                    <View
+                    <TouchableOpacity
                       key={it.id}
                       style={[styles.itemRow, idx > 0 && { borderTopWidth: 1, borderTopColor: COLOR.line }]}
+                      onPress={() => {
+                        if (it.product) {
+                          navigation.navigate("CategoryNavigator", {
+                            screen: "ProductDetails",
+                            params: { 
+                              productId: it.product.id,
+                              product: it.product
+                            }
+                          });
+                        }
+                      }}
+                      activeOpacity={0.7}
                     >
                       {/* Use API image or fallback */}
                       <Image 
@@ -304,20 +316,30 @@ const onRefresh = async () => {
                         <ThemedText style={styles.price}>{currency(it.price)}</ThemedText>
 
                         <View style={styles.qtyRow}>
-                          <QtyBtn onPress={() => updateQty(store.id, it.id, -1)} icon="remove" />
+                          <QtyBtn onPress={(e) => {
+                            e.stopPropagation();
+                            updateQty(store.id, it.id, -1);
+                          }} icon="remove" />
                           <ThemedText style={styles.qtyVal}>
                             {updateItem.isPending ? "…" : it.qty}
                           </ThemedText>
-                          <QtyBtn onPress={() => updateQty(store.id, it.id, +1)} icon="add" />
+                          <QtyBtn onPress={(e) => {
+                            e.stopPropagation();
+                            updateQty(store.id, it.id, +1);
+                          }} icon="add" />
 
                           <View style={{ flex: 1 }} />
                           <TouchableOpacity 
                             style={styles.iconChip}
-                            onPress={() => {
+                            onPress={(e) => {
+                              e.stopPropagation(); // Prevent triggering the parent TouchableOpacity
                               if (it.product) {
                                 navigation.navigate("CategoryNavigator", {
                                   screen: "ProductDetails",
-                                  params: { productId: it.product.id }
+                                  params: { 
+                                    productId: it.product.id,
+                                    product: it.product
+                                  }
                                 });
                               }
                             }}
@@ -326,7 +348,10 @@ const onRefresh = async () => {
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.iconChip}
-                            onPress={() => deleteItem(store.id, it.id)}
+                            onPress={(e) => {
+                              e.stopPropagation(); // Prevent triggering the parent TouchableOpacity
+                              deleteItem(store.id, it.id);
+                            }}
                           >
                             {deleteItemMut.isPending ? (
                               <ActivityIndicator size="small" color={COLOR.primary} />
@@ -336,7 +361,7 @@ const onRefresh = async () => {
                           </TouchableOpacity>
                         </View>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   ))}
 
                   {/* two rows (same design as mock) */}

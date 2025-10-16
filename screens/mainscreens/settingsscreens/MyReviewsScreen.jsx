@@ -203,7 +203,18 @@ const ReviewCard = ({ item, type = "store", onPress, onPressRight }) => {
       {/* Header */}
       <View style={styles.cardTop}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Image source={{ uri: item.avatar }} style={styles.avatar} />
+          <Image 
+            source={item.avatar} 
+            style={styles.avatar}
+            onError={(error) => {
+              console.log("Image load error:", error);
+              console.log("Failed to load avatar:", item.avatar);
+            }}
+            onLoad={() => {
+              console.log("Image loaded successfully:", item.avatar);
+            }}
+            defaultSource={{ uri: AV }}
+          />
           <View>
             <ThemedText style={styles.name}>{item.user}</ThemedText>
             <Stars value={item.rating} />
@@ -274,7 +285,28 @@ export default function MyReviewsScreen() {
   // Map API data to component format
   const mapApiStoreReviewToComponent = (apiReview) => {
     const profilePicture = apiReview.user?.profile_picture;
-    const avatarUrl = profilePicture ? fileUrl(profilePicture) : AV;
+    let avatarUrl;
+    
+    if (profilePicture) {
+      try {
+        // Try fileUrl first
+        avatarUrl = fileUrl(profilePicture);
+        console.log("FileUrl result:", avatarUrl);
+        
+        // If fileUrl returns undefined or null, try manual construction
+        if (!avatarUrl) {
+          avatarUrl = `https://colala.hmstech.xyz/storage/${profilePicture}`;
+          console.log("Manual URL construction:", avatarUrl);
+        }
+      } catch (error) {
+        console.log("FileUrl error:", error);
+        // Fallback to manual construction
+        avatarUrl = `https://colala.hmstech.xyz/storage/${profilePicture}`;
+        console.log("Fallback URL construction:", avatarUrl);
+      }
+    } else {
+      avatarUrl = AV;
+    }
     
     console.log("Store Review Mapping:", {
       id: apiReview.id,
@@ -287,7 +319,7 @@ export default function MyReviewsScreen() {
     return {
       id: String(apiReview.id),
       user: apiReview.user?.full_name || "User",
-      avatar: avatarUrl,
+      avatar: { uri: avatarUrl },
       rating: apiReview.rating || 0,
       time: apiReview.created_at ? new Date(apiReview.created_at).toLocaleDateString('en-US', {
         month: '2-digit',
@@ -310,7 +342,28 @@ export default function MyReviewsScreen() {
 
   const mapApiProductReviewToComponent = (apiReview) => {
     const profilePicture = apiReview.user?.profile_picture;
-    const avatarUrl = profilePicture ? fileUrl(profilePicture) : AV;
+    let avatarUrl;
+    
+    if (profilePicture) {
+      try {
+        // Try fileUrl first
+        avatarUrl = fileUrl(profilePicture);
+        console.log("FileUrl result (product):", avatarUrl);
+        
+        // If fileUrl returns undefined or null, try manual construction
+        if (!avatarUrl) {
+          avatarUrl = `https://colala.hmstech.xyz/storage/${profilePicture}`;
+          console.log("Manual URL construction (product):", avatarUrl);
+        }
+      } catch (error) {
+        console.log("FileUrl error (product):", error);
+        // Fallback to manual construction
+        avatarUrl = `https://colala.hmstech.xyz/storage/${profilePicture}`;
+        console.log("Fallback URL construction (product):", avatarUrl);
+      }
+    } else {
+      avatarUrl = AV;
+    }
     
     console.log("Product Review Mapping:", {
       id: apiReview.id,
@@ -323,7 +376,7 @@ export default function MyReviewsScreen() {
     return {
       id: String(apiReview.id),
       user: apiReview.user?.full_name || "User",
-      avatar: avatarUrl,
+      avatar: { uri: avatarUrl },
       rating: apiReview.rating || 0,
       time: apiReview.created_at ? new Date(apiReview.created_at).toLocaleDateString('en-US', {
         month: '2-digit',

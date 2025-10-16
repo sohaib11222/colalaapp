@@ -34,16 +34,22 @@ const FlutterwaveWebView = ({ route, navigation }) => {
                             amount,
                         });
                         console.log('✅ Payment confirmation response:', responseData);
-                        Alert.alert('Success', 'Payment confirmed!');
-                        //navigate back to home screen
-                        navigation.navigate('MainNavigator', { screen: 'Home' });
+                        Alert.alert('Payment Successful', 'Your order has been placed and payment completed successfully!', [
+                            { 
+                                text: "View Orders", 
+                                onPress: () => navigation.navigate('MainNavigator', { screen: 'Orders' })
+                            },
+                            { 
+                                text: "Continue Shopping", 
+                                onPress: () => navigation.navigate('MainNavigator', { screen: 'Home' })
+                            },
+                        ]);
                     }
                 } catch (error) {
                     console.warn('⚠️ Server responded with error:', error);
                     Alert.alert('Error', error.message || 'Something went wrong.');
+                    navigation.goBack();
                 }
-
-                navigation.goBack();
 
             } else if (data.event === 'failed') {
                 Alert.alert('Payment Failed');

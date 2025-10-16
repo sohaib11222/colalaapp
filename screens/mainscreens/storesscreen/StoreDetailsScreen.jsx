@@ -16,6 +16,8 @@ import {
   RefreshControl,
   Linking,
 } from "react-native";
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -28,6 +30,10 @@ import {
   useAddStoreReview,
   fileUrl,
   useStartChat,
+  useChats,
+  useTogglePostLike,
+  useAddPostComment,
+  useGetPostComments,
 } from "../../../config/api.config";
 
 import { useToggleFollowStore } from "../../../config/api.config";
@@ -50,6 +56,21 @@ const COLOR = {
 const COVER_H = 145;
 const AVATAR = 56;
 const CARD_W = (width - 48) / 2;
+
+// Helper function for time formatting
+const timeAgo = (iso) => {
+  if (!iso) return "";
+  const now = Date.now();
+  const then = new Date(iso).getTime();
+  const diff = Math.max(0, Math.floor((now - then) / 1000));
+  if (diff < 60) return `${diff}s ago`;
+  const m = Math.floor(diff / 60);
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} hr${h > 1 ? "s" : ""} ago`;
+  const d = Math.floor(h / 24);
+  return `${d} day${d > 1 ? "s" : ""} ago`;
+};
 
 // use images instead of vector icons in the stats card (kept as-is)
 const STATS_ICONS = {
@@ -84,6 +105,9 @@ export default function StoreDetailsScreen() {
   const { data: reviewsRes } = useStoreReviews(storeId);
   const reviewsApiList = reviewsRes?.data ?? apiStore?.store_reveiews; // prefer endpoint; fallback to payload key
   const { mutateAsync: startChat, isPending: creatingChat } = useStartChat();
+  
+  // Fetch existing chats to check for duplicates
+  const { data: chatsData } = useChats();
 
   // Follow/Unfollow functionality
   const [isFollowing, setIsFollowing] = useState(false);
@@ -285,22 +309,34 @@ export default function StoreDetailsScreen() {
 
   // Map API post to UI format
   const mapApiPostToUi = (post) => {
-    const timeAgo = new Date(post.created_at).toLocaleDateString();
     const images = Array.isArray(post.media) 
       ? post.media.map(media => fileUrl(media.path))
       : [];
     
+    const overrides = postOverrides[post.id] || {};
+    const likes =
+      typeof overrides.likes === "number"
+        ? overrides.likes
+        : Number(post.likes_count ?? 0);
+    const commentsCount =
+      typeof overrides.comments === "number"
+        ? overrides.comments
+        : Number(post.comments_count ?? 0);
+    
     return {
       id: String(post.id),
       store: mergedStore?.name || "Store",
+      storeId: mergedStore?.id,
       avatar: mergedStore?.avatar,
       location: mergedStore?.location || "Lagos, Nigeria",
-      timeAgo,
+      timeAgo: timeAgo(post.created_at),
       caption: post.body || "",
       images,
-      likes: post.likes_count || 0,
-      comments: post.comments_count || 0,
-      shares: post.shares_count || 0,
+      image: images[0],
+      likes,
+      comments: commentsCount,
+      shares: Number(post.shares_count ?? 0),
+      _liked: typeof overrides.liked === "boolean" ? overrides.liked : !!post.is_liked,
     };
   };
 
@@ -330,6 +366,75 @@ export default function StoreDetailsScreen() {
     } catch (error) {
       console.error("Follow toggle error:", error);
       Alert.alert("Error", "Failed to update follow status. Please try again.");
+    }
+  };
+
+  // Check if chat already exists with this store
+  const findExistingChat = () => {
+    const chats = chatsData?.data || [];
+    const storeName = mergedStore?.name || "Store";
+    
+    // Look for existing chat with this store
+    const existingChat = chats.find(chat => 
+      chat.store === storeName || 
+      chat.store_id === storeId ||
+      chat.store_order_id === storeId
+    );
+    
+    return existingChat;
+  };
+
+  // Handle chat button press - check for existing chat first
+  const handleChatPress = async () => {
+    try {
+      const storeName = mergedStore?.name || "Store";
+      const profileImage = mergedStore?.avatar;
+      
+      // Check if chat already exists
+      const existingChat = findExistingChat();
+      
+      if (existingChat) {
+        // Navigate to existing chat
+        console.log("Opening existing chat:", existingChat);
+        navigation.navigate("ServiceNavigator", {
+          screen: "ChatDetails",
+          params: {
+            store: { 
+              id: storeId, 
+              name: storeName, 
+              profileImage 
+            },
+            chat_id: existingChat.chat_id,
+            store_order_id: existingChat.store_order_id || storeId,
+          },
+        });
+      } else {
+        // Create new chat
+        console.log("Creating new chat with store:", storeId);
+        const { chat_id } = await startChat({ storeId });
+        
+        navigation.navigate("ServiceNavigator", {
+          screen: "ChatDetails",
+          params: {
+            store: { id: storeId, name: storeName, profileImage },
+            chat_id,
+            store_order_id: storeId,
+          },
+        });
+      }
+    } catch (e) {
+      console.error("Chat error:", e);
+      // Fallback: try to navigate without creating chat
+      navigation.navigate("ServiceNavigator", {
+        screen: "ChatDetails",
+        params: {
+          store: {
+            id: storeId,
+            name: mergedStore?.name || "Store",
+            profileImage: mergedStore?.avatar,
+          },
+        },
+      });
     }
   };
 
@@ -490,7 +595,10 @@ export default function StoreDetailsScreen() {
         })
       }
     >
-      <View style={styles.card}>
+      <View style={[
+        styles.card,
+        products.length === 1 && styles.cardSingle
+      ]}>
         <View>
           {item?.image ? (
             <Image
@@ -585,6 +693,88 @@ export default function StoreDetailsScreen() {
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [addressesVisible, setAddressesVisible] = useState(false);
+  
+  // ======== Social Feed functionality ========
+  const [activePost, setActivePost] = useState(null);
+  const [sharePopupVisible, setSharePopupVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportProcessingVisible, setReportProcessingVisible] = useState(false);
+  const [reportMessage, setReportMessage] = useState("");
+  const [hiddenPosts, setHiddenPosts] = useState(new Set());
+  const [postOverrides, setPostOverrides] = useState({}); // id -> { liked, likes, comments }
+
+  // Social feed mutations
+  const likeMutation = useTogglePostLike();
+  const addCommentMutation = useAddPostComment();
+
+  const handleToggleLike = async (postId) => {
+    const res = await likeMutation.mutateAsync(postId);
+    setPostOverrides((prev) => ({
+      ...prev,
+      [postId]: {
+        ...(prev[postId] || {}),
+        liked: !!res?.data?.liked,
+        likes: Number(res?.data?.likes_count ?? 0),
+      },
+    }));
+    return { liked: res?.data?.liked, likes_count: res?.data?.likes_count };
+  };
+
+  const handleSubmitComment = async (postId, body) => {
+    const res = await addCommentMutation.mutateAsync({ postId, body });
+    setPostOverrides((prev) => ({
+      ...prev,
+      [postId]: {
+        ...(prev[postId] || {}),
+        comments: Number((prev[postId]?.comments ?? 0) + 1),
+      },
+    }));
+    return res?.data; // created comment payload
+  };
+
+  const openComments = (post) => {
+    setActivePost(post);
+    setCommentsVisible(true);
+  };
+
+  const openOptions = (post) => {
+    setActivePost(post);
+    setOptionsVisible(true);
+  };
+
+  const handleHidePost = (postId) => {
+    console.log('Hiding post with ID:', postId);
+    setHiddenPosts(prev => {
+      const newSet = new Set([...prev, postId]);
+      console.log('Updated hidden posts:', Array.from(newSet));
+      return newSet;
+    });
+    setOptionsVisible(false);
+  };
+
+  const handleShare = () => {
+    setOptionsVisible(false);
+    setSharePopupVisible(true);
+  };
+
+  const handleReport = () => {
+    setOptionsVisible(false);
+    setReportModalVisible(true);
+  };
+
+  const handleReportSubmit = () => {
+    if (!reportMessage.trim()) {
+      Alert.alert("Error", "Please enter a message");
+      return;
+    }
+    setReportModalVisible(false);
+    setReportProcessingVisible(true);
+    // Simulate processing delay
+    setTimeout(() => {
+      setReportProcessingVisible(false);
+      setReportMessage("");
+    }, 2000);
+  };
 
   // ======== RENDER ========
   const coverSrc = toSrc(mergedStore?.cover);
@@ -936,35 +1126,7 @@ export default function StoreDetailsScreen() {
           </TouchableOpacity> */}
           <TouchableOpacity
             style={[styles.bigBtn, styles.bigBtnBlack]}
-            onPress={async () => {
-              try {
-                const storeName = mergedStore?.name || "Store";
-                const profileImage = mergedStore?.avatar;
-
-                const { chat_id } = await startChat({ storeId }); // <-- new hook
-
-                navigation.navigate("ServiceNavigator", {
-                  screen: "ChatDetails",
-                  params: {
-                    store: { id: storeId, name: storeName, profileImage },
-                    chat_id, // ChatDetails should use this id to fetch messages
-                    store_order_id: storeId, // keep if your ChatDetails expects it
-                  },
-                });
-              } catch (e) {
-                // Fallback: open without chat_id; ChatDetails can lazy-create if you want
-                navigation.navigate("ServiceNavigator", {
-                  screen: "ChatDetails",
-                  params: {
-                    store: {
-                      id: storeId,
-                      name: mergedStore?.name || "Store",
-                      profileImage: mergedStore?.avatar,
-                    },
-                  },
-                });
-              }
-            }}
+            onPress={handleChatPress}
             disabled={creatingChat}
           >
             <ThemedText style={styles.bigBtnTxt}>
@@ -1003,68 +1165,96 @@ export default function StoreDetailsScreen() {
         {/* PRODUCTS tab */}
         {tab === "Products" && (
           <View style={styles.panel}>
-            <View style={styles.searchRow}>
-              <View style={styles.searchBar}>
-                <Ionicons name="search" size={18} color={COLOR.sub} />
-                <TextInput
-                  placeholder="Search store products"
-                  placeholderTextColor={COLOR.sub}
-                  value={query}
-                  onChangeText={setQuery}
-                  style={{ flex: 1, color: COLOR.text }}
-                />
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={{ flex: 1 }}
+            >
+              <View style={styles.searchRow}>
+                <View style={styles.searchBar}>
+                  <Ionicons name="search" size={18} color={COLOR.sub} />
+                  <TextInput
+                    placeholder="Search store products"
+                    placeholderTextColor={COLOR.sub}
+                    value={query}
+                    onChangeText={setQuery}
+                    style={{ flex: 1, color: COLOR.text }}
+                  />
+                </View>
+                <TouchableOpacity style={styles.filterBtn} onPress={() => setFiltersVisible(true)}>
+                  <Ionicons name="options-outline" size={18} color={COLOR.text} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity style={styles.filterBtn}>
-                <Ionicons name="options-outline" size={18} color={COLOR.text} onPress={() => setFiltersVisible(true)} />
-              </TouchableOpacity>
-            </View>
 
-            {products.length > 0 ? (
-              <FlatList
-                data={products}
-                keyExtractor={(i) => String(i.id)}
-                numColumns={2}
-                columnWrapperStyle={{ justifyContent: "space-around", gap: 10 }}
-                contentContainerStyle={{ paddingBottom: 20 }}
-                renderItem={renderProduct}
-                scrollEnabled={false}
-              />
-            ) : (
-              <View style={styles.emptyStateContainer}>
-                <Ionicons
-                  name="storefront-outline"
-                  size={64}
-                  color={COLOR.sub}
-                />
-                <ThemedText style={styles.emptyStateTitle}>
-                  No Products Available
-                </ThemedText>
-                <ThemedText style={styles.emptyStateText}>
-                  This store hasn't added any products yet. Check back later for
-                  new items.
-                </ThemedText>
-              </View>
-            )}
+              {products.length > 0 ? (
+                products.length === 1 ? (
+                  <View style={styles.singleProductContainer}>
+                    {products.map((item) => (
+                      <View key={item.id} style={styles.singleProductWrapper}>
+                        {renderProduct({ item })}
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <FlatList
+                    data={products}
+                    keyExtractor={(i) => String(i.id)}
+                    numColumns={2}
+                    columnWrapperStyle={{ justifyContent: "space-around", gap: 10 }}
+                    contentContainerStyle={{ paddingBottom: 20 }}
+                    renderItem={renderProduct}
+                    scrollEnabled={false}
+                  />
+                )
+              ) : (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons
+                    name="storefront-outline"
+                    size={64}
+                    color={COLOR.sub}
+                  />
+                  <ThemedText style={styles.emptyStateTitle}>
+                    No Products Available
+                  </ThemedText>
+                  <ThemedText style={styles.emptyStateText}>
+                    This store hasn't added any products yet. Check back later for
+                    new items.
+                  </ThemedText>
+                </View>
+              )}
+            </KeyboardAvoidingView>
           </View>
         )}
 
         {/* SOCIAL FEED tab */}
         {tab === "Social Feed" && (
           <View style={{ paddingBottom: 20 }}>
-            {postsSource.length > 0 ? (
-              postsSource.map((p) => <PostCardLike key={p.id} item={mapApiPostToUi(p)} />)
-            ) : (
-              <View style={styles.emptyStateContainer}>
-                <Ionicons name="images-outline" size={64} color={COLOR.sub} />
-                <ThemedText style={styles.emptyStateTitle}>
-                  No Social Posts
-                </ThemedText>
-                <ThemedText style={styles.emptyStateText}>
-                  This store hasn't shared any posts yet. Follow them to see
-                  updates.
-                </ThemedText>
-              </View>
-            )}
+            {(() => {
+              const filteredPosts = postsSource.filter((p) => !hiddenPosts.has(String(p.id)));
+              return filteredPosts.length > 0 ? (
+                filteredPosts.map((p) => (
+                  <PostCardLike 
+                    key={p.id} 
+                    item={mapApiPostToUi(p)} 
+                    onOpenComments={openComments}
+                    onOpenOptions={openOptions}
+                    onToggleLike={handleToggleLike}
+                    navigation={navigation}
+                    mergedStore={mergedStore}
+                  />
+                ))
+              ) : (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons name="images-outline" size={64} color={COLOR.sub} />
+                  <ThemedText style={styles.emptyStateTitle}>
+                    No Social Posts
+                  </ThemedText>
+                  <ThemedText style={styles.emptyStateText}>
+                    This store hasn't shared any posts yet. Follow them to see
+                    updates.
+                  </ThemedText>
+                </View>
+              );
+            })()}
           </View>
         )}
 
@@ -1155,70 +1345,286 @@ export default function StoreDetailsScreen() {
         selectedLocation={selectedLocation}
         setSelectedLocation={setSelectedLocation}
       />
+
+      {/* Social Feed Modals */}
+      <CommentsSheet
+        visible={commentsVisible}
+        onClose={() => setCommentsVisible(false)}
+        post={activePost}
+        onSubmitComment={handleSubmitComment}
+      />
+      <OptionsSheet
+        visible={optionsVisible}
+        onClose={() => setOptionsVisible(false)}
+        onHidePost={() => handleHidePost(activePost?.id)}
+        onShare={handleShare}
+        onReport={handleReport}
+      />
+
+      {/* Share Popup */}
+      <Modal
+        visible={sharePopupVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSharePopupVisible(false)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupContainer}>
+            <ThemedText style={styles.popupTitle}>Share</ThemedText>
+            <ThemedText style={styles.popupMessage}>
+              Share is available on the live application only.
+            </ThemedText>
+            <TouchableOpacity
+              style={styles.popupButton}
+              onPress={() => setSharePopupVisible(false)}
+            >
+              <ThemedText style={styles.popupButtonText}>OK</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        visible={reportModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReportModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity 
+            style={{ flex: 1 }} 
+            activeOpacity={1} 
+            onPress={() => setReportModalVisible(false)} 
+          />
+          <View style={styles.reportModal}>
+            <View style={styles.reportModalHeader}>
+              <ThemedText style={styles.reportModalTitle}>Report Post</ThemedText>
+              <TouchableOpacity 
+                style={styles.reportCloseBtn} 
+                onPress={() => setReportModalVisible(false)}
+              >
+                <Ionicons name="close" size={24} color={COLOR.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ThemedText style={styles.reportModalSubtitle}>
+              Please describe the issue with this post
+            </ThemedText>
+
+            <TextInput
+              style={styles.reportTextInput}
+              placeholder="Type your message here..."
+              placeholderTextColor={COLOR.sub}
+              value={reportMessage}
+              onChangeText={setReportMessage}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.reportProceedBtn,
+                !reportMessage.trim() && styles.reportProceedBtnDisabled
+              ]}
+              onPress={handleReportSubmit}
+              disabled={!reportMessage.trim()}
+            >
+              <ThemedText style={styles.reportProceedBtnText}>Proceed</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Report Processing Popup */}
+      <Modal
+        visible={reportProcessingVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReportProcessingVisible(false)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupContainer}>
+            <ActivityIndicator size="large" color={COLOR.primary} style={{ marginBottom: 16 }} />
+            <ThemedText style={styles.popupTitle}>Processing</ThemedText>
+            <ThemedText style={styles.popupMessage}>
+              Your request is under processing now.
+            </ThemedText>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-/* ===== Lightweight PostCard for Social Feed (unchanged look) ===== */
-function PostCardLike({ item }) {
-  const [liked, setLiked] = useState(false);
-  const likeCount = liked ? (item.likes || 0) + 1 : item.likes || 0;
+/* ===== Full Featured PostCard for Social Feed ===== */
+function PostCardLike({ item, onOpenComments, onOpenOptions, onToggleLike, navigation, mergedStore }) {
+  const [liked, setLiked] = useState(item._liked ?? false);
+  const [likeCount, setLikeCount] = useState(item.likes);
+
+  React.useEffect(() => {
+    if (typeof item._liked === "boolean") setLiked(item._liked);
+    if (typeof item.likes === "number") setLikeCount(item.likes);
+  }, [item._liked, item.likes]);
+
+  // carousel state
+  const images = item.images?.length ? item.images : [item.image];
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [carouselW, setCarouselW] = useState(0);
+
+  const onCarouselScroll = (e) => {
+    if (!carouselW) return;
+    const x = e.nativeEvent.contentOffset.x;
+    setActiveIdx(Math.round(x / carouselW));
+  };
+
+  const handleLikePress = async () => {
+    const nextLiked = !liked;
+
+    // Optimistic update
+    setLiked(nextLiked);
+    setLikeCount((c) => (nextLiked ? c + 1 : Math.max(0, c - 1)));
+
+    try {
+      const res = await onToggleLike?.(item.id);
+      if (res && typeof res.liked === "boolean") {
+        setLiked(res.liked);
+      }
+      if (res && typeof res.likes_count === "number") {
+        setLikeCount(res.likes_count);
+      }
+    } catch {
+      // Rollback if failed
+      setLiked(!nextLiked);
+      setLikeCount((c) => (!nextLiked ? c + 1 : Math.max(0, c - 1)));
+    }
+  };
 
   return (
     <View style={styles.postCard}>
+      {/* Top bar */}
       <View style={styles.postTop}>
-        <Image source={toSrc(item.avatar)} style={styles.feedAvatar} />
+        <Image
+          source={item.avatar ? { uri: item.avatar } : require("../../../assets/Ellipse 18.png")}
+          style={styles.feedAvatar}
+          defaultSource={require("../../../assets/Ellipse 18.png")}
+        />
         <View style={{ flex: 1 }}>
           <ThemedText style={styles.feedStoreName}>{item.store}</ThemedText>
           <ThemedText style={styles.metaText}>
-            {item.location} · {item.timeAgo}
+            {item.location} • {item.timeAgo}
           </ThemedText>
         </View>
-        <Ionicons name="ellipsis-vertical" size={18} color={COLOR.sub} />
+        <TouchableOpacity onPress={() => onOpenOptions(item)}>
+          <Ionicons name="ellipsis-vertical" size={18} color={COLOR.sub} />
+        </TouchableOpacity>
       </View>
 
-      <Image
-        source={toSrc(item.images?.[0])}
-        style={[styles.postImage, { width: "100%" }]}
-      />
+      {/* Media (supports multiple images) */}
+      <View
+        style={styles.carouselWrap}
+        onLayout={(e) => setCarouselW(e.nativeEvent.layout.width)}
+      >
+        {carouselW > 0 && (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={onCarouselScroll}
+            scrollEventThrottle={16}
+          >
+            {images.map((uri, idx) => (
+              <Image
+                key={`${item.id}-img-${idx}`}
+                source={{ uri }}
+                style={[styles.postImage, { width: carouselW }]}
+              />
+            ))}
+          </ScrollView>
+        )}
 
+        {/* dots */}
+        {images.length > 1 && (
+          <View style={styles.dotsRow}>
+            {images.map((_, i) => (
+              <View
+                key={`dot-${i}`}
+                style={[styles.dot, i === activeIdx && styles.dotActive]}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Caption pill */}
       {item.caption ? (
         <View style={styles.captionPill}>
           <ThemedText style={styles.captionText}>{item.caption}</ThemedText>
         </View>
       ) : null}
 
+      {/* Actions */}
       <View style={styles.actionsRow}>
         <View style={styles.actionsLeft}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => setLiked((p) => !p)}
-          >
+          <TouchableOpacity style={styles.actionBtn} onPress={handleLikePress}>
             <Ionicons
               name={liked ? "heart" : "heart-outline"}
-              size={25}
+              size={23}
               color={liked ? (mergedStore?.theme_color || COLOR.primary) : COLOR.text}
             />
             <ThemedText style={styles.actionCount}>{likeCount}</ThemedText>
           </TouchableOpacity>
 
-          <View style={styles.actionBtn}>
-            <Ionicons name="chatbubble-outline" size={25} color={COLOR.text} />
-            <ThemedText style={styles.actionCount}>
-              {item.comments || 0}
-            </ThemedText>
-          </View>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => onOpenComments(item)}
+          >
+            <Ionicons name="chatbubble-outline" size={23} color={COLOR.text} />
+            <ThemedText style={styles.actionCount}>{item.comments}</ThemedText>
+          </TouchableOpacity>
 
-          <View style={styles.actionBtn}>
-            <Ionicons name="arrow-redo-outline" size={25} color={COLOR.text} />
-            <ThemedText style={styles.actionCount}>
-              {item.shares || 0}
-            </ThemedText>
-          </View>
+          <TouchableOpacity style={styles.actionBtn}>
+            <Ionicons name="arrow-redo-outline" size={23} color={COLOR.text} />
+            <ThemedText style={styles.actionCount}>{item.shares}</ThemedText>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.actionsRight}>
-          <TouchableOpacity style={{ marginLeft: 10 }}>
+          <TouchableOpacity
+            style={styles.visitBtn}
+            onPress={() => {
+              if (item.storeId && navigation) {
+                navigation.navigate("ServiceNavigator", {
+                  screen: "StoreDetails",
+                  params: { storeId: item.storeId }
+                });
+              }
+            }}
+          >
+            <ThemedText style={styles.visitBtnText}>Visit Store</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ marginLeft: 10 }}
+            onPress={async () => {
+              try {
+                const uri = images?.[activeIdx] || images?.[0];
+                if (!uri) return;
+                const { status } = await MediaLibrary.requestPermissionsAsync();
+                if (status !== 'granted') { Alert.alert('Permission required', 'Please allow photo library access to save images.'); return; }
+                const fileName = uri.split('/').pop() || `image_${Date.now()}.jpg`;
+                const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+                const download = await FileSystem.downloadAsync(uri, fileUri);
+                if (download.status === 200) {
+                  await MediaLibrary.saveToLibraryAsync(download.uri);
+                  Alert.alert('Saved', 'Image saved to your gallery.');
+                }
+              } catch (e) { Alert.alert('Error', 'Failed to save image.'); }
+            }}
+          >
             <Image
               source={require("../../../assets/DownloadSimple.png")}
               style={{ width: 30, height: 30 }}
@@ -1229,6 +1635,375 @@ function PostCardLike({ item }) {
     </View>
   );
 }
+
+/* ===== Comments Sheet for Social Feed ===== */
+const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
+  const inputRef = useRef(null);
+  const [text, setText] = useState("");
+  const [replyTo, setReplyTo] = useState(null); // { commentId, username }
+  const currentUser = {
+    name: "You",
+    avatar: "https://via.placeholder.com/100",
+  };
+
+  // Fetch comments from API
+  const { data: commentsData, isLoading: commentsLoading, error: commentsError } = useGetPostComments(post?.id, {
+    enabled: visible && !!post?.id,
+  });
+
+  // Process API comments data and sort by created_at descending (latest first)
+  const apiComments = useMemo(() => {
+    if (!commentsData?.data?.data) return [];
+
+    return commentsData.data.data
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // Sort latest first
+      .map((comment) => {
+        // Ensure user is a string, not an object
+        const userName = typeof comment.user === 'object' 
+          ? (comment.user?.full_name || "Unknown")
+          : (comment.user || "Unknown");
+        
+        // Handle profile picture with better error handling
+        let userAvatar = require("../../../assets/Ellipse 18.png"); // Default fallback
+        
+        if (typeof comment.user === 'object' && comment.user?.profile_picture) {
+          const profilePic = comment.user.profile_picture.trim();
+          if (profilePic !== '') {
+            try {
+              const avatarPath = profilePic.startsWith("/storage") 
+                ? profilePic 
+                : `/storage/${profilePic}`;
+              userAvatar = { uri: `https://colala.hmstech.xyz${avatarPath}` };
+            } catch (error) {
+              userAvatar = require("../../../assets/Ellipse 18.png");
+            }
+          }
+        }
+
+        const commentData = {
+          id: String(comment.id),
+          user: userName,
+          time: timeAgo(comment.created_at),
+          avatar: userAvatar,
+          body: comment.body || "",
+          likes: 0,
+          replies: comment.replies || [],
+          created_at: comment.created_at, // Keep original timestamp for sorting
+        };
+        
+        return commentData;
+      });
+  }, [commentsData]);
+
+  // Local comments state - reset when post changes
+  const [localComments, setLocalComments] = useState([]);
+
+  // Reset local comments when post changes
+  React.useEffect(() => {
+    setLocalComments([]);
+  }, [post?.id]);
+
+  // Combine API comments with local comments and sort by created_at
+  const comments = useMemo(() => {
+    const allComments = [...apiComments, ...localComments];
+    return allComments.sort((a, b) => {
+      const aTime = a.created_at || new Date().toISOString();
+      const bTime = b.created_at || new Date().toISOString();
+      return new Date(bTime) - new Date(aTime);
+    });
+  }, [apiComments, localComments]);
+
+  const startReply = (c) => {
+    const username = typeof c.user === 'string' ? c.user : (c.user?.full_name || "Unknown");
+    setReplyTo({ commentId: c.id, username });
+    setText(`@${username} `);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const clearReply = () => {
+    setReplyTo(null);
+    setText("");
+    inputRef.current?.focus();
+  };
+
+  const handleSend = async () => {
+    const trimmed = text.trim();
+    if (!trimmed || !post?.id) return;
+    try {
+      const created = await onSubmitComment?.(post.id, trimmed);
+      const newComment = {
+        id: String(created?.id ?? `c-${Date.now()}`),
+        user: created?.user?.full_name ?? currentUser.name,
+        time: "Just now",
+        avatar: (() => {
+          if (created?.user?.profile_picture) {
+            const profilePic = created.user.profile_picture.trim();
+            if (profilePic !== '') {
+              const avatarPath = profilePic.startsWith("/storage") 
+                ? profilePic 
+                : `/storage/${profilePic}`;
+              return { uri: `https://colala.hmstech.xyz${avatarPath}` };
+            }
+          }
+          return require("../../../assets/Ellipse 18.png");
+        })(),
+        body: created?.body ?? trimmed,
+        likes: 0,
+        replies: [],
+        created_at: new Date().toISOString(), // Add timestamp for proper sorting
+      };
+      setLocalComments((prev) => [...prev, newComment]);
+      setText("");
+      setReplyTo(null);
+    } catch { }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.modalOverlay}
+      >
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View style={[styles.sheet, { width: '100%' }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <ThemedText font="oleo" style={styles.sheetTitle}>
+              Comments
+            </ThemedText>
+            <TouchableOpacity
+              style={{
+                borderColor: "#000",
+                borderWidth: 1.4,
+                borderRadius: 20,
+                padding: 2,
+                alignItems: "center",
+              }}
+              onPress={onClose}
+            >
+              <Ionicons name="close" size={16} color={COLOR.text} />
+            </TouchableOpacity>
+          </View>
+
+          {commentsLoading ? (
+            <View style={styles.commentsLoadingContainer}>
+              <ActivityIndicator size="large" color={COLOR.primary} />
+              <ThemedText style={styles.commentsLoadingText}>Loading comments...</ThemedText>
+            </View>
+          ) : commentsError ? (
+            <View style={styles.commentsErrorContainer}>
+              <Ionicons name="alert-circle-outline" size={48} color={COLOR.primary} />
+              <ThemedText style={styles.commentsErrorText}>
+                Failed to load comments. Please try again.
+              </ThemedText>
+            </View>
+          ) : (
+            <FlatList
+              data={comments}
+              keyExtractor={(i) => i.id}
+              style={{ maxHeight: 420, width: '100%' }}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <View style={{ paddingBottom: 4 }}>
+                  {/* main comment */}
+                  <View style={styles.commentRow}>
+                    <Image
+                      source={item.avatar}
+                      style={styles.commentAvatar}
+                      defaultSource={require("../../../assets/Ellipse 18.png")}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <View
+                        style={{ flexDirection: "row", alignItems: "center" }}
+                      >
+                        <ThemedText style={styles.commentName}>
+                          {typeof item.user === 'string' ? item.user : (item.user?.full_name || "Unknown")}
+                        </ThemedText>
+                        <ThemedText style={styles.commentTime}>
+                          {" "}
+                          {item.time}
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={styles.commentBody}>
+                        {item.body}
+                      </ThemedText>
+
+                      <View style={styles.commentMetaRow}>
+                        <TouchableOpacity onPress={() => startReply(item)}>
+                          <ThemedText style={styles.replyText}>Reply</ThemedText>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* replies kept for parity (not used) */}
+                  {item.replies?.length ? (
+                    <View style={styles.repliesWrap}>
+                      {item.replies.map((r) => (
+                        <View key={r.id} style={styles.replyContainer}>
+                          <Image
+                            source={r.avatar}
+                            style={styles.commentAvatar}
+                            defaultSource={require("../../../assets/Ellipse 18.png")}
+                          />
+                          <View style={{ flex: 1 }}>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                              }}
+                            >
+                              <ThemedText style={styles.commentName}>
+                                {typeof r.user === 'string' ? r.user : (r.user?.full_name || "Unknown")}
+                              </ThemedText>
+                              <ThemedText style={styles.commentTime}>
+                                {" "}
+                                {r.time}
+                              </ThemedText>
+                            </View>
+                            <ThemedText style={styles.commentBody}>
+                              {r.body}
+                            </ThemedText>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              )}
+            />
+          )}
+
+          {/* Replying chip */}
+          {replyTo ? (
+            <View style={styles.replyingChip}>
+              <ThemedText style={styles.replyingText}>
+                Replying to {replyTo.username}
+              </ThemedText>
+              <TouchableOpacity onPress={clearReply} style={{ padding: 6 }}>
+                <Ionicons name="close-circle" size={18} color={COLOR.sub} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {/* Input */}
+          <View style={styles.inputRow}>
+            <TextInput
+              ref={inputRef}
+              value={text}
+              onChangeText={setText}
+              placeholder={
+                replyTo ? `Reply to ${replyTo.username}` : "Type a message"
+              }
+              placeholderTextColor={COLOR.sub}
+              style={styles.input}
+            />
+            <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
+              <Ionicons name="send" size={20} color={COLOR.text} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
+
+/* ===== Options Sheet for Social Feed ===== */
+const OptionsSheet = ({ visible, onClose, onHidePost, onShare, onReport }) => {
+  const Row = ({ icon, label, danger, onPress }) => (
+    <TouchableOpacity
+      style={[styles.optionRow, danger && styles.optionRowDanger]}
+      onPress={onPress}
+    >
+      <View style={styles.optionLeft}>
+        {icon}
+        <ThemedText
+          style={[styles.optionLabel, danger && { color: COLOR.danger }]}
+        >
+          {label}
+        </ThemedText>
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View style={[styles.sheet, { backgroundColor: "#F9F9F9" }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <ThemedText font="oleo" style={styles.sheetTitle}>
+              Options
+            </ThemedText>
+            <TouchableOpacity
+              style={{
+                borderColor: "#000",
+                borderWidth: 1.4,
+                borderRadius: 20,
+                padding: 2,
+                alignItems: "center",
+              }}
+              onPress={onClose}
+            >
+              <Ionicons name="close" size={16} color={COLOR.text} />
+            </TouchableOpacity>
+          </View>
+
+          <Row
+            icon={
+              <Image
+                source={require("../../../assets/Vector (16).png")}
+                style={styles.profileImage}
+              />
+            }
+            label="Share this post"
+            onPress={onShare}
+          />
+          <Row
+            icon={
+              <Image
+                source={require("../../../assets/Vector (18).png")}
+                style={styles.profileImage}
+              />
+            }
+            label="Hide Post"
+            onPress={onHidePost}
+          />
+          <Row
+            icon={
+              <Image
+                source={require("../../../assets/Vector (19).png")}
+                style={styles.profileImage}
+              />
+            }
+            label="Report Post"
+            danger
+            onPress={onReport}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+};
 
 /* ===== Leave Review Sheet (kept) ===== */
 function ReviewSheet({ visible, onClose, onSubmit, mergedStore }) {
@@ -1914,6 +2689,16 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     ...shadow(1),
   },
+  cardSingle: {
+    width: '100%',
+    maxWidth: '100%',
+  },
+  singleProductContainer: {
+    paddingBottom: 20,
+  },
+  singleProductWrapper: {
+    width: '100%',
+  },
   image: { width: "100%", height: 120 },
   sponsoredBadge: {
     position: "absolute",
@@ -2233,5 +3018,230 @@ const styles = StyleSheet.create({
     color: COLOR.sub,
     fontSize: 14,
     fontWeight: "500",
+  },
+
+  // Social Feed additional styles
+  carouselWrap: {
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  dotsRow: {
+    marginTop: 8,
+    alignSelf: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#bbb",
+    opacity: 0.6,
+  },
+  dotActive: {
+    backgroundColor: COLOR.primary,
+    opacity: 1,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: -1,
+  },
+
+  // Comments styles
+  commentsLoadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  commentsLoadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.sub,
+    textAlign: "center",
+  },
+  commentsErrorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  commentsErrorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLOR.primary,
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  commentRow: { 
+    flexDirection: "row", 
+    paddingVertical: 10, 
+    width: '100%',
+    paddingHorizontal: 0,
+  },
+  commentAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
+  commentName: { fontWeight: "700", color: COLOR.text },
+  commentTime: { color: COLOR.sub, fontSize: 12 },
+  commentBody: { color: COLOR.text, marginTop: 2 },
+  commentMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    justifyContent: "space-between",
+    paddingRight: 14,
+  },
+  replyText: { color: COLOR.sub },
+  commentLikeCount: { color: COLOR.text, fontSize: 12 },
+  repliesWrap: { marginLeft: 44, marginTop: 6 },
+  replyContainer: { flexDirection: "row", marginTop: 10 },
+  mentionText: { color: COLOR.primary, fontWeight: "600" },
+  replyingChip: {
+    alignSelf: "flex-start",
+    marginTop: 8,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  replyingText: { color: COLOR.sub, fontSize: 12 },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLOR.pill,
+    borderRadius: 16,
+    paddingLeft: 14,
+    marginTop: 12,
+    marginBottom: 6,
+    width: '100%',
+  },
+  input: { flex: 1, height: 46, fontSize: 12, color: COLOR.text },
+  sendBtn: {
+    width: 44,
+    height: 46,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Options styles
+  optionRow: {
+    height: 56,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    justifyContent: "space-between",
+    elevation: 1,
+  },
+  optionRowDanger: { borderColor: "#FDE2E0", backgroundColor: "#FFF8F8" },
+  optionLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  optionLabel: { fontSize: 15, color: COLOR.text },
+  profileImage: { width: 20, height: 20, resizeMode: "contain" },
+
+  // Popup styles
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  popupContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 320,
+    alignItems: 'center',
+  },
+  popupTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLOR.text,
+    marginBottom: 12,
+  },
+  popupMessage: {
+    fontSize: 14,
+    color: COLOR.sub,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  popupButton: {
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: COLOR.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  popupButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // Report Modal styles
+  reportModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    marginHorizontal: 7,
+  },
+  reportModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  reportModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLOR.text,
+  },
+  reportCloseBtn: {
+    position: 'absolute',
+    right: 0,
+  },
+  reportModalSubtitle: {
+    fontSize: 14,
+    color: COLOR.sub,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  reportTextInput: {
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 14,
+    color: COLOR.text,
+    minHeight: 100,
+    marginBottom: 20,
+    textAlignVertical: 'top',
+  },
+  reportProceedBtn: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLOR.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reportProceedBtnDisabled: {
+    backgroundColor: COLOR.sub,
+    opacity: 0.5,
+  },
+  reportProceedBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
