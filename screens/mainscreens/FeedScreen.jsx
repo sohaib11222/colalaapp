@@ -822,7 +822,7 @@ export default function FeedScreen() {
       { image: imageUri, type: 'product' },
       {
         onSuccess: (data) => {
-          console.log("✅ Image search successful:", data);
+          console.log("✅ Image search successful:", data?.search_results);
           setIsSearching(false);
           
           // Navigate to camera search results screen

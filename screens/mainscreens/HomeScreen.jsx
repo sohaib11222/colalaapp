@@ -51,7 +51,7 @@ const HomeScreen = () => {
       <HomeHeader />
       <View
         style={{
-          marginTop: -25,
+          marginTop: -15,
           backgroundColor: "#F9F9F9",
           borderTopLeftRadius: 30,
           borderTopRightRadius: 30,

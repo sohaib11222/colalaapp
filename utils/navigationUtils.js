@@ -37,11 +37,31 @@ export const performLogout = async (showAlert = true) => {
     }
     
     // Reset navigation stack to login screen
-    if (navigationRef) {
+    if (navigationRef && navigationRef.current) {
+      console.log("🔄 Resetting navigation to Login screen...");
       navigationRef.reset({
         index: 0,
-        routes: [{ name: 'AuthNavigator' }],
+        routes: [
+          { 
+            name: 'AuthNavigator',
+            state: {
+              routes: [{ name: 'Login' }],
+              index: 0
+            }
+          }
+        ],
       });
+      console.log("✅ Navigation reset successful - user taken to login screen");
+    } else {
+      console.log("⚠️ Navigation reference not available");
+      // Try to get navigation from React Navigation
+      try {
+        const { CommonActions } = await import('@react-navigation/native');
+        // This is a fallback - might not work in all cases
+        console.log("⚠️ Navigation reference not set, logout may not navigate properly");
+      } catch (navError) {
+        console.log("⚠️ Could not access navigation:", navError);
+      }
     }
     
     if (showAlert) {
@@ -57,11 +77,23 @@ export const performLogout = async (showAlert = true) => {
     console.error("❌ Error during logout:", error);
     
     // Even if there's an error, try to navigate to login
-    if (navigationRef) {
-      navigationRef.reset({
-        index: 0,
-        routes: [{ name: 'AuthNavigator' }],
-      });
+    if (navigationRef && navigationRef.current) {
+      try {
+        navigationRef.reset({
+          index: 0,
+          routes: [
+            { 
+              name: 'AuthNavigator',
+              state: {
+                routes: [{ name: 'Login' }],
+                index: 0
+              }
+            }
+          ],
+        });
+      } catch (navError) {
+        console.error("❌ Error resetting navigation:", navError);
+      }
     }
     
     return false;

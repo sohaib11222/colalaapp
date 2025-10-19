@@ -169,16 +169,16 @@ const FeaturedServices = () => {
             <View style={styles.rowBetween}>
               <View style={styles.storeRow}>
                 <Image 
-                  source={require("../assets/Ellipse 18.png")} 
+                  source={item?.store?.profile_image ? { uri: `https://colala.hmstech.xyz/storage/${item?.store?.profile_image}` } : require("../assets/Ellipse 18.png")} 
                   style={styles.storeAvatar} 
                 />
                 <ThemedText style={styles.storeName}>
-                  Store {item.store_id || "N/A"}
+                {item?.store?.store_name || "N/A"}
                 </ThemedText>
               </View>
               <View style={styles.ratingRow}>
                 <Ionicons name="star" size={10} color="#FF0000" />
-                <ThemedText style={styles.rating}>4.5</ThemedText>
+                <ThemedText style={styles.rating}>{item?.store?.average_rating || 0}</ThemedText>
               </View>
             </View>
 

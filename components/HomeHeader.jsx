@@ -149,7 +149,7 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
       { image: imageUri, type: 'product' },
       {
         onSuccess: (data) => {
-          console.log("✅ Image search successful:", data);
+          console.log("✅ Image search successful: in home ", data);
           setIsSearching(false);
           
           // Navigate to camera search results screen

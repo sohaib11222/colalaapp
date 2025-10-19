@@ -42,7 +42,7 @@ const API = {
   Supoort_Ticket_Message: `${BASE_URL}/buyer/support/messages`,
   SERVICES: `${BASE_URL}/seller/service`,
   SEARCH: `${BASE_URL}/search`,
-  CAMERA_SEARCH: `${BASE_URL}/search/camera`,
+  CAMERA_SEARCH: `${BASE_URL}/search/by-image`,
   STORE_REVIEWS: (id) => `${BASE_URL}/buyer/stores/${id}/reviews`,
   ORDER_ITEM_REVIEW: (orderItemId) => `${BASE_URL}/buyer/order-items/${orderItemId}/review`,
   Get_All_Products: `${BASE_URL}/buyer/product/get-all`,

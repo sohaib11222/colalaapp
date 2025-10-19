@@ -193,7 +193,62 @@ const SettingsScreen = () => {
   };
 
   const handleLogout = async () => {
-    await performLogout(false); // Don't show alert for manual logout
+    try {
+      console.log("🔄 Starting logout process...");
+      
+      // Clear all stored authentication data
+      await AsyncStorage.multiRemove([
+        'auth_token',
+        'auth_user',
+        'user_data',
+        'cart_data',
+        'saved_items',
+        'followed_stores'
+      ]);
+      
+      console.log("✅ User data cleared successfully");
+      
+      // Clear React Query cache
+      try {
+        const { queryClient } = await import('../../../config/api.config');
+        queryClient.clear();
+        console.log("✅ Query cache cleared");
+      } catch (error) {
+        console.log("⚠️ Could not clear query cache:", error);
+      }
+      
+      // Navigate directly to Login screen and clear entire stack
+      console.log("🔄 Navigating to Login screen...");
+      navigation.reset({
+        index: 0,
+        routes: [
+          { 
+            name: 'AuthNavigator',
+            state: {
+              routes: [{ name: 'Login' }],
+              index: 0
+            }
+          }
+        ],
+      });
+      
+      console.log("✅ Logout completed successfully - user taken to login screen");
+    } catch (error) {
+      console.error("❌ Error during logout:", error);
+      // Even if there's an error, try to navigate to login
+      navigation.reset({
+        index: 0,
+        routes: [
+          { 
+            name: 'AuthNavigator',
+            state: {
+              routes: [{ name: 'Login' }],
+              index: 0
+            }
+          }
+        ],
+      });
+    }
   };
 
   const handleDeleteAccount = () => {
