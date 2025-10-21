@@ -102,6 +102,7 @@ const ServiceDetailsScreen = () => {
     },
   });
 
+  console.log("serviceData", serviceData);
   // Toggle saved status
   const { mutate: toggleSaved, isLoading: isToggling } = useSavedToggleItem({
     onSuccess: (data) => {
