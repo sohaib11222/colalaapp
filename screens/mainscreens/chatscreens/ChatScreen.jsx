@@ -22,6 +22,8 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
 import ThemedText from "../../../components/ThemedText";
 import { useChats, useCartQuantity, useCameraSearch } from "../../../config/api.config";
+import GuestService from "../../../utils/guestService";
+import LoginPromptModal from "../../../components/LoginPromptModal";
 
 const { width } = Dimensions.get("window");
 const COLOR = {
@@ -61,8 +63,43 @@ const formatTime = (iso) => {
 
 export default function ChatListScreen({ navigation }) {
   const [q, setQ] = useState("");
+  const [isGuest, setIsGuest] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // Fetch chats with error handling
+  // Check if user is guest
+  React.useEffect(() => {
+    const checkGuestStatus = async () => {
+      const guestStatus = await GuestService.isGuest();
+      console.log("ChatScreen - Guest status:", guestStatus);
+      setIsGuest(guestStatus);
+      
+      // If user is guest, show login prompt immediately
+      if (guestStatus) {
+        console.log("ChatScreen - Guest detected, showing login popup");
+        setShowLoginModal(true);
+      }
+    };
+    checkGuestStatus();
+  }, []);
+
+  // Handle guest actions
+  const handleGuestAction = (action) => {
+    console.log("ChatScreen - handleGuestAction called, isGuest:", isGuest, "showLoginModal:", showLoginModal);
+    if (isGuest) {
+      console.log("ChatScreen - Showing login modal for guest");
+      // Force modal to show by setting to false first, then true
+      setShowLoginModal(false);
+      setTimeout(() => {
+        console.log("ChatScreen - Setting showLoginModal to true");
+        setShowLoginModal(true);
+      }, 10);
+    } else {
+      console.log("ChatScreen - User is authenticated, proceeding with action");
+      action();
+    }
+  };
+
+  // Fetch chats with error handling (only for authenticated users)
   const { data, isLoading, error, refetch, isFetching } = useChats();
   
   // Use shared cart quantity hook
@@ -233,7 +270,7 @@ export default function ChatListScreen({ navigation }) {
     <TouchableOpacity
       activeOpacity={0.85}
       style={[styles.card, index === filtered.length - 1 && styles.lastCard]}
-      onPress={() => {
+      onPress={() => handleGuestAction(() => {
         console.log("Navigating to ChatDetails with data:", {
           name: item.name,
           avatar: item.avatar,
@@ -252,7 +289,7 @@ export default function ChatListScreen({ navigation }) {
             store_order_id: item.store_order_id, // used for dispute creation
           },
         });
-      }}
+      })}
     >
       <Image source={{ uri: item.avatar }} style={styles.avatar} />
       <View style={{ flex: 1, paddingRight: 10 }}>
@@ -469,6 +506,34 @@ export default function ChatListScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* Login Prompt Modal for Guests */}
+      <LoginPromptModal
+        visible={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          // Navigate back to home screen when cancel is clicked
+          navigation.navigate('MainNavigator', { screen: 'Home' });
+        }}
+        onLogin={() => {
+          setShowLoginModal(false);
+          // Reset navigation stack to go to login screen
+          navigation.reset({
+            index: 0,
+            routes: [
+              { 
+                name: 'AuthNavigator',
+                state: {
+                  routes: [{ name: 'Login' }],
+                  index: 0
+                }
+              }
+            ],
+          });
+        }}
+        title="Login Required"
+        message="Please login to access your chats and start conversations with stores."
+      />
     </SafeAreaView>
   );
 }

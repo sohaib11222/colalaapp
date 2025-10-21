@@ -40,6 +40,8 @@ import { useToggleFollowStore } from "../../../config/api.config";
 import { useCheckFollowedStore } from "../../../config/api.config";
 import { useCategories, useAllBrands } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
+import GuestService from "../../../utils/guestService";
+import LoginPromptModal from "../../../components/LoginPromptModal";
 
 const { width } = Dimensions.get("window");
 const COLOR = {
@@ -112,6 +114,10 @@ export default function StoreDetailsScreen() {
   // Follow/Unfollow functionality
   const [isFollowing, setIsFollowing] = useState(false);
   const [isCheckingFollow, setIsCheckingFollow] = useState(true);
+
+  // Guest functionality
+  const [isGuest, setIsGuest] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Query client for refresh functionality
   const queryClient = useQueryClient();
@@ -360,13 +366,41 @@ export default function StoreDetailsScreen() {
     }
   }, [storeId, checkFollow]);
 
-  const handleFollowToggle = async () => {
-    try {
-      await toggleFollow({ store_id: String(storeId) });
-    } catch (error) {
-      console.error("Follow toggle error:", error);
-      Alert.alert("Error", "Failed to update follow status. Please try again.");
+  // Check guest status
+  useEffect(() => {
+    const checkGuestStatus = async () => {
+      const guestStatus = await GuestService.isGuest();
+      console.log("StoreDetailsScreen - Guest status:", guestStatus);
+      setIsGuest(guestStatus);
+    };
+    checkGuestStatus();
+  }, []);
+
+  // Guest action handler
+  const handleGuestAction = (action) => {
+    console.log("StoreDetailsScreen - handleGuestAction called, isGuest:", isGuest);
+    if (isGuest) {
+      console.log("StoreDetailsScreen - Showing login modal for guest");
+      setShowLoginModal(false);
+      setTimeout(() => {
+        console.log("StoreDetailsScreen - Setting showLoginModal to true");
+        setShowLoginModal(true);
+      }, 10);
+    } else {
+      console.log("StoreDetailsScreen - User is authenticated, proceeding with action");
+      action();
     }
+  };
+
+  const handleFollowToggle = async () => {
+    handleGuestAction(async () => {
+      try {
+        await toggleFollow({ store_id: String(storeId) });
+      } catch (error) {
+        console.error("Follow toggle error:", error);
+        Alert.alert("Error", "Failed to update follow status. Please try again.");
+      }
+    });
   };
 
   // Check if chat already exists with this store
@@ -386,56 +420,58 @@ export default function StoreDetailsScreen() {
 
   // Handle chat button press - check for existing chat first
   const handleChatPress = async () => {
-    try {
-      const storeName = mergedStore?.name || "Store";
-      const profileImage = mergedStore?.avatar;
-      
-      // Check if chat already exists
-      const existingChat = findExistingChat();
-      
-      if (existingChat) {
-        // Navigate to existing chat
-        console.log("Opening existing chat:", existingChat);
-        navigation.navigate("ServiceNavigator", {
-          screen: "ChatDetails",
-          params: {
-            store: { 
-              id: storeId, 
-              name: storeName, 
-              profileImage 
-            },
-            chat_id: existingChat.chat_id,
-            store_order_id: existingChat.store_order_id || storeId,
-          },
-        });
-      } else {
-        // Create new chat
-        console.log("Creating new chat with store:", storeId);
-        const { chat_id } = await startChat({ storeId });
+    handleGuestAction(async () => {
+      try {
+        const storeName = mergedStore?.name || "Store";
+        const profileImage = mergedStore?.avatar;
         
+        // Check if chat already exists
+        const existingChat = findExistingChat();
+        
+        if (existingChat) {
+          // Navigate to existing chat
+          console.log("Opening existing chat:", existingChat);
+          navigation.navigate("ServiceNavigator", {
+            screen: "ChatDetails",
+            params: {
+              store: { 
+                id: storeId, 
+                name: storeName, 
+                profileImage 
+              },
+              chat_id: existingChat.chat_id,
+              store_order_id: existingChat.store_order_id || storeId,
+            },
+          });
+        } else {
+          // Create new chat
+          console.log("Creating new chat with store:", storeId);
+          const { chat_id } = await startChat({ storeId });
+          
+          navigation.navigate("ServiceNavigator", {
+            screen: "ChatDetails",
+            params: {
+              store: { id: storeId, name: storeName, profileImage },
+              chat_id,
+              store_order_id: storeId,
+            },
+          });
+        }
+      } catch (e) {
+        console.error("Chat error:", e);
+        // Fallback: try to navigate without creating chat
         navigation.navigate("ServiceNavigator", {
           screen: "ChatDetails",
           params: {
-            store: { id: storeId, name: storeName, profileImage },
-            chat_id,
-            store_order_id: storeId,
+            store: {
+              id: storeId,
+              name: mergedStore?.name || "Store",
+              profileImage: mergedStore?.avatar,
+            },
           },
         });
       }
-    } catch (e) {
-      console.error("Chat error:", e);
-      // Fallback: try to navigate without creating chat
-      navigation.navigate("ServiceNavigator", {
-        screen: "ChatDetails",
-        params: {
-          store: {
-            id: storeId,
-            name: mergedStore?.name || "Store",
-            profileImage: mergedStore?.avatar,
-          },
-        },
-      });
-    }
+    });
   };
 
   // Pull to refresh functionality
@@ -708,28 +744,32 @@ export default function StoreDetailsScreen() {
   const addCommentMutation = useAddPostComment();
 
   const handleToggleLike = async (postId) => {
-    const res = await likeMutation.mutateAsync(postId);
-    setPostOverrides((prev) => ({
-      ...prev,
-      [postId]: {
-        ...(prev[postId] || {}),
-        liked: !!res?.data?.liked,
-        likes: Number(res?.data?.likes_count ?? 0),
-      },
-    }));
-    return { liked: res?.data?.liked, likes_count: res?.data?.likes_count };
+    handleGuestAction(async () => {
+      const res = await likeMutation.mutateAsync(postId);
+      setPostOverrides((prev) => ({
+        ...prev,
+        [postId]: {
+          ...(prev[postId] || {}),
+          liked: !!res?.data?.liked,
+          likes: Number(res?.data?.likes_count ?? 0),
+        },
+      }));
+      return { liked: res?.data?.liked, likes_count: res?.data?.likes_count };
+    });
   };
 
   const handleSubmitComment = async (postId, body) => {
-    const res = await addCommentMutation.mutateAsync({ postId, body });
-    setPostOverrides((prev) => ({
-      ...prev,
-      [postId]: {
-        ...(prev[postId] || {}),
-        comments: Number((prev[postId]?.comments ?? 0) + 1),
-      },
-    }));
-    return res?.data; // created comment payload
+    handleGuestAction(async () => {
+      const res = await addCommentMutation.mutateAsync({ postId, body });
+      setPostOverrides((prev) => ({
+        ...prev,
+        [postId]: {
+          ...(prev[postId] || {}),
+          comments: Number((prev[postId]?.comments ?? 0) + 1),
+        },
+      }));
+      return res?.data; // created comment payload
+    });
   };
 
   const openComments = (post) => {
@@ -1457,6 +1497,23 @@ export default function StoreDetailsScreen() {
           </View>
         </View>
       </Modal>
+      
+      <LoginPromptModal
+        visible={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          navigation.navigate('MainNavigator', { screen: 'Home' });
+        }}
+        onLogin={() => {
+          setShowLoginModal(false);
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'AuthNavigator', state: { routes: [{ name: 'Login' }], index: 0 } }],
+          });
+        }}
+        title="Login Required"
+        message="Please login to follow stores, start chats, like posts, or comment on posts."
+      />
     </SafeAreaView>
   );
 }
@@ -1729,33 +1786,35 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
   const handleSend = async () => {
     const trimmed = text.trim();
     if (!trimmed || !post?.id) return;
-    try {
-      const created = await onSubmitComment?.(post.id, trimmed);
-      const newComment = {
-        id: String(created?.id ?? `c-${Date.now()}`),
-        user: created?.user?.full_name ?? currentUser.name,
-        time: "Just now",
-        avatar: (() => {
-          if (created?.user?.profile_picture) {
-            const profilePic = created.user.profile_picture.trim();
-            if (profilePic !== '') {
-              const avatarPath = profilePic.startsWith("/storage") 
-                ? profilePic 
-                : `/storage/${profilePic}`;
-              return { uri: `https://colala.hmstech.xyz${avatarPath}` };
+    handleGuestAction(async () => {
+      try {
+        const created = await onSubmitComment?.(post.id, trimmed);
+        const newComment = {
+          id: String(created?.id ?? `c-${Date.now()}`),
+          user: created?.user?.full_name ?? currentUser.name,
+          time: "Just now",
+          avatar: (() => {
+            if (created?.user?.profile_picture) {
+              const profilePic = created.user.profile_picture.trim();
+              if (profilePic !== '') {
+                const avatarPath = profilePic.startsWith("/storage") 
+                  ? profilePic 
+                  : `/storage/${profilePic}`;
+                return { uri: `https://colala.hmstech.xyz${avatarPath}` };
+              }
             }
-          }
-          return require("../../../assets/Ellipse 18.png");
-        })(),
-        body: created?.body ?? trimmed,
-        likes: 0,
-        replies: [],
-        created_at: new Date().toISOString(), // Add timestamp for proper sorting
-      };
-      setLocalComments((prev) => [...prev, newComment]);
-      setText("");
-      setReplyTo(null);
-    } catch { }
+            return require("../../../assets/Ellipse 18.png");
+          })(),
+          body: created?.body ?? trimmed,
+          likes: 0,
+          replies: [],
+          created_at: new Date().toISOString(), // Add timestamp for proper sorting
+        };
+        setLocalComments((prev) => [...prev, newComment]);
+        setText("");
+        setReplyTo(null);
+      } catch { }
+    });
   };
 
   return (

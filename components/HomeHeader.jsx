@@ -18,6 +18,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useCameraSearch, useCartQuantity } from '../config/api.config';
 import { performLogout } from '../utils/navigationUtils';
+import GuestService from '../utils/guestService';
+import LoginPromptModal from './LoginPromptModal';
 
 const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Nigeria' } }) => {
   const navigation = useNavigation();
@@ -27,9 +29,11 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
     location: propUser.location,
     avatar: null,
   });
+  const [isGuest, setIsGuest] = useState(false);
 
   const [isSearching, setIsSearching] = useState(false);
   const [showImagePickerModal, setShowImagePickerModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const HOST = 'https://colala.hmstech.xyz';
   const toAbs = (u) => (u?.startsWith('http') ? u : `${HOST}/storage/${u || ''}`);
@@ -37,12 +41,42 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
   // Camera search functionality
   const { mutate: cameraSearch, isPending: isCameraSearching } = useCameraSearch();
   
-  // Use shared cart quantity hook
+  // Use shared cart quantity hook (only for authenticated users)
   const { data: cartQuantity = 0, isLoading: isCartLoading } = useCartQuantity();
+  
+  // Handle guest actions
+  const handleGuestAction = (action) => {
+    console.log("HomeHeader - handleGuestAction called, isGuest:", isGuest);
+    if (isGuest) {
+      console.log("HomeHeader - Showing login modal for guest");
+      // Force modal to show by setting to false first, then true
+      setShowLoginModal(false);
+      setTimeout(() => setShowLoginModal(true), 10);
+    } else {
+      console.log("HomeHeader - User is authenticated, proceeding with action");
+      action();
+    }
+  };
 
   // Load stored user
   const loadUser = async () => {
     try {
+      // Check if user is guest
+      const guestStatus = await GuestService.isGuest();
+      console.log("HomeHeader - Guest status:", guestStatus);
+      setIsGuest(guestStatus);
+      
+      if (guestStatus) {
+        // User is guest
+        setUser({ 
+          name: 'Guest', 
+          location: 'Browse as guest', 
+          avatar: null 
+        });
+        // Don't automatically show login prompt - let user explore first
+        return;
+      }
+      
       const raw = await AsyncStorage.getItem('auth_user');
       if (!raw) return;
 
@@ -204,7 +238,31 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
             <ThemedText style={styles.greeting}>Hi, {user.name}</ThemedText>
             <View style={styles.locationRow}>
               <ThemedText style={styles.location}>{user.location}</ThemedText>
-              <Ionicons name="caret-down" size={14} color="white" style={{ marginLeft: 4 }} />
+              {isGuest && (
+                <TouchableOpacity
+                  onPress={() => {
+                    // Reset navigation stack to go to login screen
+                    navigation.reset({
+                      index: 0,
+                      routes: [
+                        { 
+                          name: 'AuthNavigator',
+                          state: {
+                            routes: [{ name: 'Login' }],
+                            index: 0
+                          }
+                        }
+                      ],
+                    });
+                  }}
+                  style={styles.loginButton}
+                >
+                  <ThemedText style={styles.loginButtonText}>Login</ThemedText>
+                </TouchableOpacity>
+              )}
+              {!isGuest && (
+                <Ionicons name="caret-down" size={14} color="white" style={{ marginLeft: 4 }} />
+              )}
             </View>
           </View>
         </View>
@@ -213,9 +271,9 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
         <View style={styles.iconRow}>
           {/* Cart Icon */}
           <TouchableOpacity
-            onPress={() =>
+            onPress={() => handleGuestAction(() =>
               navigation.navigate('ServiceNavigator', { screen: 'Cart' })
-            }
+            )}
             style={[styles.iconButton, styles.iconPill]}
             accessibilityRole="button"
             accessibilityLabel="Open cart"
@@ -237,9 +295,9 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
 
           {/* Notifications Icon */}
           <TouchableOpacity
-            onPress={() =>
+            onPress={() => handleGuestAction(() =>
               navigation.navigate('ServiceNavigator', { screen: 'Notifications' })
-            }
+            )}
             style={[styles.iconButton, styles.iconPill]}
             accessibilityRole="button"
             accessibilityLabel="Open notifications"
@@ -319,6 +377,33 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
           </View>
         </View>
       </Modal>
+
+      {/* Login Prompt Modal */}
+      <LoginPromptModal
+        visible={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          // Stay on current screen when cancel is clicked (already on home)
+        }}
+        onLogin={() => {
+          setShowLoginModal(false);
+          // Reset navigation stack to go to login screen
+          navigation.reset({
+            index: 0,
+            routes: [
+              { 
+                name: 'AuthNavigator',
+                state: {
+                  routes: [{ name: 'Login' }],
+                  index: 0
+                }
+              }
+            ],
+          });
+        }}
+        title="Login Required"
+        message="Please login to access your cart, notifications, and other features."
+      />
     </SafeAreaView>
   );
 };
@@ -343,6 +428,20 @@ const styles = StyleSheet.create({
   greeting: { color: 'white', fontSize: 14, fontWeight: '500', marginBottom: 5 },
   locationRow: { flexDirection: 'row', alignItems: 'center' },
   location: { color: 'white', fontSize: 10, fontWeight: '500' },
+  
+  // Guest login button
+  loginButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  loginButtonText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '600',
+  },
 
   iconRow: { flexDirection: 'row' },
   iconButton: { marginLeft: 9 },

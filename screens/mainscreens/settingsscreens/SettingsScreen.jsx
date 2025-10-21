@@ -19,6 +19,8 @@ import ThemedText from "../../../components/ThemedText";
 
 import { useWalletBalance, useCartQuantity } from "../../../config/api.config";
 import { performLogout } from "../../../utils/navigationUtils";
+import GuestService from "../../../utils/guestService";
+import LoginPromptModal from "../../../components/LoginPromptModal";
 
 const COLOR = {
   primary: "#E53E3E",
@@ -36,6 +38,8 @@ const SettingsScreen = () => {
 
   // State for user data
   const [user, setUser] = useState(null);
+  const [isGuest, setIsGuest] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Wallet balance hook
   const { data: walletData, isLoading: walletLoading, refetch, isFetching } = useWalletBalance();
@@ -58,6 +62,17 @@ const SettingsScreen = () => {
   useEffect(() => {
     const loadUserData = async () => {
       try {
+        // Check if user is guest
+        const guestStatus = await GuestService.isGuest();
+        console.log("SettingsScreen - Guest status:", guestStatus);
+        setIsGuest(guestStatus);
+        
+        // If user is guest, show login prompt immediately
+        if (guestStatus) {
+          console.log("SettingsScreen - Guest detected, showing login popup");
+          setShowLoginModal(true);
+        }
+        
         const userData = await AsyncStorage.getItem("auth_user");
         if (userData) {
           setUser(JSON.parse(userData));
@@ -71,6 +86,23 @@ const SettingsScreen = () => {
     const unsubscribe = navigation.addListener('focus', loadUserData);
     return unsubscribe;
   }, []);
+
+  // Handle guest actions
+  const handleGuestAction = (action) => {
+    console.log("SettingsScreen - handleGuestAction called, isGuest:", isGuest, "showLoginModal:", showLoginModal);
+    if (isGuest) {
+      console.log("SettingsScreen - Showing login modal for guest");
+      // Force modal to show by setting to false first, then true
+      setShowLoginModal(false);
+      setTimeout(() => {
+        console.log("SettingsScreen - Setting showLoginModal to true");
+        setShowLoginModal(true);
+      }, 10);
+    } else {
+      console.log("SettingsScreen - User is authenticated, proceeding with action");
+      action();
+    }
+  };
 
   // Format currency helper
   const formatCurrency = (amount) => {
@@ -142,48 +174,54 @@ const SettingsScreen = () => {
   ];
 
   const onPressRow = (key) => {
-    // inside SettingsScreen onPressRow
-    if (key === "orders")
-      navigation.navigate("SettingsNavigator", {
-        screen: "MyOrders",
-      });
-    if (key === "saved")
-      navigation.navigate("SettingsNavigator", {
-        screen: "SavedItems",
-      });
-    if (key === "followed")
-      navigation.navigate("SettingsNavigator", {
-        screen: "FollowedStores",
-      });
-    if (key === "reviews")
-      navigation.navigate("SettingsNavigator", {
-        screen: "MyReviews",
-      });
-    if (key === "referrals")
-      navigation.navigate("SettingsNavigator", {
-        screen: "Referals",
-      });
+    console.log("SettingsScreen - onPressRow called with key:", key, "isGuest:", isGuest, "showLoginModal:", showLoginModal);
+    
+    // Use handleGuestAction for all menu items except logout
+    if (key !== "logout") {
+      handleGuestAction(() => {
+        // inside SettingsScreen onPressRow
+        if (key === "orders")
+          navigation.navigate("SettingsNavigator", {
+            screen: "MyOrders",
+          });
+        if (key === "saved")
+          navigation.navigate("SettingsNavigator", {
+            screen: "SavedItems",
+          });
+        if (key === "followed")
+          navigation.navigate("SettingsNavigator", {
+            screen: "FollowedStores",
+          });
+        if (key === "reviews")
+          navigation.navigate("SettingsNavigator", {
+            screen: "MyReviews",
+          });
+        if (key === "referrals")
+          navigation.navigate("SettingsNavigator", {
+            screen: "Referals",
+          });
 
-    if (key === "loyalty")
-      navigation.navigate("SettingsNavigator", {
-        screen: "MyPoints",
-      });
+        if (key === "loyalty")
+          navigation.navigate("SettingsNavigator", {
+            screen: "MyPoints",
+          });
 
-    if (key === "support")
-      navigation.navigate("SettingsNavigator", {
-        screen: "Support",
-      });
+        if (key === "support")
+          navigation.navigate("SettingsNavigator", {
+            screen: "Support",
+          });
 
-    if (key === "faqs")
-      navigation.navigate("SettingsNavigator", {
-        screen: "FAQs",
+        if (key === "faqs")
+          navigation.navigate("SettingsNavigator", {
+            screen: "FAQs",
+          });
+        if (key === "leaderboard")
+          navigation.navigate("SettingsNavigator", {
+            screen: "LeaderBoard",
+          });
       });
-    if (key === "leaderboard")
-      navigation.navigate("SettingsNavigator", {
-        screen: "LeaderBoard",
-      });
-
-    if (key === "logout") {
+    } else {
+      // Handle logout directly
       handleLogout();
     }
 
@@ -459,6 +497,34 @@ const SettingsScreen = () => {
           <ThemedText style={styles.disabledText}>Delete Account</ThemedText>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Login Prompt Modal for Guests */}
+      <LoginPromptModal
+        visible={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          // Navigate back to home screen when cancel is clicked
+          navigation.navigate('MainNavigator', { screen: 'Home' });
+        }}
+        onLogin={() => {
+          setShowLoginModal(false);
+          // Reset navigation stack to go to login screen
+          navigation.reset({
+            index: 0,
+            routes: [
+              { 
+                name: 'AuthNavigator',
+                state: {
+                  routes: [{ name: 'Login' }],
+                  index: 0
+                }
+              }
+            ],
+          });
+        }}
+        title="Login Required"
+        message="Please login to access your settings and account information."
+      />
     </SafeAreaView>
   );
 };

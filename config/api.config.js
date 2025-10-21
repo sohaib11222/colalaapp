@@ -338,10 +338,20 @@ export const setAuthUser = async (user) => AsyncStorage.setItem("auth_user", JSO
 
 
 // Optional token helpers for when you add login
-export const setAuthToken = async (token) =>
-  AsyncStorage.setItem("auth_token", token);
+export const setAuthToken = async (token) => {
+  api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  return AsyncStorage.setItem("auth_token", token);
+};
 export const clearAuthToken = async () => AsyncStorage.removeItem("auth_token");
 export const getAuthToken = async () => AsyncStorage.getItem("auth_token");
+
+// Guest token helpers
+export const setGuestToken = async (token) => {
+  api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  return AsyncStorage.setItem("guest_token", token);
+};
+export const clearGuestToken = async () => AsyncStorage.removeItem("guest_token");
+export const getGuestToken = async () => AsyncStorage.getItem("guest_token");
 
 
 export const useCategoryProducts = (categoryId, page = 1, options) =>

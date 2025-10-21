@@ -29,6 +29,8 @@ const HOST = "https://colala.hmstech.xyz";
 import { useSavedToggleItem } from "../../../config/api.config";
 import { useCheckSavedItem } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
+import GuestService from "../../../utils/guestService";
+import LoginPromptModal from "../../../components/LoginPromptModal";
 
 const ProductDetailsScreen = () => {
   const route = useRoute();
@@ -61,6 +63,10 @@ const ProductDetailsScreen = () => {
   // State for video playback
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(-1);
+
+  // Guest functionality
+  const [isGuest, setIsGuest] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Ref for main image carousel
   const carouselRef = useRef(null);
@@ -95,6 +101,22 @@ const ProductDetailsScreen = () => {
   // Chat functionality
   const { mutate: startChat, isPending: creatingChat } = useStartChat();
 
+  // Guest action handler
+  const handleGuestAction = (action) => {
+    console.log("ProductDetailsScreen - handleGuestAction called, isGuest:", isGuest);
+    if (isGuest) {
+      console.log("ProductDetailsScreen - Showing login modal for guest");
+      setShowLoginModal(false);
+      setTimeout(() => {
+        console.log("ProductDetailsScreen - Setting showLoginModal to true");
+        setShowLoginModal(true);
+      }, 10);
+    } else {
+      console.log("ProductDetailsScreen - User is authenticated, proceeding with action");
+      action();
+    }
+  };
+
 
   // Check saved status when component mounts
   useEffect(() => {
@@ -105,6 +127,16 @@ const ProductDetailsScreen = () => {
       });
     }
   }, [productId]);
+
+  // Check guest status
+  useEffect(() => {
+    const checkGuestStatus = async () => {
+      const guestStatus = await GuestService.isGuest();
+      console.log("ProductDetailsScreen - Guest status:", guestStatus);
+      setIsGuest(guestStatus);
+    };
+    checkGuestStatus();
+  }, []);
 
   // Pull to refresh functionality
   const onRefresh = useCallback(async () => {
@@ -124,56 +156,60 @@ const ProductDetailsScreen = () => {
 
   // Handle heart icon press
   const handleHeartPress = () => {
-    if (productId && !isToggling) {
-      toggleSaved({
-        type: "product",
-        type_id: productId.toString(),
-      });
-    }
+    handleGuestAction(() => {
+      if (productId && !isToggling) {
+        toggleSaved({
+          type: "product",
+          type_id: productId.toString(),
+        });
+      }
+    });
   };
 
   // Handle start chat
   const handleStartChat = () => {
-    try {
-      const storeId = product?.store?.id;
-      console.log("Starting chat with store ID:", storeId);
-      
-      if (!storeId) {
-        console.error("Store ID not available");
-        Alert.alert("Error", "Store information not available");
-        return;
-      }
-      
-      startChat(
-        { storeId },
-        {
-          onSuccess: (data) => {
-            console.log("Chat created successfully:", data);
-            const { chat_id } = data;
-            
-            navigation.navigate("ServiceNavigator", {
-              screen: "ChatDetails",
-              params: {
-                store: {
-                  id: storeId,
-                  name: product?.store?.name || "Store",
-                  profileImage: product?.store?.logo,
-                },
-                chat_id,
-                store_order_id: storeId,
-              },
-            });
-          },
-          onError: (error) => {
-            console.error("Failed to create chat:", error);
-            Alert.alert("Error", "Failed to start chat. Please try again.");
-          },
+    handleGuestAction(() => {
+      try {
+        const storeId = product?.store?.id;
+        console.log("Starting chat with store ID:", storeId);
+        
+        if (!storeId) {
+          console.error("Store ID not available");
+          Alert.alert("Error", "Store information not available");
+          return;
         }
-      );
-    } catch (error) {
-      console.error("Error starting chat:", error);
-      Alert.alert("Error", "Failed to start chat. Please try again.");
-    }
+        
+        startChat(
+          { storeId },
+          {
+            onSuccess: (data) => {
+              console.log("Chat created successfully:", data);
+              const { chat_id } = data;
+              
+              navigation.navigate("ServiceNavigator", {
+                screen: "ChatDetails",
+                params: {
+                  store: {
+                    id: storeId,
+                    name: product?.store?.name || "Store",
+                    profileImage: product?.store?.logo,
+                  },
+                  chat_id,
+                  store_order_id: storeId,
+                },
+              });
+            },
+            onError: (error) => {
+              console.error("Failed to create chat:", error);
+              Alert.alert("Error", "Failed to start chat. Please try again.");
+            },
+          }
+        );
+      } catch (error) {
+        console.error("Error starting chat:", error);
+        Alert.alert("Error", "Failed to start chat. Please try again.");
+      }
+    });
   };
 
   // Helper function to get all media for viewer
@@ -422,22 +458,24 @@ const ProductDetailsScreen = () => {
   const handleAddToCart = () => {
     if (!product) return;
 
-    // const matchedVariant = product.variations?.find(
-    //   v =>
-    //     (!selectedColor || v.color === selectedColor) &&
-    //     (!selectedSize || v.size === selectedSize)
-    // );
+    handleGuestAction(() => {
+      // const matchedVariant = product.variations?.find(
+      //   v =>
+      //     (!selectedColor || v.color === selectedColor) &&
+      //     (!selectedSize || v.size === selectedSize)
+      // );
 
-    const payload = {
-      product_id: product.id,
-      qty: quantity,
-    };
+      const payload = {
+        product_id: product.id,
+        qty: quantity,
+      };
 
-    if (selectedVariant?.id) {
-      payload.variant_id = selectedVariant.id;
-    }
+      if (selectedVariant?.id) {
+        payload.variant_id = selectedVariant.id;
+      }
 
-    addToCartMutation.mutate(payload);
+      addToCartMutation.mutate(payload);
+    });
   };
   const socialIconMap= {
     whatsapp: "https://img.icons8.com/color/48/whatsapp--v1.png",
@@ -1501,6 +1539,23 @@ const ProductDetailsScreen = () => {
         </ScrollView>
         </>
       )}
+      
+      <LoginPromptModal
+        visible={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          navigation.navigate('MainNavigator', { screen: 'Home' });
+        }}
+        onLogin={() => {
+          setShowLoginModal(false);
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'AuthNavigator', state: { routes: [{ name: 'Login' }], index: 0 } }],
+          });
+        }}
+        title="Login Required"
+        message="Please login to add items to cart, save products, or start chatting with stores."
+      />
     </SafeAreaView>
   );
 };

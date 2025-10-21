@@ -85,6 +85,8 @@ export default function ShippingDetailsScreen() {
               qty: Number(it.qty || 1),
               image: it.image || PRODUCT_IMG, // Use API image if available, fallback to default
               product: it.product, // Keep product info for navigation
+              deliveryFee: Number(it.deliveryFee || it.delivery_fee || 0), // Include delivery fee
+              delivery_fee: Number(it.deliveryFee || it.delivery_fee || 0), // Also include as delivery_fee for compatibility
             };
           }),
         }))
@@ -364,7 +366,7 @@ export default function ShippingDetailsScreen() {
     );
   };
 
-  /* ---------- Per-store & Overall calcs (hardcoded fees locally) ---------- */
+  /* ---------- Per-store & Overall calcs (using actual delivery fees from API) ---------- */
   const perStore = useMemo(() => {
     const map = {};
     for (const s of stores) {
@@ -372,7 +374,16 @@ export default function ShippingDetailsScreen() {
       const itemsCost = s.items.reduce((a, b) => a + Number(b.price || 0) * (b.qty || 0), 0);
       const couponDiscount = s.discount || 0; // Use the actual discount from API response
       const pointsDiscount = Math.max(0, Math.floor(Number(s.points || 0))) * 1; // 1 point = ₦1 (hardcoded)
-      const deliveryFee = 10000; // per-store delivery fee NOT provided here -> hardcoded
+      
+      // Calculate delivery fee from items (each item has its own delivery_fee)
+      const deliveryFee = s.items.reduce((sum, item) => {
+        const itemDeliveryFee = Number(item.deliveryFee || item.delivery_fee || 0);
+        console.log("ShippingDetailsScreen - Item delivery fee:", itemDeliveryFee, "for item:", item.title);
+        return sum + itemDeliveryFee;
+      }, 0);
+      
+      console.log("ShippingDetailsScreen - Total delivery fee for store:", s.id, "is:", deliveryFee);
+      
       const totalToPay = itemsCost - couponDiscount - pointsDiscount + deliveryFee;
       map[s.id] = { itemsCount, itemsCost, couponDiscount, pointsDiscount, deliveryFee, totalToPay };
     }

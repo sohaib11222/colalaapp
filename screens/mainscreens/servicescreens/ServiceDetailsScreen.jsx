@@ -24,6 +24,8 @@ import { useSavedToggleItem } from "../../../config/api.config";
 import { useCheckSavedItem } from "../../../config/api.config";
 import { useStartServiceChat } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
+import GuestService from "../../../utils/guestService";
+import LoginPromptModal from "../../../components/LoginPromptModal";
 
 const ServiceDetailsScreen = () => {
   const { params } = useRoute();
@@ -66,6 +68,10 @@ const ServiceDetailsScreen = () => {
   
   // Phone number reveal state
   const [isPhoneRevealed, setIsPhoneRevealed] = useState(false);
+
+  // Guest functionality
+  const [isGuest, setIsGuest] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Video refs
   const videoRef = useRef(null);
@@ -141,6 +147,32 @@ const ServiceDetailsScreen = () => {
     }
   }, [serviceInfo]);
 
+  // Check guest status
+  useEffect(() => {
+    const checkGuestStatus = async () => {
+      const guestStatus = await GuestService.isGuest();
+      console.log("ServiceDetailsScreen - Guest status:", guestStatus);
+      setIsGuest(guestStatus);
+    };
+    checkGuestStatus();
+  }, []);
+
+  // Guest action handler
+  const handleGuestAction = (action) => {
+    console.log("ServiceDetailsScreen - handleGuestAction called, isGuest:", isGuest);
+    if (isGuest) {
+      console.log("ServiceDetailsScreen - Showing login modal for guest");
+      setShowLoginModal(false);
+      setTimeout(() => {
+        console.log("ServiceDetailsScreen - Setting showLoginModal to true");
+        setShowLoginModal(true);
+      }, 10);
+    } else {
+      console.log("ServiceDetailsScreen - User is authenticated, proceeding with action");
+      action();
+    }
+  };
+
   // Pull to refresh functionality
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -158,75 +190,79 @@ const ServiceDetailsScreen = () => {
 
   // Handle heart icon press
   const handleHeartPress = () => {
-    if (service?.id && !isToggling) {
-      toggleSaved({
-        type: "service",
-        type_id: service.id.toString(),
-      });
-    }
+    handleGuestAction(() => {
+      if (service?.id && !isToggling) {
+        toggleSaved({
+          type: "service",
+          type_id: service.id.toString(),
+        });
+      }
+    });
   };
 
   // Handle start service chat
   const handleStartServiceChat = () => {
-    try {
-      const serviceId = service?.id;
-      const storeId = serviceInfo?.store?.id || serviceInfo?.store_id;
+    handleGuestAction(() => {
+      try {
+        const serviceId = service?.id;
+        const storeId = serviceInfo?.store?.id || serviceInfo?.store_id;
 
-      if (!serviceId) {
-        console.error("Service ID not available");
-        return;
-      }
-
-      if (!storeId) {
-        console.error("Store ID not available");
-        return;
-      }
-
-      console.log("Starting service chat:", { serviceId, storeId });
-
-      startServiceChat(
-        { storeId, serviceId },
-        {
-          onSuccess: (data) => {
-            console.log("Service chat created successfully:", data);
-            const { chat_id } = data;
-
-            navigation.navigate("ServiceNavigator", {
-              screen: "ChatDetails",
-              params: {
-                store: {
-                  id: storeId,
-                  name: serviceInfo?.store?.store_name || "Service Store",
-                  profileImage: serviceInfo?.store?.profile_image
-                    ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
-                    : require("../../../assets/Ellipse 18.png"),
-                },
-                chat_id,
-                store_order_id: storeId,
-              },
-            });
-          },
-          onError: (error) => {
-            console.error("Failed to create service chat:", error);
-            // Fallback: navigate without chat_id
-            navigation.navigate("ServiceNavigator", {
-              screen: "ChatDetails",
-              params: {
-                store: {
-                  id: storeId,
-                  name: serviceInfo?.store?.store_name || "Service Store",
-                  profileImage: serviceInfo?.store?.profile_image
-                    ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
-                    : require("../../../assets/Ellipse 18.png"),
-                },
-              },
-            });
-          },
+        if (!serviceId) {
+          console.error("Service ID not available");
+          return;
         }
-      );
-    } catch (error) {
-      console.error("Error starting service chat:", error);
-    }
+
+        if (!storeId) {
+          console.error("Store ID not available");
+          return;
+        }
+
+        console.log("Starting service chat:", { serviceId, storeId });
+
+        startServiceChat(
+          { storeId, serviceId },
+          {
+            onSuccess: (data) => {
+              console.log("Service chat created successfully:", data);
+              const { chat_id } = data;
+
+              navigation.navigate("ServiceNavigator", {
+                screen: "ChatDetails",
+                params: {
+                  store: {
+                    id: storeId,
+                    name: serviceInfo?.store?.store_name || "Service Store",
+                    profileImage: serviceInfo?.store?.profile_image
+                      ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
+                      : require("../../../assets/Ellipse 18.png"),
+                  },
+                  chat_id,
+                  store_order_id: storeId,
+                },
+              });
+            },
+            onError: (error) => {
+              console.error("Failed to create service chat:", error);
+              // Fallback: navigate without chat_id
+              navigation.navigate("ServiceNavigator", {
+                screen: "ChatDetails",
+                params: {
+                  store: {
+                    id: storeId,
+                    name: serviceInfo?.store?.store_name || "Service Store",
+                    profileImage: serviceInfo?.store?.profile_image
+                      ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
+                      : require("../../../assets/Ellipse 18.png"),
+                  },
+                },
+              });
+            },
+          }
+        );
+      } catch (error) {
+        console.error("Error starting service chat:", error);
+      }
+    });
   };
 
   // Handle video play/pause
@@ -851,6 +887,23 @@ const ServiceDetailsScreen = () => {
           </View>
         </Modal>
       </ScrollView>
+      
+      <LoginPromptModal
+        visible={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          navigation.navigate('MainNavigator', { screen: 'Home' });
+        }}
+        onLogin={() => {
+          setShowLoginModal(false);
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'AuthNavigator', state: { routes: [{ name: 'Login' }], index: 0 } }],
+          });
+        }}
+        title="Login Required"
+        message="Please login to save services or start chatting with service providers."
+      />
     </>
   );
 };
