@@ -59,8 +59,8 @@ const ProductDetailsScreen = () => {
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
 
   // State for video playback
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(-1);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(true); // Start with true for autoplay
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0); // Start with 0 to autoplay first video
 
   // Ref for main image carousel
   const carouselRef = useRef(null);
@@ -231,8 +231,8 @@ const ProductDetailsScreen = () => {
   // Handle video status update
   const handleVideoStatusUpdate = (status) => {
     if (status.didJustFinish) {
-      setIsVideoPlaying(false);
-      setCurrentVideoIndex(-1);
+      // Video finished, it will loop automatically
+      // Keep playing state as true for continuous playback
     }
   };
 
@@ -768,22 +768,38 @@ const ProductDetailsScreen = () => {
                           style={styles.mainImage}
                           resizeMode={ResizeMode.COVER}
                           shouldPlay={currentVideoIndex === index && isVideoPlaying}
-                          isLooping={false}
+                          isLooping={true}
                           onPlaybackStatusUpdate={handleVideoStatusUpdate}
                           onError={(error) => {
                             console.log("Carousel video load error:", error);
                           }}
                         />
-                        <TouchableOpacity
-                          style={styles.videoPlayButton}
-                          onPress={() => handleVideoPlay(index)}
-                        >
-                          <Ionicons 
-                            name={currentVideoIndex === index && isVideoPlaying ? "pause-circle" : "play-circle"} 
-                            size={60} 
-                            color="rgba(255,255,255,0.8)" 
-                          />
-                        </TouchableOpacity>
+                        {/* Only show pause button when video is playing, otherwise show play */}
+                        {(currentVideoIndex !== index || !isVideoPlaying) && (
+                          <TouchableOpacity
+                            style={styles.videoPlayButton}
+                            onPress={() => handleVideoPlay(index)}
+                          >
+                            <Ionicons 
+                              name={currentVideoIndex === index && isVideoPlaying ? "pause-circle" : "play-circle"} 
+                              size={60} 
+                              color="rgba(255,255,255,0.8)" 
+                            />
+                          </TouchableOpacity>
+                        )}
+                        {/* Show pause button overlay when playing */}
+                        {currentVideoIndex === index && isVideoPlaying && (
+                          <TouchableOpacity
+                            style={styles.videoPlayButton}
+                            onPress={() => handleVideoPlay(index)}
+                          >
+                            <Ionicons 
+                              name="pause-circle" 
+                              size={60} 
+                              color="rgba(255,255,255,0.6)" 
+                            />
+                          </TouchableOpacity>
+                        )}
                         <View style={styles.videoOverlay}>
                           <ThemedText style={styles.videoLabel}>VIDEO</ThemedText>
                         </View>
@@ -831,22 +847,38 @@ const ProductDetailsScreen = () => {
                     style={styles.mainImage}
                     resizeMode={ResizeMode.COVER}
                     shouldPlay={currentVideoIndex === 0 && isVideoPlaying}
-                    isLooping={false}
+                    isLooping={true}
                     onPlaybackStatusUpdate={handleVideoStatusUpdate}
                     onError={(error) => {
                       console.log("Single video load error:", error);
                     }}
                   />
-                  <TouchableOpacity
-                    style={styles.videoPlayButton}
-                    onPress={() => handleVideoPlay(0)}
-                  >
-                    <Ionicons 
-                      name={currentVideoIndex === 0 && isVideoPlaying ? "pause-circle" : "play-circle"} 
-                      size={60} 
-                      color="rgba(255,255,255,0.8)" 
-                    />
-                  </TouchableOpacity>
+                  {/* Only show pause button when video is playing, otherwise show play */}
+                  {(currentVideoIndex !== 0 || !isVideoPlaying) && (
+                    <TouchableOpacity
+                      style={styles.videoPlayButton}
+                      onPress={() => handleVideoPlay(0)}
+                    >
+                      <Ionicons 
+                        name="play-circle" 
+                        size={60} 
+                        color="rgba(255,255,255,0.8)" 
+                      />
+                    </TouchableOpacity>
+                  )}
+                  {/* Show pause button overlay when playing */}
+                  {currentVideoIndex === 0 && isVideoPlaying && (
+                    <TouchableOpacity
+                      style={styles.videoPlayButton}
+                      onPress={() => handleVideoPlay(0)}
+                    >
+                      <Ionicons 
+                        name="pause-circle" 
+                        size={60} 
+                        color="rgba(255,255,255,0.6)" 
+                      />
+                    </TouchableOpacity>
+                  )}
                   <View style={styles.videoOverlay}>
                     <ThemedText style={styles.videoLabel}>VIDEO</ThemedText>
                   </View>
@@ -1434,22 +1466,38 @@ const ProductDetailsScreen = () => {
                           style={styles.imageViewerImage}
                           resizeMode={ResizeMode.CONTAIN}
                           shouldPlay={currentVideoIndex === index && isVideoPlaying}
-                          isLooping={false}
+                          isLooping={true}
                           onPlaybackStatusUpdate={handleVideoStatusUpdate}
                           onError={(error) => {
                             console.log("Viewer video load error:", error);
                           }}
                         />
-                        <TouchableOpacity
-                          style={styles.videoViewerPlayButton}
-                          onPress={() => handleVideoPlay(index, true)}
-                        >
-                          <Ionicons 
-                            name={currentVideoIndex === index && isVideoPlaying ? "pause-circle" : "play-circle"} 
-                            size={80} 
-                            color="rgba(255,255,255,0.9)" 
-                          />
-                        </TouchableOpacity>
+                        {/* Only show pause button when video is playing, otherwise show play */}
+                        {(currentVideoIndex !== index || !isVideoPlaying) && (
+                          <TouchableOpacity
+                            style={styles.videoViewerPlayButton}
+                            onPress={() => handleVideoPlay(index, true)}
+                          >
+                            <Ionicons 
+                              name="play-circle" 
+                              size={80} 
+                              color="rgba(255,255,255,0.9)" 
+                            />
+                          </TouchableOpacity>
+                        )}
+                        {/* Show pause button overlay when playing */}
+                        {currentVideoIndex === index && isVideoPlaying && (
+                          <TouchableOpacity
+                            style={styles.videoViewerPlayButton}
+                            onPress={() => handleVideoPlay(index, true)}
+                          >
+                            <Ionicons 
+                              name="pause-circle" 
+                              size={80} 
+                              color="rgba(255,255,255,0.6)" 
+                            />
+                          </TouchableOpacity>
+                        )}
                         <View style={styles.videoViewerOverlay}>
                           <ThemedText style={styles.videoViewerLabel}>VIDEO</ThemedText>
                         </View>
