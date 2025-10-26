@@ -24,6 +24,8 @@ import { useSavedToggleItem } from "../../../config/api.config";
 import { useCheckSavedItem } from "../../../config/api.config";
 import { useStartServiceChat } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
+import GuestService from "../../../utils/guestService";
+import LoginPromptModal from "../../../components/LoginPromptModal";
 
 const ServiceDetailsScreen = () => {
   const { params } = useRoute();
@@ -67,6 +69,10 @@ const ServiceDetailsScreen = () => {
   // Phone number reveal state
   const [isPhoneRevealed, setIsPhoneRevealed] = useState(false);
 
+  // Guest functionality
+  const [isGuest, setIsGuest] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
   // Video refs
   const videoRef = useRef(null);
   const viewerVideoRef = useRef(null);
@@ -96,6 +102,7 @@ const ServiceDetailsScreen = () => {
     },
   });
 
+  console.log("serviceData", serviceData);
   // Toggle saved status
   const { mutate: toggleSaved, isLoading: isToggling } = useSavedToggleItem({
     onSuccess: (data) => {
@@ -138,6 +145,32 @@ const ServiceDetailsScreen = () => {
     }
   }, [serviceInfo]);
 
+  // Check guest status
+  useEffect(() => {
+    const checkGuestStatus = async () => {
+      const guestStatus = await GuestService.isGuest();
+      console.log("ServiceDetailsScreen - Guest status:", guestStatus);
+      setIsGuest(guestStatus);
+    };
+    checkGuestStatus();
+  }, []);
+
+  // Guest action handler
+  const handleGuestAction = (action) => {
+    console.log("ServiceDetailsScreen - handleGuestAction called, isGuest:", isGuest);
+    if (isGuest) {
+      console.log("ServiceDetailsScreen - Showing login modal for guest");
+      setShowLoginModal(false);
+      setTimeout(() => {
+        console.log("ServiceDetailsScreen - Setting showLoginModal to true");
+        setShowLoginModal(true);
+      }, 10);
+    } else {
+      console.log("ServiceDetailsScreen - User is authenticated, proceeding with action");
+      action();
+    }
+  };
+
   // Pull to refresh functionality
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -155,75 +188,79 @@ const ServiceDetailsScreen = () => {
 
   // Handle heart icon press
   const handleHeartPress = () => {
-    if (service?.id && !isToggling) {
-      toggleSaved({
-        type: "service",
-        type_id: service.id.toString(),
-      });
-    }
+    handleGuestAction(() => {
+      if (service?.id && !isToggling) {
+        toggleSaved({
+          type: "service",
+          type_id: service.id.toString(),
+        });
+      }
+    });
   };
 
   // Handle start service chat
   const handleStartServiceChat = () => {
-    try {
-      const serviceId = service?.id;
-      const storeId = serviceInfo?.store?.id || serviceInfo?.store_id;
+    handleGuestAction(() => {
+      try {
+        const serviceId = service?.id;
+        const storeId = serviceInfo?.store?.id || serviceInfo?.store_id;
 
-      if (!serviceId) {
-        console.error("Service ID not available");
-        return;
-      }
-
-      if (!storeId) {
-        console.error("Store ID not available");
-        return;
-      }
-
-      console.log("Starting service chat:", { serviceId, storeId });
-
-      startServiceChat(
-        { storeId, serviceId },
-        {
-          onSuccess: (data) => {
-            console.log("Service chat created successfully:", data);
-            const { chat_id } = data;
-
-            navigation.navigate("ServiceNavigator", {
-              screen: "ChatDetails",
-              params: {
-                store: {
-                  id: storeId,
-                  name: serviceInfo?.store?.store_name || "Service Store",
-                  profileImage: serviceInfo?.store?.profile_image
-                    ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
-                    : require("../../../assets/Ellipse 18.png"),
-                },
-                chat_id,
-                store_order_id: storeId,
-              },
-            });
-          },
-          onError: (error) => {
-            console.error("Failed to create service chat:", error);
-            // Fallback: navigate without chat_id
-            navigation.navigate("ServiceNavigator", {
-              screen: "ChatDetails",
-              params: {
-                store: {
-                  id: storeId,
-                  name: serviceInfo?.store?.store_name || "Service Store",
-                  profileImage: serviceInfo?.store?.profile_image
-                    ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
-                    : require("../../../assets/Ellipse 18.png"),
-                },
-              },
-            });
-          },
+        if (!serviceId) {
+          console.error("Service ID not available");
+          return;
         }
-      );
-    } catch (error) {
-      console.error("Error starting service chat:", error);
-    }
+
+        if (!storeId) {
+          console.error("Store ID not available");
+          return;
+        }
+
+        console.log("Starting service chat:", { serviceId, storeId });
+
+        startServiceChat(
+          { storeId, serviceId },
+          {
+            onSuccess: (data) => {
+              console.log("Service chat created successfully:", data);
+              const { chat_id } = data;
+
+              navigation.navigate("ServiceNavigator", {
+                screen: "ChatDetails",
+                params: {
+                  store: {
+                    id: storeId,
+                    name: serviceInfo?.store?.store_name || "Service Store",
+                    profileImage: serviceInfo?.store?.profile_image
+                      ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
+                      : require("../../../assets/Ellipse 18.png"),
+                  },
+                  chat_id,
+                  store_order_id: storeId,
+                },
+              });
+            },
+            onError: (error) => {
+              console.error("Failed to create service chat:", error);
+              // Fallback: navigate without chat_id
+              navigation.navigate("ServiceNavigator", {
+                screen: "ChatDetails",
+                params: {
+                  store: {
+                    id: storeId,
+                    name: serviceInfo?.store?.store_name || "Service Store",
+                    profileImage: serviceInfo?.store?.profile_image
+                      ? `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}`
+                      : require("../../../assets/Ellipse 18.png"),
+                  },
+                },
+              });
+            },
+          }
+        );
+      } catch (error) {
+        console.error("Error starting service chat:", error);
+      }
+    });
   };
 
   // Handle video play/pause
@@ -690,6 +727,8 @@ const ServiceDetailsScreen = () => {
             );
           })}
 
+        
+
           {/* Action Buttons */}
           <View style={styles.actions}>
             {/* WhatsApp */}
@@ -750,7 +789,211 @@ const ServiceDetailsScreen = () => {
                </ThemedText>
              </TouchableOpacity>
           </View>
+
+            {/* Store Details Section */}
+            <View style={{ paddingHorizontal: 16, marginBottom: 30 }}>
+            <ThemedText
+              style={{ fontWeight: "500", fontSize: 15, marginBottom: 10 }}
+            >
+              Store Details
+            </ThemedText>
+
+            <View
+              style={{
+                backgroundColor: "#fff",
+                borderRadius: 16,
+                overflow: "hidden",
+                elevation: 2,
+              }}
+            >
+              <Image
+                source={
+                  serviceInfo?.store?.banner_image
+                    ? { uri: `https://colala.hmstech.xyz/storage/${serviceInfo.store.banner_image}` }
+                    : require("../../../assets/Frame 264.png")
+                }
+                style={{ width: "100%", height: 110, resizeMode: "cover" }}
+              />
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: -28,
+                  paddingHorizontal: 12,
+                }}
+              >
+                <Image
+                  source={
+                    serviceInfo?.store?.profile_image
+                      ? { uri: `https://colala.hmstech.xyz/storage/${serviceInfo.store.profile_image}` }
+                      : require("../../../assets/Ellipse 18.png")
+                  }
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 28,
+                    marginRight: 10,
+                    borderWidth: 2,
+                    borderColor: "#fff",
+                  }}
+                />
+                <View style={{ flex: 1 }}>
+                  <ThemedText
+                    style={{
+                      fontWeight: "600",
+                      fontSize: 15,
+                      marginTop: 30,
+                    }}
+                  >
+                    {serviceInfo?.store?.store_name || "Service Store"}
+                  </ThemedText>
+                  <View
+                    style={{ flexDirection: "row", gap: 6, marginTop: 4 }}
+                  >
+                    <ThemedText
+                      style={{
+                        fontSize: 11,
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        backgroundColor: "#0000FF33",
+                        color: "#0000FF",
+                        borderRadius: 6,
+                        fontWeight: "500",
+                        borderWidth: 0.5,
+                        borderColor: "#0000FF",
+                      }}
+                    >
+                      Service Provider
+                    </ThemedText>
+                  </View>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 20,
+                  }}
+                >
+                  <Ionicons name="star" color="red" size={16} />
+                  <ThemedText style={{ fontSize: 14, marginLeft: 4 }}>
+                    {serviceInfo?.store?.average_rating || 0}
+                  </ThemedText>
+                </View>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: 8,
+                  paddingHorizontal: 12,
+                }}
+              >
+                <Ionicons name="location-outline" size={16} color="#888" />
+                <ThemedText
+                  style={{ marginLeft: 4, fontSize: 13, color: "#555" }}
+                >
+                  {serviceInfo?.store?.store_location || "Lagos, Nigeria"}
+                </ThemedText>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  paddingHorizontal: 12,
+                  paddingBottom: 14,
+                }}
+              >
+                <View style={{ alignItems: "center" }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 7,
+                    }}
+                  >
+                    <Image
+                      source={require("../../../assets/shop.png")}
+                      style={{ width: 16, height: 16 }}
+                    />
+                    <View>
+                      <ThemedText style={{ fontSize: 10, color: "#888" }}>
+                        Services
+                      </ThemedText>
+                      <ThemedText
+                        style={{ fontSize: 14, fontWeight: "500" }}
+                      >
+                        0
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={{ width: 1, height: 30, backgroundColor: "#E0E0E0" }} />
+
+                <View style={{ alignItems: "center" }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 7,
+                    }}
+                  >
+                    <Image
+                      source={require("../../../assets/profile-2user.png")}
+                      style={{ width: 16, height: 16 }}
+                    />
+                    <View>
+                      <ThemedText style={{ fontSize: 10, color: "#888" }}>
+                        Followers
+                      </ThemedText>
+                      <ThemedText
+                        style={{ fontSize: 14, fontWeight: "500" }}
+                      >
+                        0
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={{ width: 1, height: 30, backgroundColor: "#E0E0E0" }} />
+
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "#E53E3E",
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                    borderRadius: 10,
+                  }}
+                  onPress={() => {
+                    navigation.navigate("ServiceNavigator", {
+                      screen: "StoreDetails",
+                      params: {
+                        store: serviceInfo?.store,
+                        storeId: serviceInfo?.store?.id || serviceInfo?.store_id,
+                      },
+                    });
+                  }}
+                >
+                  <ThemedText
+                    style={{
+                      color: "white",
+                      fontSize: 12,
+                      fontWeight: "500",
+                    }}
+                  >
+                    Go to Shop
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </View>
+
+
 
         {/* Image Viewer Modal */}
         <Modal
@@ -872,6 +1115,23 @@ const ServiceDetailsScreen = () => {
           </View>
         </Modal>
       </ScrollView>
+      
+      <LoginPromptModal
+        visible={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          navigation.navigate('MainNavigator', { screen: 'Home' });
+        }}
+        onLogin={() => {
+          setShowLoginModal(false);
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'AuthNavigator', state: { routes: [{ name: 'Login' }], index: 0 } }],
+          });
+        }}
+        title="Login Required"
+        message="Please login to save services or start chatting with service providers."
+      />
     </>
   );
 };

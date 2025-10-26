@@ -423,6 +423,7 @@ export default function ReferralsScreen() {
 
   // FAQs state
   const [openFaqId, setOpenFaqId] = useState("");
+  const [faqTab, setFaqTab] = useState("faqs"); // "faqs" or "video"
 
   // Process FAQs data from API
   const processedFAQs = useMemo(() => {
@@ -759,104 +760,182 @@ export default function ReferralsScreen() {
 
       {/* ===== FAQs tab ===== */}
       {tab === "faqs" && (
-        <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[COLOR.primary]}
-              tintColor={COLOR.primary}
-              title="Pull to refresh"
-              titleColor={COLOR.sub}
-            />
-          }
-        >
-          {/* Loading indicator */}
-          {faqsLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLOR.primary} />
-              <ThemedText style={styles.loadingText}>Loading FAQs...</ThemedText>
-            </View>
-          )}
-
-          {/* Error message */}
-          {faqsError && !faqsLoading && (
-            <View style={styles.errorContainer}>
-              <ThemedText style={styles.errorText}>
-                Failed to load FAQs. Please try again later.
-              </ThemedText>
-            </View>
-          )}
-
-          {/* Video banner with play icon - only show if video exists */}
-          {hasVideo && videoUrl && (
-            <TouchableOpacity 
-              style={styles.videoCard}
-              onPress={() => {
-                if (originalVideoUrl) {
-                  handleVideoPlay(originalVideoUrl);
-                }
-              }}
-              activeOpacity={0.9}
+        <>
+          {/* FAQ Tabs */}
+          <View style={styles.faqTabsContainer}>
+            <TouchableOpacity
+              style={[
+                styles.faqTabButton,
+                faqTab === "video" && styles.faqTabButtonActive,
+              ]}
+              onPress={() => setFaqTab("video")}
+              activeOpacity={0.7}
             >
-              <Image
-                source={{ uri: videoUrl }}
-                style={styles.videoImage}
-                resizeMode="cover"
+              <Ionicons 
+                name="play-circle" 
+                size={18} 
+                color={faqTab === "video" ? COLOR.primary : COLOR.sub} 
               />
-              <View style={styles.playOverlay}>
-                <Ionicons name="play" size={26} color="#fff" />
-              </View>
-              {thumbnailUrl && (
-                <View style={styles.youtubeIndicator}>
-                  <Ionicons name="logo-youtube" size={20} color="#fff" />
+              <ThemedText
+                style={[
+                  styles.faqTabText,
+                  faqTab === "video" && styles.faqTabTextActive,
+                ]}
+              >
+                Video FAQs
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.faqTabButton,
+                faqTab === "faqs" && styles.faqTabButtonActive,
+              ]}
+              onPress={() => setFaqTab("faqs")}
+              activeOpacity={0.7}
+            >
+              <Ionicons 
+                name="document-text" 
+                size={18} 
+                color={faqTab === "faqs" ? COLOR.primary : COLOR.sub} 
+              />
+              <ThemedText
+                style={[
+                  styles.faqTabText,
+                  faqTab === "faqs" && styles.faqTabTextActive,
+                ]}
+              >
+                FAQs
+              </ThemedText>
+              {processedFAQs.length > 0 && (
+                <View style={[
+                  styles.faqTabBadge,
+                  faqTab === "faqs" && styles.faqTabBadgeActive,
+                ]}>
+                  <ThemedText style={[
+                    styles.faqTabBadgeText,
+                    faqTab === "faqs" && styles.faqTabBadgeTextActive,
+                  ]}>
+                    {processedFAQs.length}
+                  </ThemedText>
                 </View>
               )}
             </TouchableOpacity>
-          )}
+          </View>
 
-          <ThemedText style={styles.faqsTitle}>Referral FAQs</ThemedText>
-
-          {/* Accordion list */}
-          {processedFAQs.length > 0 ? (
-            processedFAQs.map((item) => {
-              const open = openFaqId === item.id;
-              return (
-                <View
-                  key={item.id}
-                  style={[styles.faqItem, open && styles.faqItemOpen]}
-                >
-                  <TouchableOpacity
-                    onPress={() => setOpenFaqId(open ? "" : item.id)}
-                    style={styles.faqHeader}
-                    activeOpacity={0.8}
-                  >
-                    <ThemedText style={styles.faqQ}>{item.q}</ThemedText>
-                    <Ionicons
-                      name={open ? "remove" : "add"}
-                      size={20}
-                      color={COLOR.text}
-                    />
-                  </TouchableOpacity>
-
-                  {open && (
-                    <View style={styles.faqBody}>
-                      <ThemedText style={styles.faqA}>{item.a}</ThemedText>
-                    </View>
-                  )}
-                </View>
-              );
-            })
-          ) : (
-            !faqsLoading && !faqsError && (
-              <View style={styles.emptyContainer}>
-                <ThemedText style={styles.emptyText}>No FAQs available</ThemedText>
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[COLOR.primary]}
+                tintColor={COLOR.primary}
+                title="Pull to refresh"
+                titleColor={COLOR.sub}
+              />
+            }
+          >
+            {/* Loading indicator */}
+            {faqsLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLOR.primary} />
+                <ThemedText style={styles.loadingText}>Loading FAQs...</ThemedText>
               </View>
-            )
-          )}
-        </ScrollView>
+            )}
+
+            {/* Error message */}
+            {faqsError && !faqsLoading && (
+              <View style={styles.errorContainer}>
+                <ThemedText style={styles.errorText}>
+                  Failed to load FAQs. Please try again later.
+                </ThemedText>
+              </View>
+            )}
+
+            {/* Video FAQs Tab Content */}
+            {faqTab === "video" && (
+              <View style={{ marginTop: 12 }}>
+                {hasVideo && videoUrl ? (
+                  <TouchableOpacity 
+                    style={styles.videoCard}
+                    onPress={() => {
+                      if (originalVideoUrl) {
+                        handleVideoPlay(originalVideoUrl);
+                      }
+                    }}
+                    activeOpacity={0.9}
+                  >
+                    <Image
+                      source={{ uri: videoUrl }}
+                      style={styles.videoImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.playOverlay}>
+                      <Ionicons name="play" size={26} color="#fff" />
+                    </View>
+                    {thumbnailUrl && (
+                      <View style={styles.youtubeIndicator}>
+                        <Ionicons name="logo-youtube" size={20} color="#fff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  !faqsLoading && !faqsError && (
+                    <View style={styles.emptyContainer}>
+                      <Ionicons name="videocam-off-outline" size={48} color={COLOR.sub} style={{ marginBottom: 12 }} />
+                      <ThemedText style={styles.emptyText}>No video FAQs available</ThemedText>
+                    </View>
+                  )
+                )}
+              </View>
+            )}
+
+            {/* Text FAQs Tab Content */}
+            {faqTab === "faqs" && (
+              <View style={{ marginTop: 12 }}>
+                {processedFAQs.length > 0 ? (
+                  processedFAQs.map((item) => {
+                    const open = openFaqId === item.id;
+                    return (
+                      <View
+                        key={item.id}
+                        style={[styles.faqItem, open && styles.faqItemOpen]}
+                      >
+                        <TouchableOpacity
+                          onPress={() => setOpenFaqId(open ? "" : item.id)}
+                          style={styles.faqHeader}
+                          activeOpacity={0.8}
+                        >
+                          <ThemedText style={styles.faqQ}>{item.q}</ThemedText>
+                          <Ionicons
+                            name={open ? "remove" : "add"}
+                            size={20}
+                            color={COLOR.text}
+                          />
+                        </TouchableOpacity>
+
+                        {open && (
+                          <View style={styles.faqBody}>
+                            <ThemedText style={styles.faqA}>{item.a}</ThemedText>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })
+                ) : (
+                  !faqsLoading && !faqsError && (
+                    <View style={styles.emptyContainer}>
+                      <Ionicons name="document-text-outline" size={48} color={COLOR.sub} style={{ marginBottom: 12 }} />
+                      <ThemedText style={styles.emptyText}>No FAQs available</ThemedText>
+                    </View>
+                  )
+                )}
+              </View>
+            )}
+          </ScrollView>
+        </>
       )}
 
       {/* ===== Search tab ===== */}
@@ -2453,5 +2532,62 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 2,
+  },
+
+  // FAQ Tabs styles
+  faqTabsContainer: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  faqTabButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: COLOR.bg,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    gap: 6,
+  },
+  faqTabButtonActive: {
+    backgroundColor: "#FFF0F0",
+    borderColor: COLOR.primary,
+  },
+  faqTabText: {
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  faqTabTextActive: {
+    color: COLOR.primary,
+    fontWeight: "600",
+  },
+  faqTabBadge: {
+    backgroundColor: COLOR.sub,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  faqTabBadgeActive: {
+    backgroundColor: COLOR.primary,
+  },
+  faqTabBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  faqTabBadgeTextActive: {
+    color: "#fff",
   },
 });

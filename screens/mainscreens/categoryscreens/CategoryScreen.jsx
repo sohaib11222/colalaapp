@@ -168,6 +168,7 @@ const CategoryScreen = () => {
   // If we were given a parent id, expand only that on first load.
   useEffect(() => {
     if (!initialParentId || !apiCategories.length) return;
+    // console.log("cateogir")
     setExpanded((prev) => {
       // don't clobber if already manually toggled
       if (typeof prev[initialParentId] !== "undefined") return prev;
@@ -175,7 +176,12 @@ const CategoryScreen = () => {
       return { [initialParentId]: true };
     });
   }, [initialParentId, apiCategories.length]);
-
+  useEffect(() => {
+    if (data) {
+      console.log("✅ Categories Response:", data);
+    }
+  }, [data]);
+  
   // Pull to refresh functionality
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

@@ -133,6 +133,7 @@ export default function CameraSearchScreen() {
     };
 
     const products = searchResults?.data || [];
+    console.log("products we got from data is ", products);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>

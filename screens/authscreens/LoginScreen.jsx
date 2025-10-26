@@ -18,6 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import ThemedText from '../../components/ThemedText';
 import { useLogin, setAuthToken } from '../../config/api.config';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import GuestService from '../../utils/guestService';
 
 const { height } = Dimensions.get('window');
 
@@ -40,8 +41,13 @@ const LoginScreen = () => {
           navigation.replace("MainNavigator");
           return;
         }
+        
+        // No token found, stay on login screen
+        console.log("🔄 No auth token found, staying on login screen");
       } catch (e) {
         console.log("Error reading token:", e);
+        // Even if guest initialization fails, proceed to main app
+        navigation.replace("MainNavigator");
       } finally {
         setCheckingToken(false);
       }
@@ -61,6 +67,13 @@ const LoginScreen = () => {
       }
       if (user) {
         await AsyncStorage.setItem('auth_user', JSON.stringify(user));
+      }
+
+      // Convert guest to authenticated user if they were a guest
+      try {
+        await GuestService.convertToAuthenticated(token, user);
+      } catch (error) {
+        console.log("⚠️ Error converting guest to authenticated:", error);
       }
 
       navigation.replace('MainNavigator');
@@ -190,6 +203,23 @@ const LoginScreen = () => {
               </TouchableOpacity>
             </View>
 
+            {/* Continue as Guest Button */}
+            <TouchableOpacity 
+              style={styles.guestButton}
+              onPress={async () => {
+                try {
+                  console.log("🔄 User chose to continue as guest...");
+                  await GuestService.initializeGuestMode();
+                  navigation.replace("MainNavigator");
+                } catch (error) {
+                  console.error("❌ Error initializing guest mode:", error);
+                  Alert.alert('Error', 'Failed to continue as guest. Please try again.');
+                }
+              }}
+            >
+              <ThemedText style={styles.guestButtonText}>Continue as Guest</ThemedText>
+            </TouchableOpacity>
+
             {/* Gradient Bottom Box */}
             <LinearGradient
               colors={['#F90909', '#920C5F']}
@@ -274,6 +304,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   linkText: { color: '#D5232C', fontSize: 14 },
+
+  // Guest button styles
+  guestButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#D5232C',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginTop: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  guestButtonText: {
+    color: '#D5232C',
+    fontSize: 16,
+    fontWeight: '500',
+  },
 
   bottomGradient: { borderRadius: 16, padding: 16, paddingLeft: 30, alignItems: 'center' },
   sellerText: { color: '#fff', fontSize: 11, marginLeft: -50, marginBottom: 15, textAlign: 'center' },

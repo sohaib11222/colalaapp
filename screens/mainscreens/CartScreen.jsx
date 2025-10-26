@@ -100,48 +100,89 @@ export default function CartScreen() {
 
   // hydrate UI from API
   useEffect(() => {
-    const storesObj = data?.data?.stores || {};
-    console.log("Cart API Data:", data?.data);
-    console.log("Stores Object:", storesObj);
-    
-    const normalized = Object.entries(storesObj).map(([storeId, block]) => {
-      const firstItem = block?.items?.[0];
-      const storeInfo = firstItem?.store;
-      
-      console.log("Processing store:", storeId, "with items:", block?.items);
-      
+  const storesObj = data?.data?.stores || {};
+  console.log("Cart API Data:", data?.data);
+  console.log("Stores Object:", storesObj);
+
+  // tiny helper to coerce possible string/number/null → number
+  const toNum = (v, fallback = 0) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  };
+
+  const normalized = Object.entries(storesObj).map(([storeId, block]) => {
+    const itemsInBlock = Array.isArray(block?.items) ? block.items : [];
+    const firstItem = itemsInBlock[0];
+    const storeInfo = firstItem?.store;
+
+    console.log("Processing store:", storeId, "with items:", itemsInBlock);
+
+    // map items and keep delivery + totals intact
+    const items = itemsInBlock.map((it) => {
+      const imageUrl = it?.product?.images?.[0]?.path
+        ? fileUrl(it.product.images[0].path)
+        : null;
+
+      // prefer discount_price for unit, fall back to unit_price
+      const unit = toNum(it?.discount_price ?? it?.unit_price);
+      const qty = toNum(it?.qty);
+      const lineTotal = toNum(it?.line_total, unit * qty); // safety fallback
+      const deliveryFee = toNum(it?.delivery_fee);         // 👈 from API
+
+      const finalPrice = unit; // your previous "price" field was per-unit
+
+      console.log("Item mapping:", {
+        id: it?.id,
+        name: it?.name,
+        unit_price: it?.unit_price,
+        discount_price: it?.discount_price,
+        final_price: finalPrice,
+        qty,
+        line_total: lineTotal,
+        delivery_fee: deliveryFee,
+        image_url: imageUrl,
+      });
+
       return {
-        id: String(storeId),
-        name: storeInfo?.store_name || `Store ${storeId}`,
-        selected: true,
-        store: storeInfo, // Keep store info for chat
-        items: (block?.items || []).map((it) => {
-          const imageUrl = it.product?.images?.[0]?.path ? fileUrl(it.product.images[0].path) : null;
-          const price = Number(it.discount_price || it.unit_price || 0);
-          
-          console.log("Item mapping:", {
-            id: it.id,
-            name: it.name,
-            unit_price: it.unit_price,
-            discount_price: it.discount_price,
-            final_price: price,
-            product_images: it.product?.images,
-            image_url: imageUrl
-          });
-          
-          return {
-            id: String(it.id), // cart item id
-            title: `${it.name}${it.color ? ` - ${it.color}` : ""}${it.size ? ` (${it.size})` : ""}`,
-            price: price, // Use discount_price if available
-            qty: Number(it.qty || 0),
-            image: imageUrl, // Use API image
-            product: it.product, // Keep product info for navigation
-          };
-        }),
+        id: String(it?.id), // cart item id
+        title: `${it?.name ?? ""}${it?.color ? ` - ${it.color}` : ""}${
+          it?.size ? ` (${it.size})` : ""
+        }`,
+        price: finalPrice,      // per-unit price you were using
+        qty,
+        image: imageUrl,
+        product: it?.product,   // keep product info for navigation
+
+        // 🔹 add these so UI can show shipping per item or totals later
+        lineTotal,              // numeric line total (after discounts)
+        deliveryFee,            // numeric shipping for this item
+        delivery_fee: deliveryFee, // Also include as delivery_fee for compatibility
+        totalWithShipping: lineTotal + deliveryFee, // convenience
       };
     });
-    setStores(normalized);
-  }, [data]);
+
+    // compute per-store shipping & totals from the mapped items
+    const storeShippingTotal = items.reduce((sum, it) => sum + toNum(it.deliveryFee), 0);
+    const storeItemsSubtotal = items.reduce((sum, it) => sum + toNum(it.lineTotal), 0);
+    const storeGrand = storeItemsSubtotal + storeShippingTotal;
+
+    return {
+      id: String(storeId),
+      name: storeInfo?.store_name || `Store ${storeId}`,
+      selected: true,
+      store: storeInfo, // Keep store info for chat
+      items,
+
+      // 🔹 new calculated helpers (read-only; won’t break old usage)
+      shipping_fee: storeShippingTotal,              // total shipping for this store
+      items_subtotal: storeItemsSubtotal,            // mirrors API if you want to trust FE calc
+      subtotal_with_shipping: storeGrand,            // convenience for UI
+    };
+  });
+
+  setStores(normalized);
+}, [data]);
+
 
   // qty -> POST /buyer/cart/items/:id { qty }
   const updateQty = (sid, iid, delta) => {

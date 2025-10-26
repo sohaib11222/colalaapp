@@ -83,15 +83,26 @@ export default function ShippingSummaryScreen() {
   const setField = (sid, key, val) =>
     setInputs((p) => ({ ...p, [sid]: { ...(p[sid] || {}), [key]: val } }));
 
-  // === Totals: force Delivery fee = ₦10,000 per store (as in Shipping Details) ===
+  // === Totals: use actual delivery fees from API ===
   const perStore = useMemo(() => {
     const map = {};
     for (const s of storesParam) {
+      console.log("ShippingSummaryScreen - Processing store:", s.id, "with items:", s.items);
+      
       const itemsCount = s.items.reduce((a, b) => a + (b.qty || 0), 0);
       const itemsCost = s.items.reduce((a, b) => a + Number(b.price || 0) * (b.qty || 0), 0);
       const couponDiscount = s.discount || 0; // Use the actual discount from API response
       const pointsDiscount = Math.max(0, Math.floor(Number(s.points || 0))) * 1; // 1 point = ₦1 (hardcoded)
-      const deliveryFee = 10000; // hardcoded
+      
+      // Calculate delivery fee from items (each item has its own delivery_fee)
+      const deliveryFee = s.items.reduce((sum, item) => {
+        const itemDeliveryFee = Number(item.deliveryFee || item.delivery_fee || 0);
+        console.log("ShippingSummaryScreen - Item delivery fee:", itemDeliveryFee, "for item:", item.title);
+        return sum + itemDeliveryFee;
+      }, 0);
+      
+      console.log("ShippingSummaryScreen - Total delivery fee for store:", s.id, "is:", deliveryFee);
+      
       const totalToPay = itemsCost - couponDiscount - pointsDiscount + deliveryFee;
       map[s.id] = { itemsCount, itemsCost, couponDiscount, pointsDiscount, deliveryFee, totalToPay };
     }

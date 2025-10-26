@@ -29,6 +29,8 @@ const HOST = "https://colala.hmstech.xyz";
 import { useSavedToggleItem } from "../../../config/api.config";
 import { useCheckSavedItem } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
+import GuestService from "../../../utils/guestService";
+import LoginPromptModal from "../../../components/LoginPromptModal";
 
 const ProductDetailsScreen = () => {
   const route = useRoute();
@@ -61,6 +63,13 @@ const ProductDetailsScreen = () => {
   // State for video playback
   const [isVideoPlaying, setIsVideoPlaying] = useState(true); // Start with true for autoplay
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0); // Start with 0 to autoplay first video
+
+  // Guest functionality
+  const [isGuest, setIsGuest] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  
+  // Cart success modal
+  const [showCartSuccessModal, setShowCartSuccessModal] = useState(false);
 
   // Ref for main image carousel
   const carouselRef = useRef(null);
@@ -95,6 +104,22 @@ const ProductDetailsScreen = () => {
   // Chat functionality
   const { mutate: startChat, isPending: creatingChat } = useStartChat();
 
+  // Guest action handler
+  const handleGuestAction = (action) => {
+    console.log("ProductDetailsScreen - handleGuestAction called, isGuest:", isGuest);
+    if (isGuest) {
+      console.log("ProductDetailsScreen - Showing login modal for guest");
+      setShowLoginModal(false);
+      setTimeout(() => {
+        console.log("ProductDetailsScreen - Setting showLoginModal to true");
+        setShowLoginModal(true);
+      }, 10);
+    } else {
+      console.log("ProductDetailsScreen - User is authenticated, proceeding with action");
+      action();
+    }
+  };
+
 
   // Check saved status when component mounts
   useEffect(() => {
@@ -105,6 +130,16 @@ const ProductDetailsScreen = () => {
       });
     }
   }, [productId]);
+
+  // Check guest status
+  useEffect(() => {
+    const checkGuestStatus = async () => {
+      const guestStatus = await GuestService.isGuest();
+      console.log("ProductDetailsScreen - Guest status:", guestStatus);
+      setIsGuest(guestStatus);
+    };
+    checkGuestStatus();
+  }, []);
 
   // Pull to refresh functionality
   const onRefresh = useCallback(async () => {
@@ -124,56 +159,60 @@ const ProductDetailsScreen = () => {
 
   // Handle heart icon press
   const handleHeartPress = () => {
-    if (productId && !isToggling) {
-      toggleSaved({
-        type: "product",
-        type_id: productId.toString(),
-      });
-    }
+    handleGuestAction(() => {
+      if (productId && !isToggling) {
+        toggleSaved({
+          type: "product",
+          type_id: productId.toString(),
+        });
+      }
+    });
   };
 
   // Handle start chat
   const handleStartChat = () => {
-    try {
-      const storeId = product?.store?.id;
-      console.log("Starting chat with store ID:", storeId);
-      
-      if (!storeId) {
-        console.error("Store ID not available");
-        Alert.alert("Error", "Store information not available");
-        return;
-      }
-      
-      startChat(
-        { storeId },
-        {
-          onSuccess: (data) => {
-            console.log("Chat created successfully:", data);
-            const { chat_id } = data;
-            
-            navigation.navigate("ServiceNavigator", {
-              screen: "ChatDetails",
-              params: {
-                store: {
-                  id: storeId,
-                  name: product?.store?.name || "Store",
-                  profileImage: product?.store?.logo,
-                },
-                chat_id,
-                store_order_id: storeId,
-              },
-            });
-          },
-          onError: (error) => {
-            console.error("Failed to create chat:", error);
-            Alert.alert("Error", "Failed to start chat. Please try again.");
-          },
+    handleGuestAction(() => {
+      try {
+        const storeId = product?.store?.id;
+        console.log("Starting chat with store ID:", storeId);
+        
+        if (!storeId) {
+          console.error("Store ID not available");
+          Alert.alert("Error", "Store information not available");
+          return;
         }
-      );
-    } catch (error) {
-      console.error("Error starting chat:", error);
-      Alert.alert("Error", "Failed to start chat. Please try again.");
-    }
+        
+        startChat(
+          { storeId },
+          {
+            onSuccess: (data) => {
+              console.log("Chat created successfully:", data);
+              const { chat_id } = data;
+              
+              navigation.navigate("ServiceNavigator", {
+                screen: "ChatDetails",
+                params: {
+                  store: {
+                    id: storeId,
+                    name: product?.store?.name || "Store",
+                    profileImage: product?.store?.logo,
+                  },
+                  chat_id,
+                  store_order_id: storeId,
+                },
+              });
+            },
+            onError: (error) => {
+              console.error("Failed to create chat:", error);
+              Alert.alert("Error", "Failed to start chat. Please try again.");
+            },
+          }
+        );
+      } catch (error) {
+        console.error("Error starting chat:", error);
+        Alert.alert("Error", "Failed to start chat. Please try again.");
+      }
+    });
   };
 
   // Helper function to get all media for viewer
@@ -391,8 +430,8 @@ const ProductDetailsScreen = () => {
   const addToCartMutation = useAddToCart({
     onSuccess: (res) => {
       console.log("Cart updated:", JSON.stringify(res, null, 2));
-      // Show success feedback
-      Alert.alert("Success", "Product added to cart successfully!");
+      // Show success modal
+      setShowCartSuccessModal(true);
     },
     onError: (err) => {
       console.error("Failed to add to cart:", err);
@@ -422,22 +461,24 @@ const ProductDetailsScreen = () => {
   const handleAddToCart = () => {
     if (!product) return;
 
-    // const matchedVariant = product.variations?.find(
-    //   v =>
-    //     (!selectedColor || v.color === selectedColor) &&
-    //     (!selectedSize || v.size === selectedSize)
-    // );
+    handleGuestAction(() => {
+      // const matchedVariant = product.variations?.find(
+      //   v =>
+      //     (!selectedColor || v.color === selectedColor) &&
+      //     (!selectedSize || v.size === selectedSize)
+      // );
 
-    const payload = {
-      product_id: product.id,
-      qty: quantity,
-    };
+      const payload = {
+        product_id: product.id,
+        qty: quantity,
+      };
 
-    if (selectedVariant?.id) {
-      payload.variant_id = selectedVariant.id;
-    }
+      if (selectedVariant?.id) {
+        payload.variant_id = selectedVariant.id;
+      }
 
-    addToCartMutation.mutate(payload);
+      addToCartMutation.mutate(payload);
+    });
   };
   const socialIconMap= {
     whatsapp: "https://img.icons8.com/color/48/whatsapp--v1.png",
@@ -1549,9 +1590,75 @@ const ProductDetailsScreen = () => {
         </ScrollView>
         </>
       )}
-    </SafeAreaView>
-  );
-};
+      
+        <LoginPromptModal
+          visible={showLoginModal}
+          onClose={() => {
+            setShowLoginModal(false);
+            navigation.navigate('MainNavigator', { screen: 'Home' });
+          }}
+          onLogin={() => {
+            setShowLoginModal(false);
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'AuthNavigator', state: { routes: [{ name: 'Login' }], index: 0 } }],
+            });
+          }}
+          title="Login Required"
+          message="Please login to add items to cart, save products, or start chatting with stores."
+        />
+
+        {/* Cart Success Modal */}
+        <Modal
+          visible={showCartSuccessModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowCartSuccessModal(false)}
+        >
+          <View style={styles.cartModalOverlay}>
+            <View style={styles.cartModalContent}>
+              {/* Success Icon */}
+              <View style={styles.cartModalIconContainer}>
+                <Ionicons name="checkmark-circle" size={64} color="#4CAF50" />
+              </View>
+              
+              {/* Success Message */}
+              <ThemedText style={styles.cartModalTitle}>
+                Added to Cart!
+              </ThemedText>
+              <ThemedText style={styles.cartModalMessage}>
+                {product?.name} has been added to your cart
+              </ThemedText>
+              
+              {/* Buttons */}
+              <View style={styles.cartModalButtons}>
+                <TouchableOpacity
+                  style={[styles.cartModalButton, styles.cartModalButtonSecondary]}
+                  onPress={() => setShowCartSuccessModal(false)}
+                >
+                  <ThemedText style={styles.cartModalButtonTextSecondary}>
+                    Continue Shopping
+                  </ThemedText>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.cartModalButton, styles.cartModalButtonPrimary]}
+                  onPress={() => {
+                    setShowCartSuccessModal(false);
+                    navigation.navigate('ServiceNavigator', { screen: 'Cart' });
+                  }}
+                >
+                  <ThemedText style={styles.cartModalButtonTextPrimary}>
+                    Proceed to Checkout
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    );
+  };
 
 export default ProductDetailsScreen;
 
@@ -1999,6 +2106,76 @@ const styles = StyleSheet.create({
     color: "#6C727A",
     fontSize: 14,
     fontWeight: "500",
+  },
+
+  // Cart Success Modal styles
+  cartModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  cartModalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  cartModalIconContainer: {
+    marginBottom: 16,
+  },
+  cartModalTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#111",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  cartModalMessage: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 24,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  cartModalButtons: {
+    width: "100%",
+    gap: 12,
+  },
+  cartModalButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cartModalButtonPrimary: {
+    backgroundColor: "#E53E3E",
+  },
+  cartModalButtonSecondary: {
+    backgroundColor: "#fff",
+    borderWidth: 1.5,
+    borderColor: "#E53E3E",
+  },
+  cartModalButtonTextPrimary: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  cartModalButtonTextSecondary: {
+    color: "#E53E3E",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
 

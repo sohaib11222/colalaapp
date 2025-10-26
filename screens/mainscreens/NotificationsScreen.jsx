@@ -37,7 +37,9 @@ export default function NotificationsScreen() {
       setLoading(true);
       const json = await http.get("/notifications");
       if (json.status === "success") {
-        const mapped = json.data.map((n) => ({
+        // Access notifications from the correct path: json.data.notifications
+        const notifications = json.data?.notifications || [];
+        const mapped = notifications.map((n) => ({
           id: String(n.id),
           title: n.title,
           body: n.content,

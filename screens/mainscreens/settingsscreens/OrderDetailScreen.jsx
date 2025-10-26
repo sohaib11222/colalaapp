@@ -854,12 +854,20 @@ export default function SingleOrderDetailsScreen() {
     }
   }, [transformed]);
 
+  // Expand all stores by default when order data loads
+  React.useEffect(() => {
+    if (transformed?.stores?.length) {
+      const allStoreIds = transformed.stores.map(s => s.id);
+      setExpandedStores(new Set(allStoreIds));
+    }
+  }, [transformed]);
+
   // Track modal
   const [trackOpen, setTrackOpen] = useState(false);
   const [trackStoreName, setTrackStoreName] = useState("");
   const [trackStatus, setTrackStatus] = useState(0);
   
-  // Expanded stores state
+  // Expanded stores state - initialized empty, will be populated when order loads
   const [expandedStores, setExpandedStores] = useState(new Set());
 
   // Review modals state

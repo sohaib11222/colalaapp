@@ -40,6 +40,9 @@ export default function FAQsScreen() {
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
 
+  // Tab state
+  const [selectedTab, setSelectedTab] = useState("faqs"); // "faqs" or "video"
+
   // API hook
   const { data: apiData, isLoading, error } = useGetFaqs();
 
@@ -110,7 +113,7 @@ export default function FAQsScreen() {
 
   // Process FAQs data
   const FAQS = React.useMemo(() => {
-    // If loading or no data yet, return empty array to show loading state
+    // If loading or no data yet, return empty array
     if (isLoading || !apiData?.data?.faqs) {
       return [];
     }
@@ -183,6 +186,68 @@ export default function FAQsScreen() {
         </View>
       )}
 
+      {/* Tabs - always show */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[
+            styles.tabButton,
+            selectedTab === "video" && styles.tabButtonActive,
+          ]}
+          onPress={() => setSelectedTab("video")}
+          activeOpacity={0.7}
+        >
+          <Ionicons 
+            name="play-circle" 
+            size={18} 
+            color={selectedTab === "video" ? COLOR.primary : COLOR.sub} 
+          />
+          <ThemedText
+            style={[
+              styles.tabText,
+              selectedTab === "video" && styles.tabTextActive,
+            ]}
+          >
+            Video FAQs
+          </ThemedText>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.tabButton,
+            selectedTab === "faqs" && styles.tabButtonActive,
+          ]}
+          onPress={() => setSelectedTab("faqs")}
+          activeOpacity={0.7}
+        >
+          <Ionicons 
+            name="document-text" 
+            size={18} 
+            color={selectedTab === "faqs" ? COLOR.primary : COLOR.sub} 
+          />
+          <ThemedText
+            style={[
+              styles.tabText,
+              selectedTab === "faqs" && styles.tabTextActive,
+            ]}
+          >
+            FAQs
+          </ThemedText>
+          {FAQS.length > 0 && (
+            <View style={[
+              styles.tabBadge,
+              selectedTab === "faqs" && styles.tabBadgeActive,
+            ]}>
+              <ThemedText style={[
+                styles.tabBadgeText,
+                selectedTab === "faqs" && styles.tabBadgeTextActive,
+              ]}>
+                {FAQS.length}
+              </ThemedText>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
@@ -214,85 +279,100 @@ export default function FAQsScreen() {
           </View>
         )}
 
-        {/* Video banner - only show if video exists */}
-        {hasVideo && videoUrl && (
-          <TouchableOpacity 
-            style={styles.videoCard}
-            onPress={() => {
-              if (originalVideoUrl) {
-                handleVideoPlay(originalVideoUrl);
-              }
-            }}
-            activeOpacity={0.9}
-          >
-            <Image
-              source={{
-                uri: videoUrl,
-              }}
-              style={styles.videoImage}
-              resizeMode="cover"
-            />
-            <View style={styles.playOverlay}>
-              <Ionicons name="play" size={26} color="#fff" />
-            </View>
-            {thumbnailUrl && (
-              <View style={styles.youtubeIndicator}>
-                <Ionicons name="logo-youtube" size={20} color="#fff" />
-              </View>
+        {/* Video FAQs Tab Content */}
+        {selectedTab === "video" && (
+          <View style={{ marginTop: 12 }}>
+            {hasVideo && videoUrl ? (
+              <TouchableOpacity 
+                style={styles.videoCard}
+                onPress={() => {
+                  if (originalVideoUrl) {
+                    handleVideoPlay(originalVideoUrl);
+                  }
+                }}
+                activeOpacity={0.9}
+              >
+                <Image
+                  source={{
+                    uri: videoUrl,
+                  }}
+                  style={styles.videoImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.playOverlay}>
+                  <Ionicons name="play" size={26} color="#fff" />
+                </View>
+                {thumbnailUrl && (
+                  <View style={styles.youtubeIndicator}>
+                    <Ionicons name="logo-youtube" size={20} color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ) : (
+              !isLoading && !error && (
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="videocam-off-outline" size={48} color={COLOR.sub} style={{ marginBottom: 12 }} />
+                  <ThemedText style={styles.emptyText}>No video FAQs available</ThemedText>
+                </View>
+              )
             )}
-          </TouchableOpacity>
+          </View>
         )}
 
-        {/* FAQ list */}
-        <View style={{ marginTop: 12 }}>
-          {FAQS.length > 0 ? (
-            FAQS.map((item) => {
-              const open = item.id === openId;
-              return (
-                <View
-                  key={item.id}
-                  style={[
-                    styles.card,
-                    open && {
-                      borderColor: COLOR.primary,
-                      backgroundColor: "#fff",
-                    },
-                  ]}
-                >
-                  <TouchableOpacity
-                    onPress={() => setOpenId(open ? "" : item.id)}
-                    activeOpacity={0.85}
-                    style={styles.cardHead}
+        {/* Text FAQs Tab Content */}
+        {selectedTab === "faqs" && (
+          <View style={{ marginTop: 12 }}>
+            {FAQS.length > 0 ? (
+              FAQS.map((item) => {
+                const open = item.id === openId;
+                
+                return (
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.card,
+                      open && {
+                        borderColor: COLOR.primary,
+                        backgroundColor: "#fff",
+                      },
+                    ]}
                   >
-                    <ThemedText style={styles.cardTitle}>{item.q}</ThemedText>
-                    <Ionicons
-                      name={open ? "chevron-down" : "chevron-forward"}
-                      size={18}
-                      color={COLOR.text}
-                    />
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setOpenId(open ? "" : item.id)}
+                      activeOpacity={0.85}
+                      style={styles.cardHead}
+                    >
+                      <ThemedText style={styles.cardTitle}>{item.q}</ThemedText>
+                      <Ionicons
+                        name={open ? "chevron-down" : "chevron-forward"}
+                        size={18}
+                        color={COLOR.text}
+                      />
+                    </TouchableOpacity>
 
-                  {open && item.bullets?.length > 0 && (
-                    <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
-                      {item.bullets.map((b, i) => (
-                        <View key={`${item.id}-b${i}`} style={styles.bulletRow}>
-                          <View style={styles.bulletDot} />
-                          <ThemedText style={styles.bulletText}>{b}</ThemedText>
-                        </View>
-                      ))}
-                    </View>
-                  )}
+                    {open && item.bullets?.length > 0 && (
+                      <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
+                        {item.bullets.map((b, i) => (
+                          <View key={`${item.id}-b${i}`} style={styles.bulletRow}>
+                            <View style={styles.bulletDot} />
+                            <ThemedText style={styles.bulletText}>{b}</ThemedText>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                );
+              })
+            ) : (
+              !isLoading && !error && (
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="document-text-outline" size={48} color={COLOR.sub} style={{ marginBottom: 12 }} />
+                  <ThemedText style={styles.emptyText}>No FAQs available</ThemedText>
                 </View>
-              );
-            })
-          ) : (
-            !isLoading && !error && (
-              <View style={styles.emptyContainer}>
-                <ThemedText style={styles.emptyText}>No FAQs available</ThemedText>
-              </View>
-            )
-          )}
-        </View>
+              )
+            )}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -469,5 +549,62 @@ const styles = StyleSheet.create({
     color: COLOR.sub,
     fontSize: 16,
     textAlign: "center",
+  },
+
+  // Tab styles
+  tabsContainer: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: COLOR.bg,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    gap: 6,
+  },
+  tabButtonActive: {
+    backgroundColor: "#FFF0F0",
+    borderColor: COLOR.primary,
+  },
+  tabText: {
+    color: COLOR.sub,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  tabTextActive: {
+    color: COLOR.primary,
+    fontWeight: "600",
+  },
+  tabBadge: {
+    backgroundColor: COLOR.sub,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabBadgeActive: {
+    backgroundColor: COLOR.primary,
+  },
+  tabBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  tabBadgeTextActive: {
+    color: "#fff",
   },
 });
