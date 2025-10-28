@@ -170,6 +170,7 @@ export default function StoreDetailsScreen() {
     const email = fromApi.store_email || "sashastores@gmail.com"; // not always present → keep hardcoded if missing
     const phone = fromApi.store_phone || "070123456789"; // not always present → keep hardcoded if missing
     const location = fromApi.store_location || "Lagos, Nigeria"; // keep your default if missing
+    const isPhoneVisible = fromApi.is_phone_visible === 1; // Check if phone should be visible
 
     // media
     const cover = fileUrl(fromApi.banner_image) || fallbackCover;
@@ -241,6 +242,7 @@ export default function StoreDetailsScreen() {
       name,
       email,
       phone,
+      isPhoneVisible,
       location,
       cover,
       avatar,
@@ -952,12 +954,14 @@ export default function StoreDetailsScreen() {
               {mergedStore?.email || "sashastores@gmail.com"}
             </ThemedText>
           </View>
-          <View style={styles.metaRow}>
-            <Ionicons name="call-outline" size={16} color={COLOR.sub} />
-            <ThemedText style={styles.metaTxt}>
-              {mergedStore?.phone || "070123456789"}
-            </ThemedText>
-          </View>
+          {mergedStore?.isPhoneVisible && (
+            <View style={styles.metaRow}>
+              <Ionicons name="call-outline" size={16} color={COLOR.sub} />
+              <ThemedText style={styles.metaTxt}>
+                {mergedStore?.phone || "070123456789"}
+              </ThemedText>
+            </View>
+          )}
           <View style={styles.metaRow}>
             <Ionicons name="location-outline" size={16} color={COLOR.sub} />
             <ThemedText style={[styles.metaTxt, { marginBottom: 5 }]}>
@@ -1155,26 +1159,28 @@ export default function StoreDetailsScreen() {
 
         {/* Action buttons (kept) */}
         <View style={styles.buttonStack}>
-          <TouchableOpacity
-            style={[styles.bigBtn, styles.bigBtnRed, { backgroundColor: mergedStore?.theme_color || COLOR.primary }]}
-            onPress={async () => {
-              try {
-                const phone = (mergedStore?.phone || "").toString().trim();
-                if (!phone) {
-                  Alert.alert("Call", "Phone number not available.");
-                  return;
+          {mergedStore?.isPhoneVisible && (
+            <TouchableOpacity
+              style={[styles.bigBtn, styles.bigBtnRed, { backgroundColor: mergedStore?.theme_color || COLOR.primary }]}
+              onPress={async () => {
+                try {
+                  const phone = (mergedStore?.phone || "").toString().trim();
+                  if (!phone) {
+                    Alert.alert("Call", "Phone number not available.");
+                    return;
+                  }
+                  const telUrl = `tel:${phone}`;
+                  const supported = await Linking.canOpenURL(telUrl);
+                  if (supported) await Linking.openURL(telUrl);
+                  else Alert.alert("Call", "Calling is not supported on this device.");
+                } catch (e) {
+                  Alert.alert("Call", "Failed to start call.");
                 }
-                const telUrl = `tel:${phone}`;
-                const supported = await Linking.canOpenURL(telUrl);
-                if (supported) await Linking.openURL(telUrl);
-                else Alert.alert("Call", "Calling is not supported on this device.");
-              } catch (e) {
-                Alert.alert("Call", "Failed to start call.");
-              }
-            }}
-          >
-            <ThemedText style={styles.bigBtnTxt}>Call</ThemedText>
-          </TouchableOpacity>
+              }}
+            >
+              <ThemedText style={styles.bigBtnTxt}>Call</ThemedText>
+            </TouchableOpacity>
+          )}
 
           {/* <TouchableOpacity
             style={[styles.bigBtn, styles.bigBtnBlack]}

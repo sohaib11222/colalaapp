@@ -11,6 +11,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Text,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -230,63 +231,69 @@ const SettingsScreen = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      console.log("🔄 Starting logout process...");
-      
-      // Clear all stored authentication data
-      await AsyncStorage.multiRemove([
-        'auth_token',
-        'auth_user',
-        'user_data',
-        'cart_data',
-        'saved_items',
-        'followed_stores'
-      ]);
-      
-      console.log("✅ User data cleared successfully");
-      
-      // Clear React Query cache
-      try {
-        const { queryClient } = await import('../../../config/api.config');
-        queryClient.clear();
-        console.log("✅ Query cache cleared");
-      } catch (error) {
-        console.log("⚠️ Could not clear query cache:", error);
-      }
-      
-      // Navigate directly to Login screen and clear entire stack
-      console.log("🔄 Navigating to Login screen...");
-      navigation.reset({
-        index: 0,
-        routes: [
-          { 
-            name: 'AuthNavigator',
-            state: {
-              routes: [{ name: 'Login' }],
-              index: 0
+  const handleLogout = () => {
+    // Show confirmation dialog
+    Alert.alert(
+      "Logout",
+      "Do you want to logout?",
+      [
+        {
+          text: "No",
+          onPress: () => console.log("Logout cancelled"),
+          style: "cancel"
+        },
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              console.log("🔄 Starting logout process...");
+              
+              // Clear all stored authentication data
+              await AsyncStorage.multiRemove([
+                'auth_token',
+                'auth_user',
+                'user_data',
+                'cart_data',
+                'saved_items',
+                'followed_stores',
+                'isGuest'
+              ]);
+              
+              console.log("✅ User data cleared successfully");
+              
+              // Clear React Query cache using queryClient from api.config
+              try {
+                // Import and use the queryClient
+                const apiConfig = require('../../../config/api.config');
+                if (apiConfig.queryClient) {
+                  apiConfig.queryClient.clear();
+                  console.log("✅ Query cache cleared");
+                }
+              } catch (error) {
+                console.log("⚠️ Could not clear query cache:", error);
+              }
+              
+              // Navigate directly to Login screen and clear entire stack
+              console.log("🔄 Navigating to Login screen...");
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'AuthNavigator', params: { screen: 'Login' } }],
+              });
+              
+              console.log("✅ Logout completed successfully - user taken to login screen");
+            } catch (error) {
+              console.error("❌ Error during logout:", error);
+              // Even if there's an error, try to navigate to login
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'AuthNavigator', params: { screen: 'Login' } }],
+              });
             }
           }
-        ],
-      });
-      
-      console.log("✅ Logout completed successfully - user taken to login screen");
-    } catch (error) {
-      console.error("❌ Error during logout:", error);
-      // Even if there's an error, try to navigate to login
-      navigation.reset({
-        index: 0,
-        routes: [
-          { 
-            name: 'AuthNavigator',
-            state: {
-              routes: [{ name: 'Login' }],
-              index: 0
-            }
-          }
-        ],
-      });
-    }
+        }
+      ],
+      { cancelable: false }
+    );
   };
 
   const handleDeleteAccount = () => {

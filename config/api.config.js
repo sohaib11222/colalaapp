@@ -83,6 +83,7 @@ const API = {
   Referral_Balance: `${BASE_URL}/wallet/refferal-balance`,
   Referral_Withdraw: `${BASE_URL}/wallet/withdraw/referral`,
   Transfer: `${BASE_URL}/wallet/transfer`,
+  Phone_Request: `${BASE_URL}/buyer/phone-request`,
 };
 
 export default API;
@@ -1133,4 +1134,23 @@ export const useLeaderboardSellers = (options) =>
     queryFn: () => http.get(API.LEADERBOARD_SELLERS),
     staleTime: 5 * 60 * 1000, // 5 minutes
     ...options,
+  });
+
+// Request phone number reveal
+export const useRequestPhoneNumber = (opts) =>
+  useMutation({
+    mutationFn: (payload) => {
+      console.log('RequestPhoneNumber API call - URL:', API.Phone_Request);
+      console.log('RequestPhoneNumber API call - Payload:', payload);
+      return http.post(API.Phone_Request, payload);
+    },
+    onSuccess: (res, vars) => {
+      console.log('RequestPhoneNumber API call - Success:', res);
+      opts?.onSuccess?.(res, vars);
+    },
+    onError: (error) => {
+      console.error('RequestPhoneNumber error:', error);
+      if (opts?.onError) opts.onError(error);
+    },
+    ...opts,
   });

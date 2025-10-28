@@ -20,7 +20,7 @@ import { useRoute, useNavigation, useFocusEffect } from "@react-navigation/nativ
 import { StatusBar } from "expo-status-bar";
 import { Video, ResizeMode } from 'expo-av';
 import ThemedText from "../../../components/ThemedText";
-import { useProductDetails, useCart, useStartChat, useCartQuantity } from "../../../config/api.config";
+import { useProductDetails, useCart, useStartChat, useCartQuantity, useRequestPhoneNumber } from "../../../config/api.config";
 import { useAddToCart } from "../../../config/api.config";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -103,6 +103,28 @@ const ProductDetailsScreen = () => {
 
   // Chat functionality
   const { mutate: startChat, isPending: creatingChat } = useStartChat();
+
+  // Phone number request functionality
+  const { mutate: requestPhoneNumber, isLoading: isRequestingPhone } = useRequestPhoneNumber({
+    onSuccess: (data) => {
+      console.log("Phone request success:", data);
+      const responseData = data?.data || {};
+      setPhoneRevealData({
+        reveal_phone_id: responseData.reveal_phone_id || null,
+        is_revealed: responseData.is_revealed || false,
+      });
+      
+      if (responseData.is_revealed) {
+        Alert.alert("Success", "Phone number has been revealed!");
+      } else {
+        Alert.alert("Request Sent", "Your phone number request has been sent to the store. You'll be notified when it's approved.");
+      }
+    },
+    onError: (error) => {
+      console.log("Phone request error:", error);
+      Alert.alert("Error", error?.message || "Failed to request phone number. Please try again.");
+    },
+  });
 
   // Guest action handler
   const handleGuestAction = (action) => {
@@ -212,6 +234,22 @@ const ProductDetailsScreen = () => {
         console.error("Error starting chat:", error);
         Alert.alert("Error", "Failed to start chat. Please try again.");
       }
+    });
+  };
+
+  // Handle phone request
+  const handlePhoneRequest = () => {
+    handleGuestAction(() => {
+      const storeId = product?.store?.id;
+      console.log("Requesting phone for store ID:", storeId);
+      
+      if (!storeId) {
+        console.error("Store ID not available");
+        Alert.alert("Error", "Store information not available");
+        return;
+      }
+      
+      requestPhoneNumber({ store_id: storeId });
     });
   };
 
@@ -330,7 +368,10 @@ const ProductDetailsScreen = () => {
 
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState("Overview");
-  const [showPhone, setShowPhone] = useState(false);
+  const [phoneRevealData, setPhoneRevealData] = useState({
+    reveal_phone_id: null,
+    is_revealed: false,
+  });
   const storePhoneNumber = "08077601234";
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
@@ -1177,11 +1218,13 @@ const ProductDetailsScreen = () => {
   <TouchableOpacity
     style={styles.contactBtn}
     onPress={() => {
-      if (storePhoneNumber) {
+      if (storePhoneNumber && phoneRevealData.is_revealed) {
         const phone = storePhoneNumber.replace(/\D/g, ""); // clean digits
         Linking.openURL(`https://wa.me/${phone}`).catch(err =>
           console.log("WhatsApp error:", err)
         );
+      } else {
+        Alert.alert("Phone Not Revealed", "Please request the phone number first.");
       }
     }}
   >
@@ -1192,10 +1235,12 @@ const ProductDetailsScreen = () => {
   <TouchableOpacity
     style={styles.contactBtn}
     onPress={() => {
-      if (storePhoneNumber) {
+      if (storePhoneNumber && phoneRevealData.is_revealed) {
         Linking.openURL(`tel:${storePhoneNumber}`).catch(err =>
           console.log("Call error:", err)
         );
+      } else {
+        Alert.alert("Phone Not Revealed", "Please request the phone number first.");
       }
     }}
   >
@@ -1215,31 +1260,36 @@ const ProductDetailsScreen = () => {
     )}
   </TouchableOpacity>
 
-  {/* Phone Number Display */}
-  {showPhone && (
+  {/* Phone Number Display - Only show when revealed */}
+  {phoneRevealData.is_revealed && (
     <View style={styles.phoneDisplay}>
       <ThemedText style={styles.phoneNumber}>{storePhoneNumber}</ThemedText>
     </View>
   )}
 
-  {/* Reveal Number / Dial */}
+  {/* Request/Call Button */}
   <TouchableOpacity
     style={styles.revealBtn}
     onPress={() => {
-      if (showPhone) {
+      if (phoneRevealData.is_revealed) {
         // If phone is already revealed, dial the number
         Linking.openURL(`tel:${storePhoneNumber}`).catch(err =>
           console.log("Call error:", err)
         );
       } else {
-        // If phone is not revealed, reveal it
-        setShowPhone(true);
+        // If phone is not revealed, request it
+        handlePhoneRequest();
       }
     }}
+    disabled={isRequestingPhone}
   >
-    <ThemedText style={{ color: "#fff", fontSize: 12 }}>
-      {showPhone ? "Call Now" : "Reveal Phone Number"}
-    </ThemedText>
+    {isRequestingPhone ? (
+      <ActivityIndicator size="small" color="#fff" />
+    ) : (
+      <ThemedText style={{ color: "#fff", fontSize: 12 }}>
+        {phoneRevealData.is_revealed ? "Call Now" : "Request Phone Number"}
+      </ThemedText>
+    )}
   </TouchableOpacity>
 </View>
 
