@@ -146,31 +146,37 @@ const EscrowDetailModal = ({ visible, onClose, escrowItem }) => {
           </LinearGradient>
 
           {/* Product Information */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Product Information</ThemedText>
-            
-            <View style={styles.productCard}>
-              {escrowItem.order_item?.product?.images?.[0] && (
-                <Image
-                  source={{ uri: `https://colala.hmstech.xyz/storage/${escrowItem.order_item.product.images[0].path}` }}
-                  style={styles.productImage}
-                  resizeMode="cover"
-                />
-              )}
+          {escrowItem.items && escrowItem.items.length > 0 && (
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>
+                Order Items ({escrowItem.items.length})
+              </ThemedText>
               
-              <View style={styles.productInfo}>
-                <ThemedText style={styles.productName}>
-                  {escrowItem.order_item?.name || 'Unknown Product'}
-                </ThemedText>
-                <ThemedText style={styles.productPrice}>
-                  {formatCurrency(escrowItem.order_item?.line_total)}
-                </ThemedText>
-                <ThemedText style={styles.productDescription} numberOfLines={3}>
-                  {escrowItem.order_item?.product?.description || 'No description available'}
-                </ThemedText>
-              </View>
+              {escrowItem.items.map((item, index) => (
+                <View key={index} style={[styles.productCard, index > 0 && { marginTop: 12 }]}>
+                  {item.product_image && (
+                    <Image
+                      source={{ uri: item.product_image }}
+                      style={styles.productImage}
+                      resizeMode="cover"
+                    />
+                  )}
+                  
+                  <View style={styles.productInfo}>
+                    <ThemedText style={styles.productName}>
+                      {item.name || 'Unknown Product'}
+                    </ThemedText>
+                    <ThemedText style={styles.productPrice}>
+                      {formatCurrency(item.unit_price)} x {item.qty}
+                    </ThemedText>
+                    <ThemedText style={styles.productLineTotal}>
+                      Total: {formatCurrency(item.line_total)}
+                    </ThemedText>
+                  </View>
+                </View>
+              ))}
             </View>
-          </View>
+          )}
 
           {/* Order Information */}
           <View style={styles.section}>
@@ -195,9 +201,9 @@ const EscrowDetailModal = ({ visible, onClose, escrowItem }) => {
               
               <View style={styles.infoRow}>
                 <ThemedText style={styles.infoLabel}>Order Status</ThemedText>
-                <View style={[styles.statusBadge, { backgroundColor: getOrderStatusColor(escrowItem.order_item?.store_order?.status) + '20' }]}>
-                  <ThemedText style={[styles.statusBadgeText, { color: getOrderStatusColor(escrowItem.order_item?.store_order?.status) }]}>
-                    {escrowItem.order_item?.store_order?.status?.toUpperCase() || 'N/A'}
+                <View style={[styles.statusBadge, { backgroundColor: getOrderStatusColor(escrowItem.order?.status || escrowItem.store_order?.status) + '20' }]}>
+                  <ThemedText style={[styles.statusBadgeText, { color: getOrderStatusColor(escrowItem.order?.status || escrowItem.store_order?.status) }]}>
+                    {(escrowItem.order?.status || escrowItem.store_order?.status)?.toUpperCase() || 'N/A'}
                   </ThemedText>
                 </View>
               </View>
@@ -212,54 +218,31 @@ const EscrowDetailModal = ({ visible, onClose, escrowItem }) => {
           </View>
 
           {/* Store Information */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Store Information</ThemedText>
-            
-            <View style={styles.storeCard}>
-              <View style={styles.storeHeader}>
-                {escrowItem.order_item?.store_order?.store?.profile_image && (
-                  <Image
-                    source={{ uri: `https://colala.hmstech.xyz/storage/${escrowItem.order_item.store_order.store.profile_image}` }}
-                    style={styles.storeImage}
-                    resizeMode="cover"
-                  />
-                )}
-                <View style={styles.storeInfo}>
-                  <ThemedText style={styles.storeName}>
-                    {escrowItem.order_item?.store_order?.store?.store_name || 'Unknown Store'}
-                  </ThemedText>
-                  <ThemedText style={styles.storeLocation}>
-                    {escrowItem.order_item?.store_order?.store?.store_location || 'N/A'}
-                  </ThemedText>
-                </View>
-              </View>
+          {escrowItem.store && (
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>Store Information</ThemedText>
               
-              <View style={styles.storeDetails}>
-                <View style={styles.infoRow}>
-                  <ThemedText style={styles.infoLabel}>Store Email</ThemedText>
-                  <ThemedText style={styles.infoValue}>
-                    {escrowItem.order_item?.store_order?.store?.store_email || 'N/A'}
-                  </ThemedText>
-                </View>
-                
-                <View style={styles.infoRow}>
-                  <ThemedText style={styles.infoLabel}>Store Phone</ThemedText>
-                  <ThemedText style={styles.infoValue}>
-                    {escrowItem.order_item?.store_order?.store?.store_phone || 'N/A'}
-                  </ThemedText>
-                </View>
-                
-                <View style={styles.infoRow}>
-                  <ThemedText style={styles.infoLabel}>Store Status</ThemedText>
-                  <View style={[styles.statusBadge, { backgroundColor: COLOR.success + '20' }]}>
-                    <ThemedText style={[styles.statusBadgeText, { color: COLOR.success }]}>
-                      {escrowItem.order_item?.store_order?.store?.status?.toUpperCase() || 'N/A'}
+              <View style={styles.storeCard}>
+                <View style={styles.storeHeader}>
+                  {escrowItem.store.profile_image && (
+                    <Image
+                      source={{ uri: escrowItem.store.profile_image }}
+                      style={styles.storeImage}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View style={styles.storeInfo}>
+                    <ThemedText style={styles.storeName}>
+                      {escrowItem.store.store_name || 'Unknown Store'}
+                    </ThemedText>
+                    <ThemedText style={styles.storeLocation}>
+                      Store ID: {escrowItem.store.id}
                     </ThemedText>
                   </View>
                 </View>
               </View>
             </View>
-          </View>
+          )}
 
           {/* Financial Details */}
           <View style={styles.section}>
@@ -267,30 +250,34 @@ const EscrowDetailModal = ({ visible, onClose, escrowItem }) => {
             
             <View style={styles.financialCard}>
               <View style={styles.financialRow}>
-                <ThemedText style={styles.financialLabel}>Escrow Amount</ThemedText>
+                <ThemedText style={styles.financialLabel}>Items Subtotal</ThemedText>
                 <ThemedText style={styles.financialValue}>
-                  {formatCurrency(escrowItem.amount)}
-                </ThemedText>
-              </View>
-              
-              <View style={styles.financialRow}>
-                <ThemedText style={styles.financialLabel}>Item Total</ThemedText>
-                <ThemedText style={styles.financialValue}>
-                  {formatCurrency(escrowItem.order_item?.line_total)}
+                  {formatCurrency(escrowItem.store_order?.items_subtotal || escrowItem.amount)}
                 </ThemedText>
               </View>
               
               <View style={styles.financialRow}>
                 <ThemedText style={styles.financialLabel}>Shipping Fee</ThemedText>
                 <ThemedText style={styles.financialValue}>
-                  {formatCurrency(escrowItem.order_item?.store_order?.shipping_fee)}
+                  {formatCurrency(escrowItem.shipping_fee || escrowItem.store_order?.shipping_fee)}
                 </ThemedText>
               </View>
               
               <View style={[styles.financialRow, styles.financialTotal]}>
-                <ThemedText style={styles.financialTotalLabel}>Subtotal</ThemedText>
+                <ThemedText style={styles.financialTotalLabel}>Total Amount</ThemedText>
                 <ThemedText style={styles.financialTotalValue}>
-                  {formatCurrency(escrowItem.order_item?.store_order?.subtotal_with_shipping)}
+                  {formatCurrency(escrowItem.store_order?.total || escrowItem.amount)}
+                </ThemedText>
+              </View>
+              
+              <View style={styles.statusInfoRow}>
+                <Ionicons 
+                  name={getStatusIcon(escrowItem.status)} 
+                  size={16} 
+                  color={getStatusColor(escrowItem.status)} 
+                />
+                <ThemedText style={[styles.statusInfoText, { color: getStatusColor(escrowItem.status) }]}>
+                  Funds are {escrowItem.status?.toLowerCase()} in escrow
                 </ThemedText>
               </View>
             </View>
@@ -419,6 +406,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLOR.sub,
     lineHeight: 16,
+  },
+  productLineTotal: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLOR.text,
+    marginTop: 4,
   },
   infoCard: {
     backgroundColor: COLOR.card,
@@ -556,6 +549,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: COLOR.primary,
+  },
+  statusInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLOR.line,
+  },
+  statusInfoText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });
 

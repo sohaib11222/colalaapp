@@ -131,17 +131,17 @@ export default function ShippingSummaryScreen() {
         null;
 
       // If flutterwave → open WebView instead of showing modal
-      if (String(preview?.payment_method).toLowerCase() === "flutterwave") {
-        if (!orderId) {
-          Alert.alert("Order Error", "Order placed, but no order_id returned.");
-          return;
-        }
-        navigation.navigate("FlutterwaveWebView", {
-          order_id: String(orderId),
-          amount: Number(overall.grandTotal) || 0,
-        });
-        return;
-      }
+      // if (String(preview?.payment_method).toLowerCase() === "flutterwave") {
+      //   if (!orderId) {
+      //     Alert.alert("Order Error", "Order placed, but no order_id returned.");
+      //     return;
+      //   }
+      //   navigation.navigate("FlutterwaveWebView", {
+      //     order_id: String(orderId),
+      //     amount: Number(overall.grandTotal) || 0,
+      //   });
+      //   return;
+      // }
 
       // Default (wallet / others) — navigate to orders or home
       const orderNo = res?.data?.order_no || "Order Placed";
@@ -369,7 +369,7 @@ export default function ShippingSummaryScreen() {
               <LinedRow left="Items Cost" right={currency(perStore[store.id]?.itemsCost || 0)} boxed />
               <LinedRow left="Coupon Discount" right={`-${currency(perStore[store.id]?.couponDiscount || 0).slice(1)}`} boxed />
               <LinedRow left="Points Discount" right={`-${currency(perStore[store.id]?.pointsDiscount || 0).slice(1)}`} boxed />
-              <LinedRow left="Delivery fee" right={currency(perStore[store.id]?.deliveryFee || 0)} boxed />
+              {/* <LinedRow left="Delivery fee" right={currency(perStore[store.id]?.deliveryFee || 0)} boxed /> */}
               <LinedRow
                 left="Total to pay"
                 right={currency(perStore[store.id]?.totalToPay || 0)}

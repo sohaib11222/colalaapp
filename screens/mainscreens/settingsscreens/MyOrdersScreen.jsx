@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   SafeAreaView,
   View,
@@ -32,6 +32,9 @@ export default function MyOrdersScreen() {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   
+  // Tab state: 0 = Pending, 1 = Accepted, 2 = In Process
+  const [activeTab, setActiveTab] = useState(0);
+  
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
 
@@ -39,7 +42,30 @@ export default function MyOrdersScreen() {
   const { data, isLoading, isError, refetch } = useOrders(1);
 
   // API returns: { status, data: { data: [orders], ...pagination } }
-  const orders = Array.isArray(data?.data?.data) ? data.data.data : [];
+  const allOrders = Array.isArray(data?.data?.data) ? data.data.data : [];
+
+  // Filter orders based on active tab
+  const orders = useMemo(() => {
+    return allOrders.filter(order => {
+      // Check if order has at least one store_order with the matching status
+      const hasMatchingStatus = order.store_orders?.some(storeOrder => {
+        const status = storeOrder.status?.toLowerCase();
+        
+        if (activeTab === 0) {
+          // Pending: pending_acceptance
+          return status === 'pending_acceptance';
+        } else if (activeTab === 1) {
+          // Accepted: accepted
+          return status === 'accepted';
+        } else {
+          // In Process: all other statuses (paid, preparing, out_for_delivery, delivered, completed)
+          return status !== 'pending_acceptance' && status !== 'accepted';
+        }
+      });
+      
+      return hasMatchingStatus;
+    });
+  }, [allOrders, activeTab]);
 
   // Pull to refresh functionality
   const onRefresh = useCallback(async () => {
@@ -75,6 +101,34 @@ export default function MyOrdersScreen() {
 
           <View style={{ width: 40, height: 40 }} />
         </View>
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 0 && styles.activeTab]}
+          onPress={() => setActiveTab(0)}
+        >
+          <ThemedText style={[styles.tabText, activeTab === 0 && styles.activeTabText]}>
+            Pending
+          </ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 1 && styles.activeTab]}
+          onPress={() => setActiveTab(1)}
+        >
+          <ThemedText style={[styles.tabText, activeTab === 1 && styles.activeTabText]}>
+            Accepted
+          </ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 2 && styles.activeTab]}
+          onPress={() => setActiveTab(2)}
+        >
+          <ThemedText style={[styles.tabText, activeTab === 2 && styles.activeTabText]}>
+            In Process
+          </ThemedText>
+        </TouchableOpacity>
       </View>
 
       {/* Header loading indicator */}
@@ -260,5 +314,33 @@ const styles = StyleSheet.create({
     color: COLOR.sub,
     fontSize: 14,
     fontWeight: "500",
+  },
+
+  // Tabs styles
+  tabsContainer: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+    paddingHorizontal: 16,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  activeTab: {
+    borderBottomColor: COLOR.primary,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: COLOR.sub,
+  },
+  activeTabText: {
+    color: COLOR.primary,
+    fontWeight: "700",
   },
 });

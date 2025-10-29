@@ -49,8 +49,39 @@ const LockRow = ({ item, onPressStore, onPressDetails }) => (
 
     <View style={{ flex: 1 }}>
       <ThemedText style={styles.rowTitle}>{item.title}</ThemedText>
-      <TouchableOpacity onPress={onPressDetails} activeOpacity={0.8}>
-        <ThemedText style={styles.rowLink}>View Details</ThemedText>
+      
+      {/* Display product items if available */}
+      {item.products && item.products.length > 0 && (
+        <View style={styles.productsContainer}>
+          {item.products.slice(0, 2).map((product, index) => (
+            <View key={index} style={styles.productRow}>
+              {product.image && (
+                <Image 
+                  source={{ uri: product.image }} 
+                  style={styles.productThumb}
+                  resizeMode="cover"
+                />
+              )}
+              <View style={styles.productInfo}>
+                <ThemedText style={styles.productName} numberOfLines={1}>
+                  {product.name}
+                </ThemedText>
+                <ThemedText style={styles.productQty}>
+                  Qty: {product.qty}
+                </ThemedText>
+              </View>
+            </View>
+          ))}
+          {item.products.length > 2 && (
+            <ThemedText style={styles.moreProducts}>
+              +{item.products.length - 2} more item{item.products.length - 2 !== 1 ? 's' : ''}
+            </ThemedText>
+          )}
+        </View>
+      )}
+      
+      <TouchableOpacity onPress={onPressDetails} activeOpacity={0.8} style={{ marginTop: 6 }}>
+        <ThemedText style={styles.rowLink}>View Full Details</ThemedText>
       </TouchableOpacity>
     </View>
 
@@ -123,15 +154,42 @@ export default function EscrowWalletScreen() {
   // Process history data
   const historyItems = useMemo(() => {
     if (!historyData?.data?.data) return [];
-    return historyData.data.data.map((item, index) => ({
-      id: `h${index + 1}`,
-      title: item.title || "Transaction",
-      amount: formatCurrency(item.amount),
-      store: item.description || "View Details",
-      when: formatDate(item.created_at),
-      type: item.type || "transaction",
-      rawData: item // Store the original data for modal
-    }));
+    return historyData.data.data.map((item, index) => {
+      // Determine title based on available data
+      const storeName = item.store?.store_name || "Unknown Store";
+      const orderNo = item.order?.order_no || "Order";
+      const title = `${storeName} - ${orderNo}`;
+      
+      // Calculate total amount (amount + shipping_fee if available)
+      const totalAmount = Number(item.amount || 0);
+      
+      // Determine description based on status and items
+      let description = "View Details";
+      if (item.items && item.items.length > 0) {
+        const itemCount = item.items.reduce((sum, orderItem) => sum + Number(orderItem.qty || 0), 0);
+        description = `${itemCount} item${itemCount !== 1 ? 's' : ''}`;
+      }
+      
+      // Map products for display
+      const products = (item.items || []).map(orderItem => ({
+        name: orderItem.name || "Unknown Product",
+        qty: orderItem.qty || 0,
+        image: orderItem.product_image || null,
+        price: orderItem.unit_price || 0,
+      }));
+      
+      return {
+        id: `h${item.id}`,
+        title,
+        amount: formatCurrency(totalAmount),
+        store: description,
+        when: formatDate(item.created_at),
+        status: item.status || "locked",
+        orderStatus: item.order?.status || "unknown",
+        products, // Add products array
+        rawData: item // Store the original data for modal
+      };
+    });
   }, [historyData]);
 
   // Handle modal opening
@@ -391,10 +449,50 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
   },
-  rowTitle: { color: COLOR.text, fontWeight: "700" },
+  rowTitle: { color: COLOR.text, fontWeight: "700", fontSize: 14 },
   rowLink: { color: COLOR.primary, marginTop: 4, fontSize: 12 },
   rowAmount: { color: COLOR.primary, fontWeight: "800" },
   rowWhen: { color: COLOR.sub, fontSize: 11, marginTop: 6 },
+  
+  // Product display styles
+  productsContainer: {
+    marginTop: 8,
+    gap: 6,
+  },
+  productRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLOR.bg,
+    borderRadius: 8,
+    padding: 6,
+  },
+  productThumb: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    backgroundColor: COLOR.line,
+    marginRight: 8,
+  },
+  productInfo: {
+    flex: 1,
+  },
+  productName: {
+    color: COLOR.text,
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  productQty: {
+    color: COLOR.sub,
+    fontSize: 10,
+    marginTop: 2,
+  },
+  moreProducts: {
+    color: COLOR.sub,
+    fontSize: 11,
+    fontStyle: "italic",
+    marginTop: 4,
+    marginLeft: 6,
+  },
   
   // Loading, Error, and Empty States
   loadingContainer: {

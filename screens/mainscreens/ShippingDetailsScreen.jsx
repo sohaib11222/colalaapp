@@ -719,7 +719,7 @@ export default function ShippingDetailsScreen() {
                     <BreakdownRow left="Items Cost" right={currency(calc.itemsCost)} last={false} />
                     <BreakdownRow left="Coupon Discount" right={`-${currency(calc.couponDiscount)}`} last={false} />
                     <BreakdownRow left="Points Discount" right={`-${currency(calc.pointsDiscount)}`} last={false} />
-                    <BreakdownRow left="Delivery fee" right={currency(calc.deliveryFee)} last={false} />
+                    {/* <BreakdownRow left="Delivery fee" right={currency(calc.deliveryFee)} last={false} /> */}
                     <BreakdownRow left="Total to pay" right={currency(calc.totalToPay)} strong last />
                   </View>
                 )}

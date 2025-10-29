@@ -15,9 +15,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
-import { useOrderDetails, fileUrl, useStartChat, useAddProductReview, useAddStoreReview } from "../../../config/api.config"; // ⬅️ NEW
+import { useOrderDetails, fileUrl, useStartChat, useAddProductReview, useAddStoreReview, usePaymentInfo, useProcessPayment } from "../../../config/api.config"; // ⬅️ NEW
 
 /* ---------- THEME ---------- */
 const COLOR = {
@@ -443,7 +444,7 @@ function ReviewModal({ visible, onClose, type, store, onSubmit, isSubmitting = f
 }
 
 /* ---------- Store block (unchanged UI) ---------- */
-function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData = null, isExpanded = false, onToggleExpanded = null, onReviewProduct = null, onReviewStore = null, addingProductReview = false, addingStoreReview = false }) {
+function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData = null, isExpanded = false, onToggleExpanded = null, onReviewProduct = null, onReviewStore = null, addingProductReview = false, addingStoreReview = false, onPayOrder = null }) {
   const [expanded, setExpanded] = useState(isExpanded);
   const navigation = useNavigation();
   
@@ -709,8 +710,22 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
           </ThemedText>
         </TouchableOpacity>
 
+        {/* Pay Order button - only show for accepted orders (status = 1) */}
+        {store.status === 1 && onPayOrder && (
+          <View style={styles.reviewButtonsRow}>
+            <TouchableOpacity 
+              style={[styles.reviewBtn, { backgroundColor: COLOR.primary, borderColor: COLOR.primary }]}
+              onPress={onPayOrder}
+            >
+              <ThemedText style={[styles.reviewBtnText, { color: '#fff', fontWeight: '700' }]}>
+                Pay Order
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Review buttons - only show for delivered orders */}
-        {store.status >= 2 && (
+        {store.status >= 4 && (
           <View style={styles.reviewButtonsRow}>
             <TouchableOpacity 
               style={styles.reviewBtn}
@@ -810,13 +825,16 @@ export default function SingleOrderDetailsScreen() {
           };
         }) || [];
 
-      // Map API status to UI status (0: pending, 1: out_for_delivery, 2: delivered, 3: completed)
+      // Map API status to UI status (0: pending_acceptance, 1: accepted, 2: paid, 3: out_for_delivery, 4: delivered, 5: completed)
       const getStatusIndex = (status) => {
         switch (status) {
-          case 'pending': return 0;
-          case 'out_for_delivery': return 1;
-          case 'delivered': return 2;
-          case 'completed': return 3;
+          case 'pending_acceptance': return 0;
+          case 'accepted': return 1;
+          case 'paid':
+          case 'preparing': return 2;
+          case 'out_for_delivery': return 3;
+          case 'delivered': return 4;
+          case 'completed': return 5;
           default: return 0;
         }
       };
@@ -840,8 +858,8 @@ export default function SingleOrderDetailsScreen() {
     };
   }, [apiOrder]);
 
-  // Tabs (unchanged)
-  const STATUS = ["Order placed", "Out for delivery", "Delivered", "Completed"];
+  // Tabs - Updated to include Pending and Accepted
+  const STATUS = ["Pending", "Accepted", "In Process", "Out for delivery", "Delivered", "Completed"];
   
   const [statusIdx, setStatusIdx] = useState(0);
   
@@ -879,6 +897,10 @@ export default function SingleOrderDetailsScreen() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success'); // 'success' or 'error'
+
+  // Payment modal state
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [paymentInfo, setPaymentInfo] = useState(null);
 
   // Show toast notification
   const showToast = (message, type = 'success') => {
@@ -947,6 +969,70 @@ export default function SingleOrderDetailsScreen() {
       comment,
       images
     });
+  };
+
+  // Payment processing hook
+  const { mutate: processPayment, isPending: processingPayment } = useProcessPayment({
+    onSuccess: (response) => {
+      console.log('Payment processed successfully:', response);
+      setPaymentModalVisible(false);
+      showToast("Payment processed successfully!", "success");
+      // Refresh order details
+      handleRefresh();
+    },
+    onError: (error) => {
+      console.error('Payment error:', error);
+      showToast(error?.message || "Failed to process payment. Please try again.", "error");
+    }
+  });
+
+  // Handle payment button click (for accepted orders)
+  const handlePayOrder = async () => {
+    if (!apiOrder) return;
+    
+    try {
+      // Fetch payment info
+      const response = await fetch(`https://colala.hmstech.xyz/api/buyer/orders/${apiOrder.id}/payment-info`, {
+        headers: {
+          'Authorization': `Bearer ${await AsyncStorage.getItem("auth_token")}`,
+          'Accept': 'application/json',
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.status === 'success' && result.data) {
+        setPaymentInfo(result.data);
+        setPaymentModalVisible(true);
+      } else {
+        showToast(result.message || "Failed to load payment info", "error");
+      }
+    } catch (error) {
+      console.error('Error fetching payment info:', error);
+      showToast("Failed to load payment info. Please try again.", "error");
+    }
+  };
+
+  // Handle proceed to payment
+  const handleProceedToPayment = () => {
+    if (!paymentInfo || !apiOrder) return;
+    
+    const paymentMethod = paymentInfo.payment_method?.toLowerCase();
+    
+    if (paymentMethod === 'flutterwave') {
+      // Navigate to Flutterwave WebView
+      setPaymentModalVisible(false);
+      navigation.navigate("FlutterwaveWebView", {
+        order_id: String(apiOrder.id),
+        amount: Number(paymentInfo.amount_to_pay) || 0,
+      });
+    } else {
+      // For other payment methods, call the process payment API
+      processPayment({
+        orderId: apiOrder.id,
+        tx_id: null, // Will be set if needed
+      });
+    }
   };
 
   // Only use API data, no fallback to dummy data
@@ -1144,6 +1230,7 @@ export default function SingleOrderDetailsScreen() {
               onReviewStore={handleReviewStore}
               addingProductReview={addingProductReview}
               addingStoreReview={addingStoreReview}
+              onPayOrder={handlePayOrder}
             />
           ))
         ) : (
@@ -1185,6 +1272,115 @@ export default function SingleOrderDetailsScreen() {
         onSubmit={handleStoreReviewSubmit}
         isSubmitting={addingStoreReview}
       />
+
+      {/* Payment Modal */}
+      <Modal
+        visible={paymentModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPaymentModalVisible(false)}
+      >
+        <View style={styles.centerOverlay}>
+          <View style={styles.alertCard}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <Ionicons name="card-outline" size={48} color={COLOR.primary} />
+              <ThemedText style={{ fontSize: 20, fontWeight: '700', color: COLOR.text, marginTop: 12 }}>
+                Payment Details
+              </ThemedText>
+            </View>
+
+            {paymentInfo && (
+              <View style={{ marginBottom: 20 }}>
+                <View style={{ marginBottom: 12 }}>
+                  <ThemedText style={{ fontSize: 14, fontWeight: '600', color: COLOR.text, marginBottom: 4 }}>
+                    Order Number
+                  </ThemedText>
+                  <ThemedText style={{ fontSize: 14, color: COLOR.sub }}>
+                    {paymentInfo.order_no}
+                  </ThemedText>
+                </View>
+
+                <View style={{ marginBottom: 12 }}>
+                  <ThemedText style={{ fontSize: 14, fontWeight: '600', color: COLOR.text, marginBottom: 4 }}>
+                    Store
+                  </ThemedText>
+                  <ThemedText style={{ fontSize: 14, color: COLOR.sub }}>
+                    {paymentInfo.store?.store_name}
+                  </ThemedText>
+                </View>
+
+                <View style={{ marginBottom: 12 }}>
+                  <ThemedText style={{ fontSize: 14, fontWeight: '600', color: COLOR.text, marginBottom: 4 }}>
+                    Items Subtotal
+                  </ThemedText>
+                  <ThemedText style={{ fontSize: 14, color: COLOR.sub }}>
+                    {currency(paymentInfo.store?.items_subtotal || 0)}
+                  </ThemedText>
+                </View>
+
+                <View style={{ marginBottom: 12 }}>
+                  <ThemedText style={{ fontSize: 14, fontWeight: '600', color: COLOR.text, marginBottom: 4 }}>
+                    Delivery Fee
+                  </ThemedText>
+                  <ThemedText style={{ fontSize: 14, color: COLOR.sub }}>
+                    {currency(paymentInfo.store?.delivery_fee || 0)}
+                  </ThemedText>
+                </View>
+
+                {paymentInfo.store?.estimated_delivery && (
+                  <View style={{ marginBottom: 12 }}>
+                    <ThemedText style={{ fontSize: 14, fontWeight: '600', color: COLOR.text, marginBottom: 4 }}>
+                      Estimated Delivery
+                    </ThemedText>
+                    <ThemedText style={{ fontSize: 14, color: COLOR.sub }}>
+                      {paymentInfo.store.estimated_delivery}
+                    </ThemedText>
+                  </View>
+                )}
+
+                <View style={{ marginBottom: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLOR.line }}>
+                  <ThemedText style={{ fontSize: 16, fontWeight: '700', color: COLOR.text, marginBottom: 4 }}>
+                    Total Amount
+                  </ThemedText>
+                  <ThemedText style={{ fontSize: 18, fontWeight: '800', color: COLOR.primary }}>
+                    {currency(paymentInfo.amount_to_pay || 0)}
+                  </ThemedText>
+                </View>
+
+                <View style={{ marginBottom: 12 }}>
+                  <ThemedText style={{ fontSize: 14, fontWeight: '600', color: COLOR.text, marginBottom: 4 }}>
+                    Payment Method
+                  </ThemedText>
+                  <ThemedText style={{ fontSize: 14, color: COLOR.sub }}>
+                    {paymentInfo.payment_method?.toUpperCase()}
+                  </ThemedText>
+                </View>
+              </View>
+            )}
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                style={[styles.ghostBtn, { flex: 1 }]}
+                onPress={() => setPaymentModalVisible(false)}
+                disabled={processingPayment}
+              >
+                <ThemedText style={{ color: COLOR.text, fontWeight: '600' }}>Cancel</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.solidBtn, { flex: 1 }]}
+                onPress={handleProceedToPayment}
+                disabled={processingPayment}
+              >
+                {processingPayment ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Proceed to Payment</ThemedText>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Toast Notification */}
       {toastVisible && (

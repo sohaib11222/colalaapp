@@ -84,6 +84,8 @@ const API = {
   Referral_Withdraw: `${BASE_URL}/wallet/withdraw/referral`,
   Transfer: `${BASE_URL}/wallet/transfer`,
   Phone_Request: `${BASE_URL}/buyer/phone-request`,
+  PAYMENT_INFO: (orderId) => `${BASE_URL}/buyer/orders/${orderId}/payment-info`,
+  PROCESS_PAYMENT: (orderId) => `${BASE_URL}/buyer/orders/${orderId}/pay`,
 };
 
 export default API;
@@ -1150,6 +1152,37 @@ export const useRequestPhoneNumber = (opts) =>
     },
     onError: (error) => {
       console.error('RequestPhoneNumber error:', error);
+      if (opts?.onError) opts.onError(error);
+    },
+    ...opts,
+  });
+
+// Get payment info for an order
+export const usePaymentInfo = (orderId, options) =>
+  useQuery({
+    queryKey: ["paymentInfo", orderId],
+    queryFn: () => http.get(API.PAYMENT_INFO(orderId)),
+    enabled: !!orderId,
+    ...options,
+  });
+
+// Process payment for an order
+export const useProcessPayment = (opts) =>
+  useMutation({
+    mutationFn: ({ orderId, tx_id }) => {
+      console.log('ProcessPayment API call - URL:', API.PROCESS_PAYMENT(orderId));
+      console.log('ProcessPayment API call - Payload:', { tx_id });
+      return http.post(API.PROCESS_PAYMENT(orderId), { tx_id });
+    },
+    onSuccess: (res, vars) => {
+      console.log('ProcessPayment API call - Success:', res);
+      // Invalidate orders queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['orderDetails'] });
+      opts?.onSuccess?.(res, vars);
+    },
+    onError: (error) => {
+      console.error('ProcessPayment error:', error);
       if (opts?.onError) opts.onError(error);
     },
     ...opts,
