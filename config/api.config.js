@@ -46,6 +46,7 @@ const API = {
   STORE_REVIEWS: (id) => `${BASE_URL}/buyer/stores/${id}/reviews`,
   ORDER_ITEM_REVIEW: (orderItemId) => `${BASE_URL}/buyer/order-items/${orderItemId}/review`,
   Get_All_Products: `${BASE_URL}/buyer/product/get-all`,
+  REFERRAL_PRODUCTS: `${BASE_URL}/buyer/product/referral-products`,
   LEADERBOARD_SELLERS: `${BASE_URL}/leaderboard/sellers`,
 
 
@@ -79,6 +80,7 @@ const API = {
   User_Review: `${BASE_URL}/user-reveiws`,
   Get_Top_Selling: `${BASE_URL}/buyer/products/top-selling`,
   Get_Faqs: `${BASE_URL}/faqs/category/name/general`,
+  Knowledge_Base: `${BASE_URL}/buyer/knowledge-base`,
   Wallet_Withdraw: `${BASE_URL}/wallet/withdraw`,
   Referral_Balance: `${BASE_URL}/wallet/refferal-balance`,
   Referral_Withdraw: `${BASE_URL}/wallet/withdraw/referral`,
@@ -664,6 +666,14 @@ export const useGetAllProducts = (options) =>
     staleTime: 60 * 1000,
     ...options,
   });
+
+export const useReferralProducts = (options) =>
+  useQuery({
+    queryKey: ["referralProducts"],
+    queryFn: () => http.get(API.REFERRAL_PRODUCTS),
+    staleTime: 60 * 1000,
+    ...options,
+  });
 export const useEditProfile = (opts) =>
   useMutation({
     mutationFn: (payload) => {
@@ -1102,6 +1112,15 @@ export const useGetFaqs = (options) =>
   useQuery({
     queryKey: ["getFaqs"],
     queryFn: () => http.get(API.Get_Faqs),
+    ...options,
+  });
+
+export const useKnowledgeBase = (page = 1, options) =>
+  useQuery({
+    queryKey: ["knowledgeBase", page],
+    queryFn: () => http.get(API.Knowledge_Base, { page }),
+    keepPreviousData: true,
+    staleTime: 60 * 1000,
     ...options,
   });
 

@@ -1,5 +1,5 @@
 // screens/ReferralsScreen.jsx
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -23,6 +23,8 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Clipboard from "expo-clipboard";
 import * as ImagePicker from 'expo-image-picker';
+import { Video, ResizeMode } from 'expo-av';
+import { WebView } from 'react-native-webview';
 import ThemedText from "../../../components/ThemedText"; // <-- adjust path if needed
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -30,9 +32,11 @@ import {
   useReferralWithdraw,
   useTransfer,
   useGetAllProducts,
+  useReferralProducts,
   useCategories,
   fileUrl,
   useGetFaqs,
+  useKnowledgeBase,
   useCameraSearch
 } from "../../../config/api.config";
 /* -------------------- THEME -------------------- */
@@ -72,16 +76,19 @@ export default function ReferralsScreen() {
   // Transfer API integration
   const { mutate: transfer, isPending: isTransferring } = useTransfer();
 
-  // Products API integration
+  // Referral Products API integration (using referral-specific endpoint)
   const {
     data: productsData,
     isLoading: productsLoading,
     error: productsError,
-  } = useGetAllProducts();
+  } = useReferralProducts();
   const { data: categoriesData } = useCategories();
 
   // FAQs API integration
   const { data: faqsData, isLoading: faqsLoading, error: faqsError } = useGetFaqs();
+
+  // Knowledge Base API integration
+  const { data: knowledgeBaseData, isLoading: knowledgeBaseLoading, error: knowledgeBaseError } = useKnowledgeBase();
 
   // Camera search functionality
   const { mutate: cameraSearch, isPending: isCameraSearching } = useCameraSearch();
@@ -235,9 +242,11 @@ export default function ReferralsScreen() {
 
   // Filter products based on search and filters
   const filteredProducts = useMemo(() => {
-    if (!productsData?.data) return [];
+    // Handle both old API structure (data array) and new structure (data.products array)
+    const productsArray = productsData?.data?.products || productsData?.data || [];
+    if (!productsArray || productsArray.length === 0) return [];
 
-    let filtered = productsData.data;
+    let filtered = productsArray;
 
     // Search filter
     if (searchQuery.trim()) {
@@ -423,7 +432,12 @@ export default function ReferralsScreen() {
 
   // FAQs state
   const [openFaqId, setOpenFaqId] = useState("");
-  const [faqTab, setFaqTab] = useState("faqs"); // "faqs" or "video"
+  const [faqTab, setFaqTab] = useState("video"); // "faqs" or "video" (video uses knowledge base data)
+
+  // Video FAQs state (using knowledge base data)
+  const [openVideoFaqId, setOpenVideoFaqId] = useState("");
+  const [playingVideoId, setPlayingVideoId] = useState(null);
+  const videoFaqsVideosRef = useRef({});
 
   // Process FAQs data from API
   const processedFAQs = useMemo(() => {
@@ -437,6 +451,80 @@ export default function ReferralsScreen() {
       a: faq.answer,
     }));
   }, [faqsData, faqsLoading]);
+
+  // Extract knowledge base items (used for Video FAQs)
+  const videoFaqsItems = useMemo(() => {
+    const items = knowledgeBaseData?.data?.knowledge_base || [];
+    console.log("📚 Video FAQs Items loaded:", items.length, items);
+    return items;
+  }, [knowledgeBaseData]);
+
+  // Helper function to extract YouTube video ID and generate embed URL
+  const getYouTubeVideoInfo = (url) => {
+    if (!url) return null;
+    
+    // Normalize URL - if it's a relative path, convert to full URL
+    let normalizedUrl = url;
+    if (!/^https?:\/\//i.test(url)) {
+      // It's a relative path, construct full URL
+      normalizedUrl = fileUrl(url);
+    }
+    
+    // Match various YouTube URL formats
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = normalizedUrl.match(regex);
+    
+    if (match && match[1]) {
+      const videoId = match[1];
+      return {
+        videoId,
+        thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+        embedUrl: `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`,
+        isYouTube: true,
+        originalUrl: normalizedUrl,
+      };
+    }
+    
+    // Check if it's a direct video URL (mp4, mov, avi, webm, mkv)
+    if (normalizedUrl && normalizedUrl.match(/\.(mp4|mov|avi|webm|mkv)$/i)) {
+      return {
+        videoId: null,
+        thumbnailUrl: null,
+        embedUrl: normalizedUrl,
+        isYouTube: false,
+        originalUrl: normalizedUrl,
+      };
+    }
+    
+    return null;
+  };
+
+  // Handle video play/pause for video FAQs (for custom video URLs only)
+  const handleVideoFaqsVideoPlay = useCallback(async (itemId) => {
+    if (playingVideoId === itemId) {
+      // Pause current video
+      const videoRef = videoFaqsVideosRef.current[itemId];
+      if (videoRef) {
+        await videoRef.pauseAsync();
+      }
+      setPlayingVideoId(null);
+    } else {
+      // Pause any other playing video
+      if (playingVideoId) {
+        const prevVideoRef = videoFaqsVideosRef.current[playingVideoId];
+        if (prevVideoRef) {
+          await prevVideoRef.pauseAsync();
+        }
+      }
+      
+      // Play new video
+      const videoRef = videoFaqsVideosRef.current[itemId];
+      if (videoRef) {
+        await videoRef.playAsync();
+        setPlayingVideoId(itemId);
+      }
+    }
+  }, [playingVideoId]);
 
   // Get video URL and thumbnail from API
   const { videoUrl, thumbnailUrl, originalVideoUrl, hasVideo } = useMemo(() => {
@@ -506,7 +594,8 @@ export default function ReferralsScreen() {
       // Invalidate and refetch all queries
       await queryClient.invalidateQueries({ queryKey: ['referralBalance'] });
       await queryClient.invalidateQueries({ queryKey: ['faqs'] });
-      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['referralProducts'] });
+      await queryClient.invalidateQueries({ queryKey: ['knowledgeBase'] });
     } catch (error) {
       console.log('Refresh error:', error);
     } finally {
@@ -784,6 +873,19 @@ export default function ReferralsScreen() {
               >
                 Video FAQs
               </ThemedText>
+              {videoFaqsItems.length > 0 && (
+                <View style={[
+                  styles.faqTabBadge,
+                  faqTab === "video" && styles.faqTabBadgeActive,
+                ]}>
+                  <ThemedText style={[
+                    styles.faqTabBadgeText,
+                    faqTab === "video" && styles.faqTabBadgeTextActive,
+                  ]}>
+                    {videoFaqsItems.length}
+                  </ThemedText>
+                </View>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -838,54 +940,178 @@ export default function ReferralsScreen() {
             }
           >
             {/* Loading indicator */}
-            {faqsLoading && (
+            {(faqsLoading || knowledgeBaseLoading) && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={COLOR.primary} />
-                <ThemedText style={styles.loadingText}>Loading FAQs...</ThemedText>
-              </View>
-            )}
-
-            {/* Error message */}
-            {faqsError && !faqsLoading && (
-              <View style={styles.errorContainer}>
-                <ThemedText style={styles.errorText}>
-                  Failed to load FAQs. Please try again later.
+                <ThemedText style={styles.loadingText}>
+                  {faqTab === "video" ? "Loading Video FAQs..." : "Loading FAQs..."}
                 </ThemedText>
               </View>
             )}
 
-            {/* Video FAQs Tab Content */}
+            {/* Error message */}
+            {((faqsError && !faqsLoading) || (knowledgeBaseError && !knowledgeBaseLoading)) && (
+              <View style={styles.errorContainer}>
+                <ThemedText style={styles.errorText}>
+                  Failed to load {faqTab === "video" ? "Video FAQs" : "FAQs"}. Please try again later.
+                </ThemedText>
+              </View>
+            )}
+
+            {/* Video FAQs Tab Content (using Knowledge Base data) */}
             {faqTab === "video" && (
               <View style={{ marginTop: 12 }}>
-                {hasVideo && videoUrl ? (
-                  <TouchableOpacity 
-                    style={styles.videoCard}
-                    onPress={() => {
-                      if (originalVideoUrl) {
-                        handleVideoPlay(originalVideoUrl);
-                      }
-                    }}
-                    activeOpacity={0.9}
-                  >
-                    <Image
-                      source={{ uri: videoUrl }}
-                      style={styles.videoImage}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.playOverlay}>
-                      <Ionicons name="play" size={26} color="#fff" />
-                    </View>
-                    {thumbnailUrl && (
-                      <View style={styles.youtubeIndicator}>
-                        <Ionicons name="logo-youtube" size={20} color="#fff" />
+                {knowledgeBaseLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={COLOR.primary} />
+                    <ThemedText style={styles.loadingText}>Loading Video FAQs...</ThemedText>
+                  </View>
+                ) : videoFaqsItems.length > 0 ? (
+                  videoFaqsItems.map((item) => {
+                    const open = openVideoFaqId === item.id.toString();
+                    const videoInfo = getYouTubeVideoInfo(item.media_url);
+                    const isPlaying = playingVideoId === item.id.toString();
+
+                    return (
+                      <View
+                        key={`video-faq-${item.id}`}
+                        style={[styles.knowledgeBaseItem, open && styles.knowledgeBaseItemOpen]}
+                      >
+                        <TouchableOpacity
+                          onPress={() => {
+                            console.log("Toggling Video FAQ:", item.id, item.title);
+                            setOpenVideoFaqId(open ? "" : item.id.toString());
+                          }}
+                          style={styles.knowledgeBaseHeader}
+                          activeOpacity={0.8}
+                        >
+                          <View style={{ flex: 1, marginRight: 12 }}>
+                            <ThemedText style={styles.knowledgeBaseTitle} numberOfLines={open ? 0 : 2}>
+                              {item.title || "Untitled"}
+                            </ThemedText>
+                          </View>
+                          <Ionicons
+                            name={open ? "remove" : "add"}
+                            size={20}
+                            color={COLOR.text}
+                          />
+                        </TouchableOpacity>
+
+                        {open && (
+                          <View style={styles.knowledgeBaseBody}>
+                            {/* Description Section */}
+                            {item.description && (
+                              <View style={styles.knowledgeBaseDescription}>
+                                <ThemedText style={styles.knowledgeBaseDescriptionText}>
+                                  {item.description}
+                                </ThemedText>
+                              </View>
+                            )}
+
+                            {/* Video Section */}
+                            {item.media_url ? (
+                              videoInfo ? (
+                                <View style={styles.knowledgeBaseVideoContainer}>
+                                  {videoInfo.isYouTube ? (
+                                  // YouTube video - use WebView with HTML iframe for in-app playback
+                                  <View style={styles.knowledgeBaseVideoCard}>
+                                    <WebView
+                                      source={{
+                                        html: `
+                                          <!DOCTYPE html>
+                                          <html>
+                                            <head>
+                                              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                              <style>
+                                                body {
+                                                  margin: 0;
+                                                  padding: 0;
+                                                  background: #000;
+                                                }
+                                                .video-container {
+                                                  position: relative;
+                                                  width: 100%;
+                                                  height: 100%;
+                                                  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+                                                }
+                                                iframe {
+                                                  position: absolute;
+                                                  top: 0;
+                                                  left: 0;
+                                                  width: 100%;
+                                                  height: 100%;
+                                                }
+                                              </style>
+                                            </head>
+                                            <body>
+                                              <div class="video-container">
+                                                <iframe
+                                                  src="${videoInfo.embedUrl}"
+                                                  frameborder="0"
+                                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                  allowfullscreen
+                                                ></iframe>
+                                              </div>
+                                            </body>
+                                          </html>
+                                        `
+                                      }}
+                                      style={styles.knowledgeBaseVideoPlayer}
+                                      allowsFullscreenVideo={true}
+                                      javaScriptEnabled={true}
+                                      domStorageEnabled={true}
+                                    />
+                                  </View>
+                                ) : (
+                                  // Custom video URL - use Video component
+                                  <View style={styles.knowledgeBaseVideoCard}>
+                                    <Video
+                                      ref={(ref) => {
+                                        if (ref) {
+                                          videoFaqsVideosRef.current[item.id.toString()] = ref;
+                                        }
+                                      }}
+                                      source={{ uri: videoInfo.embedUrl }}
+                                      style={styles.knowledgeBaseVideoPlayer}
+                                      resizeMode={ResizeMode.CONTAIN}
+                                      shouldPlay={false}
+                                      isLooping={false}
+                                      useNativeControls={true}
+                                      onPlaybackStatusUpdate={(status) => {
+                                        if (status.isLoaded && status.didJustFinish) {
+                                          setPlayingVideoId(null);
+                                        }
+                                      }}
+                                      onError={(error) => {
+                                        console.log("Video FAQ video error:", error);
+                                        Alert.alert(
+                                          "Video Error",
+                                          "Unable to load video. Please check your internet connection.",
+                                          [{ text: "OK" }]
+                                        );
+                                      }}
+                                    />
+                                  </View>
+                                  )}
+                                </View>
+                              ) : (
+                                <View style={styles.knowledgeBaseDescription}>
+                                  <ThemedText style={[styles.knowledgeBaseDescriptionText, { color: COLOR.primary, fontStyle: 'italic' }]}>
+                                    Video URL format not supported or invalid
+                                  </ThemedText>
+                                </View>
+                              )
+                            ) : null}
+                          </View>
+                        )}
                       </View>
-                    )}
-                  </TouchableOpacity>
+                    );
+                  })
                 ) : (
-                  !faqsLoading && !faqsError && (
+                  !knowledgeBaseLoading && !knowledgeBaseError && (
                     <View style={styles.emptyContainer}>
                       <Ionicons name="videocam-off-outline" size={48} color={COLOR.sub} style={{ marginBottom: 12 }} />
-                      <ThemedText style={styles.emptyText}>No video FAQs available</ThemedText>
+                      <ThemedText style={styles.emptyText}>No Video FAQs available</ThemedText>
                     </View>
                   )
                 )}
@@ -1071,7 +1297,9 @@ export default function ReferralsScreen() {
                     ₦{parseFloat(item.price || 0).toLocaleString()}
                   </ThemedText>
                   <ThemedText style={styles.productCommission}>
-                    Commission : {item.discount || 0}%
+                    Commission : {item.referral_fee 
+                      ? `₦${parseFloat(item.referral_fee || 0).toLocaleString()}` 
+                      : `${item.discount || 0}%`}
                   </ThemedText>
                 </View>
 
@@ -1079,7 +1307,9 @@ export default function ReferralsScreen() {
                   style={styles.copyBtnBig}
                   onPress={(e) => {
                     e.stopPropagation(); // Prevent navigation when copy button is pressed
-                    copy(`Product: ${item.name}`);
+                    // Build referral link: https://colalamall.com/product/{productId}?ref={userCode}
+                    const referralLink = `https://colalamall.com/product/${item.id}?ref=${userCode}`;
+                    copy(referralLink);
                   }}
                 >
                   <ThemedText style={styles.copyBtnBigTxt}>
@@ -2589,5 +2819,87 @@ const styles = StyleSheet.create({
   },
   faqTabBadgeTextActive: {
     color: "#fff",
+  },
+
+  // Knowledge Base Styles
+  knowledgeBaseItem: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    marginBottom: 10,
+    overflow: "hidden",
+  },
+  knowledgeBaseItemOpen: {
+    backgroundColor: "#fff",
+  },
+  knowledgeBaseHeader: {
+    height: 60,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  knowledgeBaseTitle: {
+    flex: 1,
+    color: COLOR.text,
+    fontSize: 14,
+    fontWeight: "500",
+    marginRight: 12,
+  },
+  knowledgeBaseBody: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+  },
+  knowledgeBaseVideoContainer: {
+    marginBottom: 12,
+  },
+  knowledgeBaseVideoCard: {
+    height: 200,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: COLOR.line,
+    position: "relative",
+  },
+  knowledgeBaseVideoThumbnail: {
+    width: "100%",
+    height: "100%",
+  },
+  knowledgeBasePlayOverlay: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    left: "50%",
+    top: "50%",
+    marginLeft: -30,
+    marginTop: -30,
+  },
+  knowledgeBaseYoutubeIndicator: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 0, 0, 0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  knowledgeBaseVideoPlayer: {
+    width: "100%",
+    height: 200,
+    backgroundColor: "#000",
+  },
+  knowledgeBaseDescription: {
+    marginTop: 8,
+  },
+  knowledgeBaseDescriptionText: {
+    color: COLOR.sub,
+    fontSize: 13,
+    lineHeight: 20,
   },
 });

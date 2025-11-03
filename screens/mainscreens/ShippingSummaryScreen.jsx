@@ -145,11 +145,11 @@ export default function ShippingSummaryScreen() {
 
       // Default (wallet / others) — navigate to orders or home
       const orderNo = res?.data?.order_no || "Order Placed";
-      Alert.alert("Success", `Order placed successfully.\nOrder Number: ${orderNo}`, [
+      Alert.alert("Success", `Your order has been placed successfully. Wait for the seller to accept your order, you will be notified when the seller accepts your order.`, [
         { 
           text: "View Orders", 
-          onPress: () => navigation.navigate("MainNavigator", { 
-            screen: "Orders" // Navigate to orders screen if available
+          onPress: () => navigation.navigate("SettingsNavigator", { 
+            screen: "MyOrders" // Navigate to orders screen if available
           }) 
         },
         { 

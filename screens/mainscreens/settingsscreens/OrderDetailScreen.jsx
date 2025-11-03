@@ -534,7 +534,7 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
   const points = 0;   // Set to 0 as per user request - not coming from backend
   const fee = Number(orderData?.platform_fee) || 0;     // Use real platform fee from API
   const shippingFee = Number(orderData?.shipping_total) || 0;  // Use real shipping fee from API
-  const totalPay = Number(orderData?.grand_total) || (itemsCost - coupon - points + fee + shippingFee);
+  const totalPay = Number(orderData?.grand_total) || (itemsCost - coupon - points + shippingFee);
 
   return (
     <View style={styles.section}>
@@ -688,7 +688,7 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
               <InfoRow left="Coupon Discount" right={`-${currency(coupon)}`} topBorder />
               <InfoRow left="Points Discount" right={`-${currency(points)}`} topBorder />
               <InfoRow left="Shipping fee" right={currency(shippingFee)} topBorder />
-              <InfoRow left="Platform fee" right={currency(fee)} topBorder />
+              {/* <InfoRow left="Platform fee" right={currency(fee)} topBorder /> */}
               <InfoRow left="Total to pay" right={currency(totalPay)} strongRight topBorder />
             </View>
           </>
