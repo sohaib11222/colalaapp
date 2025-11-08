@@ -234,7 +234,7 @@ export default function SearchScreen() {
                     </View>
                 </View>
                 <View style={styles.serviceBody}>
-                    <ThemedText style={styles.serviceTitle}>
+                    <ThemedText style={styles.serviceTitle} numberOfLines={1} ellipsizeMode="tail">
                         {item.short_description || "No description"}
                     </ThemedText>
                     <ThemedText style={styles.price}>
@@ -449,6 +449,168 @@ export default function SearchScreen() {
                 </View>
             );
 
+        // Determine if we need special width handling
+        const isSingleResult = searchResults.length === 1;
+        const isThreeResults = searchResults.length === 3;
+        
+        // Custom render function that handles width based on position
+        const renderItemWithWidth = ({ item, index }) => {
+            const isLastInThree = isThreeResults && index === 2;
+            const shouldUseFullWidth = isSingleResult || isLastInThree;
+            
+            // Render with appropriate width
+            if (activeTab === "products") {
+                const mainImage = item.images?.find(img => img.is_main === 1) || item.images?.[0];
+                const imageUri = mainImage
+                    ? { uri: imgUrl(mainImage.path) }
+                    : require("../../assets/Frame 264.png");
+                const storeAvatar = item.store?.profile_image
+                    ? { uri: imgUrl(item.store.profile_image) }
+                    : require("../../assets/Ellipse 18.png");
+
+                return (
+                    <TouchableOpacity
+                        style={[styles.productCard, shouldUseFullWidth && { width: width - 32 }]}
+                        onPress={() =>
+                            navigation.navigate("CategoryNavigator", {
+                                screen: "ProductDetails",
+                                params: { productId: item.id },
+                            })
+                        }
+                    >
+                        <Image source={imageUri} style={styles.productImage} />
+                        <View style={[styles.rowBetween, styles.productHeader]}>
+                            <View style={styles.storeRow}>
+                                <Image source={storeAvatar} style={styles.storeAvatar} />
+                                <ThemedText style={styles.storeName}>
+                                    {item.store?.store_name || "Store"}
+                                </ThemedText>
+                            </View>
+                            <View style={styles.ratingRow}>
+                                <Ionicons name="star" color="#FF0000" size={10} />
+                                <ThemedText style={styles.ratingText}>4.5</ThemedText>
+                            </View>
+                        </View>
+                        <View style={styles.productBody}>
+                            <ThemedText numberOfLines={1} style={styles.productTitle}>
+                                {item.name}
+                            </ThemedText>
+                            <View style={styles.priceRow}>
+                                <ThemedText style={styles.price}>
+                                    ₦{Number(item.discount_price || item.price).toLocaleString()}
+                                </ThemedText>
+                                {item.discount_price && (
+                                    <ThemedText style={styles.oldPrice}>
+                                        ₦{Number(item.price).toLocaleString()}
+                                    </ThemedText>
+                                )}
+                            </View>
+                            <View style={styles.rowBetween}>
+                                <View style={styles.locationRow}>
+                                    <Ionicons name="location-outline" size={12} color="#444" />
+                                    <ThemedText style={styles.locationText}>
+                                        {item.store?.store_location || "Location"}
+                                    </ThemedText>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => addToCart.mutate({ product_id: item.id, qty: 1 })}
+                                >
+                                    <Image
+                                        source={require("../../assets/Frame 265.png")}
+                                        style={{ width: 30, height: 30 }}
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </TouchableOpacity>
+                );
+            } else if (activeTab === "stores") {
+                const cover = imgUrl(item.banner_image);
+                const avatar = imgUrl(item.profile_image);
+                return (
+                    <View style={[styles.storeCard, shouldUseFullWidth && { width: width - 32 }]}>
+                        <Image
+                            source={cover ? { uri: cover } : require("../../assets/Frame 264.png")}
+                            style={styles.storeCover}
+                        />
+                        <Image
+                            source={avatar ? { uri: avatar } : require("../../assets/Ellipse 18.png")}
+                            style={styles.storeBigAvatar}
+                        />
+                        <View style={styles.storeContent}>
+                            <View style={styles.rowBetween}>
+                                <ThemedText numberOfLines={1} style={styles.storeCardName}>
+                                    {item.store_name}
+                                </ThemedText>
+                                <View style={styles.ratingRow}>
+                                    <Ionicons name="star" size={10} color={COLOR.primary} />
+                                    <ThemedText style={styles.ratingText}>4.5</ThemedText>
+                                </View>
+                            </View>
+                            <View style={styles.tagRow}>
+                                <View style={[styles.tag, styles.blueTag]}>
+                                    <ThemedText style={styles.tagText}>Electronics</ThemedText>
+                                </View>
+                                <View style={[styles.tag, styles.redTag]}>
+                                    <ThemedText style={styles.tagText}>Phones</ThemedText>
+                                </View>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.goShopBtn}
+                                onPress={() =>
+                                    navigation.navigate("ServiceNavigator", {
+                                        screen: "StoreDetails",
+                                        params: { storeId: item.id },
+                                    })
+                                }
+                            >
+                                <ThemedText style={styles.goShopText}>Go to Shop</ThemedText>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                );
+            } else {
+                const img = item.media?.length
+                    ? { uri: imgUrl(item.media[0].path) }
+                    : require("../../assets/Frame 264.png");
+                return (
+                    <View style={[
+                        styles.serviceCard, 
+                        shouldUseFullWidth && { 
+                            width: width - 32,
+                            marginHorizontal: 16,
+                            alignSelf: 'stretch'
+                        }
+                    ]}>
+                        <Image source={img} style={styles.serviceImage} />
+                        <View style={styles.serviceHeader}>
+                            <Image
+                                source={require("../../assets/Ellipse 18.png")}
+                                style={styles.serviceAvatar}
+                            />
+                            <ThemedText style={styles.storeName}>{item.name}</ThemedText>
+                            <View style={styles.ratingRow}>
+                                <Ionicons name="star" size={14} color={COLOR.primary} />
+                                <ThemedText style={styles.ratingText}>4.5</ThemedText>
+                            </View>
+                        </View>
+                        <View style={styles.serviceBody}>
+                            <ThemedText style={styles.serviceTitle} numberOfLines={1} ellipsizeMode="tail">
+                                {item.short_description || "No description"}
+                            </ThemedText>
+                            <ThemedText style={styles.price}>
+                                ₦{Number(item.price_from).toLocaleString()} - ₦
+                                {Number(item.price_to).toLocaleString()}
+                            </ThemedText>
+                            <TouchableOpacity style={styles.detailsBtn}>
+                                <ThemedText style={styles.detailsText}>Details</ThemedText>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                );
+            }
+        };
+
         return (
             <>
                 {query ? (
@@ -457,9 +619,16 @@ export default function SearchScreen() {
                 <FlatList
                     data={searchResults}
                     keyExtractor={(item) => item.id.toString()}
-                    numColumns={2}
-                    columnWrapperStyle={{ justifyContent: "space-around", gap: 10 }}
-                    contentContainerStyle={{ paddingBottom: 40 }}
+                    numColumns={isSingleResult ? 1 : 2}
+                    columnWrapperStyle={
+                        isSingleResult 
+                            ? undefined 
+                            : { justifyContent: "space-between", gap: 6, paddingHorizontal: 16 }
+                    }
+                    contentContainerStyle={{ 
+                        paddingBottom: 40, 
+                        paddingHorizontal: isSingleResult || (isThreeResults && activeTab === "services") ? 16 : 0 
+                    }}
                     refreshControl={
                         <RefreshControl
                             refreshing={refreshing}
@@ -470,13 +639,7 @@ export default function SearchScreen() {
                             titleColor="#888"
                         />
                     }
-                    renderItem={
-                        activeTab === "products"
-                            ? renderProductCard
-                            : activeTab === "stores"
-                                ? renderStoreCard
-                                : renderServiceCard
-                    }
+                    renderItem={renderItemWithWidth}
                 />
             </>
         );

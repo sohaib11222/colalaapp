@@ -28,7 +28,7 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 const BG = require("../../../assets/leaderboard.png");
 const { width, height } = Dimensions.get("window");
 
-const ALL_TABS = ["Today", "weekly", "Monthly", "All Time"];
+const ALL_TABS = ["All Time", "Today", "weekly", "Monthly"];
 
 // ---------- Data ----------
 const TOP3 = [
@@ -53,6 +53,25 @@ const resolveSource = (src) => {
   return null;
 };
 
+// Custom Image component with fallback
+const AvatarImage = ({ src, style, fallbackSrc }) => {
+  const [imageError, setImageError] = useState(false);
+  
+  const handleError = () => {
+    setImageError(true);
+  };
+  
+  const imageSource = imageError ? fallbackSrc : resolveSource(src);
+  
+  return (
+    <Image 
+      source={imageSource} 
+      style={style}
+      onError={handleError}
+    />
+  );
+};
+
 const PodiumAvatar = ({ src, size = 84 }) => {
   // thick white ring + soft drop shadow (for top-3)
   const ring = size + 14;
@@ -73,7 +92,11 @@ const PodiumAvatar = ({ src, size = 84 }) => {
             backgroundColor: "#fff",
           }}
         >
-          <Image source={resolveSource(src)} style={{ width: "100%", height: "100%" }} />
+          <AvatarImage 
+            src={src}
+            style={{ width: "100%", height: "100%" }}
+            fallbackSrc={require("../../../assets/Ellipse 18.png")}
+          />
         </View>
       </View>
     </View>
@@ -100,7 +123,11 @@ const ListAvatar = ({ src, size = 44 }) => {
             backgroundColor: "#fff",
           }}
         >
-          <Image source={resolveSource(src)} style={{ width: "100%", height: "100%" }} />
+          <AvatarImage 
+            src={src}
+            style={{ width: "100%", height: "100%" }}
+            fallbackSrc={require("../../../assets/Ellipse 18.png")}
+          />
         </View>
       </View>
     </View>
@@ -119,7 +146,7 @@ export default function LeaderboardScreen() {
   const { data: leaderboardData, isLoading, error } = useLeaderboardSellers();
   const scaleMap = useRef(
     ALL_TABS.reduce(
-      (acc, k) => ({ ...acc, [k]: new Animated.Value(k === "Today" ? 1.25 : 1) }),
+      (acc, k) => ({ ...acc, [k]: new Animated.Value(k === "All Time" ? 1.25 : 1) }),
       {}
     )
   ).current;
@@ -226,14 +253,22 @@ export default function LeaderboardScreen() {
   // Get top 3 and others with fallback data
   const top3 = useMemo(() => {
     const data = currentData.slice(0, 3);
-    const processedData = data.map((store, index) => ({
-      id: store.store_id.toString(),
-      name: store.store_name,
-      score: store.total_points || 0,
-      avatar: store.profile_image ? fileUrl(store.profile_image) : require("../../../assets/Ellipse 18.png"),
-      followers: store.followers_count || 0,
-      rating: store.average_rating || 0,
-    }));
+    const processedData = data.map((store, index) => {
+      // Construct full image URL - profile_image is relative path like "stores/profile_images/..."
+      let avatarUrl = require("../../../assets/Ellipse 18.png");
+      if (store.profile_image) {
+        // fileUrl handles adding /storage/ prefix automatically
+        avatarUrl = fileUrl(store.profile_image);
+      }
+      return {
+        id: store.store_id.toString(),
+        name: store.store_name,
+        score: store.total_points || 0,
+        avatar: avatarUrl,
+        followers: store.followers_count || 0,
+        rating: store.average_rating || 0,
+      };
+    });
     
     // Ensure we always have 3 items for the podium
     while (processedData.length < 3) {
@@ -252,14 +287,22 @@ export default function LeaderboardScreen() {
 
   const others = useMemo(() => {
     // Show ALL stores in the list, not just those after the top 3
-    return currentData.map((store, index) => ({
-      id: store.store_id.toString(),
-      name: store.store_name,
-      score: store.total_points || 0,
-      avatar: store.profile_image ? fileUrl(store.profile_image) : require("../../../assets/Ellipse 18.png"),
-      followers: store.followers_count || 0,
-      rating: store.average_rating || 0,
-    }));
+    return currentData.map((store, index) => {
+      // Construct full image URL - profile_image is relative path like "stores/profile_images/..."
+      let avatarUrl = require("../../../assets/Ellipse 18.png");
+      if (store.profile_image) {
+        // fileUrl handles adding /storage/ prefix automatically
+        avatarUrl = fileUrl(store.profile_image);
+      }
+      return {
+        id: store.store_id.toString(),
+        name: store.store_name,
+        score: store.total_points || 0,
+        avatar: avatarUrl,
+        followers: store.followers_count || 0,
+        rating: store.average_rating || 0,
+      };
+    });
   }, [currentData]);
 
   // Show loading state

@@ -32,7 +32,7 @@ export default function MyOrdersScreen() {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   
-  // Tab state: 0 = Pending, 1 = Accepted, 2 = In Process
+  // Tab state: 0 = Pending, 1 = Accepted, 2 = In Process, 3 = Rejected
   const [activeTab, setActiveTab] = useState(0);
   
   // Refresh state
@@ -41,15 +41,48 @@ export default function MyOrdersScreen() {
   // Fetch first page (pagination optional)
   const { data, isLoading, isError, refetch } = useOrders(1);
 
-  // API returns: { status, data: { data: [orders], ...pagination } }
-  const allOrders = Array.isArray(data?.data?.data) ? data.data.data : [];
+  // Handle different API response structures:
+  // Standard: { status, data: { data: [orders] } }
+  // Store orders: { status, data: { orders: [orders] } }
+  const allOrders = useMemo(() => {
+    if (Array.isArray(data?.data?.data)) {
+      return data.data.data;
+    } else if (Array.isArray(data?.data?.orders)) {
+      return data.data.orders;
+    }
+    return [];
+  }, [data]);
 
   // Filter orders based on active tab
   const orders = useMemo(() => {
     return allOrders.filter(order => {
-      // Check if order has at least one store_order with the matching status
-      const hasMatchingStatus = order.store_orders?.some(storeOrder => {
-        const status = storeOrder.status?.toLowerCase();
+      // Check if order has store_orders array (standard structure)
+      if (order.store_orders && Array.isArray(order.store_orders)) {
+        const hasMatchingStatus = order.store_orders.some(storeOrder => {
+          const status = storeOrder.status?.toLowerCase();
+          
+          if (activeTab === 0) {
+            // Pending: pending_acceptance
+            return status === 'pending_acceptance';
+          } else if (activeTab === 1) {
+            // Accepted: accepted
+            return status === 'accepted';
+          } else if (activeTab === 2) {
+            // In Process: all other statuses except rejected
+            return status !== 'pending_acceptance' && status !== 'accepted' && status !== 'rejected';
+          } else if (activeTab === 3) {
+            // Rejected: rejected
+            return status === 'rejected';
+          }
+          
+          return false;
+        });
+        
+        return hasMatchingStatus;
+      } 
+      // Handle store orders structure where status is directly on the order
+      else if (order.status) {
+        const status = order.status?.toLowerCase();
         
         if (activeTab === 0) {
           // Pending: pending_acceptance
@@ -57,13 +90,16 @@ export default function MyOrdersScreen() {
         } else if (activeTab === 1) {
           // Accepted: accepted
           return status === 'accepted';
-        } else {
-          // In Process: all other statuses (paid, preparing, out_for_delivery, delivered, completed)
-          return status !== 'pending_acceptance' && status !== 'accepted';
+        } else if (activeTab === 2) {
+          // In Process: all other statuses except rejected
+          return status !== 'pending_acceptance' && status !== 'accepted' && status !== 'rejected';
+        } else if (activeTab === 3) {
+          // Rejected: rejected
+          return status === 'rejected';
         }
-      });
+      }
       
-      return hasMatchingStatus;
+      return false;
     });
   }, [allOrders, activeTab]);
 
@@ -129,6 +165,14 @@ export default function MyOrdersScreen() {
             In Process
           </ThemedText>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 3 && styles.activeTab]}
+          onPress={() => setActiveTab(3)}
+        >
+          <ThemedText style={[styles.tabText, activeTab === 3 && styles.activeTabText]}>
+            Rejected
+          </ThemedText>
+        </TouchableOpacity>
       </View>
 
       {/* Header loading indicator */}
@@ -169,11 +213,13 @@ export default function MyOrdersScreen() {
             />
           }
           renderItem={({ item }) => {
+            // Always use order_no if available, fallback to id
             const orderId = item?.order_no || `Ord-${item?.id}`;
             const storesCount = Array.isArray(item?.store_orders)
               ? item.store_orders.length
-              : 0;
-            const total = item?.grand_total ?? 0;
+              : (item?.items ? 1 : 0); // If items array exists, count as 1 store
+            // Handle different total field names
+            const total = item?.grand_total ?? item?.subtotal_with_shipping ?? item?.total ?? 0;
 
             return (
               <TouchableOpacity

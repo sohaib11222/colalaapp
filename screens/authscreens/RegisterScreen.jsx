@@ -11,11 +11,48 @@ import { useRegister } from '../../config/api.config'; // <-- our mutation
 
 const { height } = Dimensions.get('window');
 
-const popularCountries = ['Nigeria', 'Ghana', 'South Africa', 'United Kingdom'];
-const allCountries = ['USA', 'Canada', 'Mexico', 'UAE', 'Rwanda', 'Benin Republic', 'Russia', 'Senegal'];
+const countries = ['Nigeria', 'Outside Nigeria'];
 
 const popularStates = ['Lagos State', 'Oyo State', 'FCT, Abuja', 'Rivers State'];
-const allStates = ['Abia State', 'Adamawa State', 'Akwa Ibom State', 'Anambra State', 'Bauchi State', 'Bayelsa State', 'Benue State', 'Borno State'];
+const allStates = [
+  'Abia State',
+  'Adamawa State',
+  'Akwa Ibom State',
+  'Anambra State',
+  'Bauchi State',
+  'Bayelsa State',
+  'Benue State',
+  'Borno State',
+  'Cross River State',
+  'Delta State',
+  'Ebonyi State',
+  'Edo State',
+  'Ekiti State',
+  'Enugu State',
+  'Gombe State',
+  'Imo State',
+  'Jigawa State',
+  'Kaduna State',
+  'Kano State',
+  'Katsina State',
+  'Kebbi State',
+  'Kogi State',
+  'Kwara State',
+  'Lagos State',
+  'Nasarawa State',
+  'Niger State',
+  'Ogun State',
+  'Ondo State',
+  'Osun State',
+  'Oyo State',
+  'Plateau State',
+  'Rivers State',
+  'Sokoto State',
+  'Taraba State',
+  'Yobe State',
+  'Zamfara State',
+  'FCT, Abuja'
+];
 
 const RegisterScreen = () => {
   const navigation = useNavigation();
@@ -43,7 +80,7 @@ const RegisterScreen = () => {
   // image
   const [photo, setPhoto] = useState(null); // { uri, mimeType?, fileName? }
 
-  const filteredCountries = allCountries.filter((c) =>
+  const filteredCountries = countries.filter((c) =>
     c.toLowerCase().includes(searchText.toLowerCase())
   );
   const filteredStates = allStates.filter((s) =>
@@ -77,9 +114,11 @@ const RegisterScreen = () => {
   // mutation
   const register = useRegister({
     onSuccess: (res) => {
-      Alert.alert('Success', 'Account created successfully.');
-      // navigate to Login or Home
-      navigation.navigate('Login');
+      // Navigate to OTP verification screen with email
+      navigation.navigate('VerifyCode', { 
+        email: email.trim(),
+        flow: 'registration' // Indicate this is registration flow
+      });
     },
     onError: (err) => {
       const msg = err?.data?.message
@@ -233,24 +272,11 @@ const RegisterScreen = () => {
                 <Ionicons name="close" size={16} />
               </TouchableOpacity>
             </View>
-            <TextInput style={styles.searchInput} placeholder="Search location"
-              value={searchText} onChangeText={setSearchText} />
-            <ThemedText style={styles.sectionLabel}>Popular</ThemedText>
-            {popularCountries.map((country) => (
+            {countries.map((country) => (
               <TouchableOpacity key={country} style={styles.modalItem} onPress={() => handleCountrySelect(country)}>
                 <ThemedText>{country}</ThemedText>
               </TouchableOpacity>
             ))}
-            <ThemedText style={styles.sectionLabel}>All Countries</ThemedText>
-            <FlatList
-              data={filteredCountries}
-              keyExtractor={(item) => item}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={styles.modalItem} onPress={() => handleCountrySelect(item)}>
-                  <ThemedText>{item}</ThemedText>
-                </TouchableOpacity>
-              )}
-            />
           </View>
         </View>
       </Modal>

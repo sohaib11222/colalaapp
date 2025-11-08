@@ -18,6 +18,8 @@ const API = {
   POSTS: `${BASE_URL}/posts`,
   POST_LIKE: (postId) => `${BASE_URL}/posts/${postId}/like`,
   POST_COMMENTS: (postId) => `${BASE_URL}/posts/${postId}/comments`,
+  POST_REPORT: (postId) => `${BASE_URL}/posts/${postId}/report`,
+  USER_STATUS: (userId) => `${BASE_URL}/users/${userId}/status`,
   CATEGORY_PRODUCTS: (categoryId) => `${BASE_URL}/buyer/categories/${categoryId}/products`,
   PRODUCT_DETAILS: (id) => `${BASE_URL}/buyer/product-details/${id}`,
   ADD_TO_CART: `${BASE_URL}/buyer/cart/items`,
@@ -80,6 +82,7 @@ const API = {
   User_Review: `${BASE_URL}/user-reveiws`,
   Get_Top_Selling: `${BASE_URL}/buyer/products/top-selling`,
   Get_Faqs: `${BASE_URL}/faqs/category/name/general`,
+  Get_Referral_Faqs: `${BASE_URL}/faqs/category/name/refral`,
   Knowledge_Base: `${BASE_URL}/buyer/knowledge-base`,
   Wallet_Withdraw: `${BASE_URL}/wallet/withdraw`,
   Referral_Balance: `${BASE_URL}/wallet/refferal-balance`,
@@ -88,6 +91,7 @@ const API = {
   Phone_Request: `${BASE_URL}/buyer/phone-request`,
   PAYMENT_INFO: (orderId) => `${BASE_URL}/buyer/orders/${orderId}/payment-info`,
   PROCESS_PAYMENT: (orderId) => `${BASE_URL}/buyer/orders/${orderId}/pay`,
+  VIP_PRODUCTS: `${BASE_URL}/buyer/product/vip-products`,
 };
 
 export default API;
@@ -338,6 +342,34 @@ export const useAddPostComment = (opts) =>
     mutationFn: ({ postId, body }) => http.post(API.POST_COMMENTS(postId), { body }),
     // onSuccess: () => queryClient.invalidateQueries({ queryKey: ['posts'] }),
     ...opts,
+  });
+
+// Report a post
+export const useReportPost = (opts) =>
+  useMutation({
+    mutationFn: ({ postId, reason, description }) => 
+      http.post(API.POST_REPORT(postId), { reason, description }),
+    ...opts,
+  });
+
+// Get user online status
+export const useUserStatus = (userId, options) =>
+  useQuery({
+    queryKey: ["userStatus", userId],
+    queryFn: () => http.get(API.USER_STATUS(userId)),
+    enabled: !!userId,
+    refetchInterval: 30000, // Refetch every 30 seconds to keep status updated
+    staleTime: 10 * 1000, // Consider data stale after 10 seconds
+    ...options,
+  });
+
+// Get VIP products
+export const useVipProducts = (options) =>
+  useQuery({
+    queryKey: ["vipProducts"],
+    queryFn: () => http.get(API.VIP_PRODUCTS),
+    staleTime: 60 * 1000, // Cache for 1 minute
+    ...options,
   });
 export const setAuthUser = async (user) => AsyncStorage.setItem("auth_user", JSON.stringify(user));
 
@@ -1112,6 +1144,14 @@ export const useGetFaqs = (options) =>
   useQuery({
     queryKey: ["getFaqs"],
     queryFn: () => http.get(API.Get_Faqs),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useGetReferralFaqs = (options) =>
+  useQuery({
+    queryKey: ["getReferralFaqs"],
+    queryFn: () => http.get(API.Get_Referral_Faqs),
     ...options,
   });
 

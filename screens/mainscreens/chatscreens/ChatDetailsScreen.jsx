@@ -28,6 +28,7 @@ import {
   useSendChatMessage,
   queryClient,
   useCreateDispute,
+  useUserStatus,
 } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -109,6 +110,37 @@ export default function ChatDetailsScreen() {
   const currentStore = (storeData && storeData.id) ? storeData : store;
   const avatarSrc = toSrc(currentStore?.profile_image || currentStore?.profileImage) || toSrc("https://i.pravatar.cc/100?img=65");
   const insets = useSafeAreaInsets();
+  
+  // Get user/store ID for status checking
+  // Try to get user_id from store data, or use store id
+  const userId = storeData?.user_id || currentStore?.user_id || currentStore?.id || store?.id;
+  
+  // Fetch user online status
+  const { data: userStatusData } = useUserStatus(userId, {
+    enabled: !!userId,
+  });
+  
+  // API returns: { status: true, data: { is_online: true, last_seen_at: "..." } }
+  const statusData = userStatusData?.data || {};
+  const isOnline = statusData.is_online || false;
+  const lastSeenAt = statusData.last_seen_at;
+  
+  // Format last seen time
+  const formatLastSeen = (timestamp) => {
+    if (!timestamp) return "Offline";
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
 
   const [headerH, setHeaderH] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -477,9 +509,14 @@ export default function ChatDetailsScreen() {
               <ThemedText style={styles.storeName}>
                 {currentStore?.store_name || currentStore?.name || "Store"}
               </ThemedText>
-              <ThemedText style={styles.lastSeen}>
-                {currentStore?.status === "active" ? "Online" : "Offline"}
-              </ThemedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                {isOnline && (
+                  <View style={styles.onlineIndicator} />
+                )}
+                <ThemedText style={styles.lastSeen}>
+                  {isOnline ? "Online" : (lastSeenAt ? `Last seen ${formatLastSeen(lastSeenAt)}` : "Offline")}
+                </ThemedText>
+              </View>
             </View>
           </View>
 
@@ -796,6 +833,12 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   lastSeen: { fontSize: 8, color: "#888" },
+  onlineIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#4CAF50",
+  },
 
   bubble: { maxWidth: "76%", padding: 12, borderRadius: 20, marginVertical: 5 },
   bubbleLeft: {

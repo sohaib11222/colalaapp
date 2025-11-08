@@ -19,7 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import * as ImagePicker from 'expo-image-picker';
 import ThemedText from "../../../components/ThemedText";
-import { useCategoryProducts, useGetTopSelling, useCartQuantity, useCameraSearch } from "../../../config/api.config";
+import { useCategoryProducts, useGetTopSelling, useCartQuantity, useCameraSearch, useVipProducts } from "../../../config/api.config";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
@@ -275,6 +275,10 @@ const ProductsListScreen = () => {
   // API calls for filters
   const { data: storesData, isLoading: storesLoading } = useStores();
   const { data: brandsData, isLoading: brandsLoading } = useAllBrands();
+  
+  // Fetch VIP products
+  const { data: vipProductsData, isLoading: vipProductsLoading } = useVipProducts();
+  const vipProducts = Array.isArray(vipProductsData?.data) ? vipProductsData.data : [];
 
   // Handle different API response structures
   const root = data?.data;
@@ -375,6 +379,33 @@ const ProductsListScreen = () => {
 
   const trendingProducts = (apiTrending || []).map(mapHorizontal);
   const newArrivals = (apiNewArrivals || []).map(mapHorizontal);
+  
+  // Map VIP products to horizontal card format
+  const vipProductsMapped = useMemo(() => {
+    return vipProducts.map((p) => {
+      const imgs = Array.isArray(p.images) ? p.images : [];
+      const main = imgs.find((im) => Number(im.is_main) === 1) || imgs[0];
+      const imageUri = main?.path ? absUrl(`/storage/${main.path}`) : null;
+      
+      const priceNum = Number(p.discount_price || p.price || 0);
+      const origNum = Number(p.price || 0);
+      const toNaira = (n) => `₦${Number(n).toLocaleString()}`;
+      
+      return {
+        id: String(p.id),
+        title: p.name || "Product",
+        price: priceNum ? toNaira(priceNum) : toNaira(origNum),
+        originalPrice: priceNum && origNum && priceNum < origNum ? toNaira(origNum) : "",
+        image: imageUri ? { uri: imageUri } : require("../../../assets/phone3.png"),
+        store: {
+          name: p.store?.store_name || "Store",
+          rating: p.store?.average_rating || 0,
+          logo: require("../../../assets/Ellipse 18.png"),
+          location: p.store?.store_location || "Lagos, Nigeria",
+        },
+      };
+    });
+  }, [vipProducts]);
 
   /* ---------- FILTER STATE (identical behavior/labels) ---------- */
   const filtersOrder = [
@@ -531,10 +562,11 @@ const ProductsListScreen = () => {
       } else {
         await queryClient.invalidateQueries({ queryKey: ['categoryProducts', fetchCategoryId] });
       }
-      // Also refresh filter data
+      // Also refresh filter data and VIP products
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['stores'] }),
-        queryClient.invalidateQueries({ queryKey: ['allBrands'] })
+        queryClient.invalidateQueries({ queryKey: ['allBrands'] }),
+        queryClient.invalidateQueries({ queryKey: ['vipProducts'] })
       ]);
     } catch (error) {
       console.log('Refresh error:', error);
@@ -801,6 +833,25 @@ const ProductsListScreen = () => {
         </View>
       ) : (
         <ScrollView>
+          {/* VIP PRODUCTS CAROUSEL */}
+          {vipProductsMapped.length > 0 && (
+            <>
+              <View style={styles.sectionHeader}>
+                <ThemedText style={styles.sectionTitle}>
+                  VIP Products
+                </ThemedText>
+              </View>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={vipProductsMapped}
+                renderItem={renderHorizontalProduct}
+                keyExtractor={(item) => "vip-" + item.id}
+                contentContainerStyle={{ paddingHorizontal: 10 }}
+              />
+            </>
+          )}
+
           {/* TRENDING PRODUCTS */}
           {trendingProducts.length > 0 && (
             <>

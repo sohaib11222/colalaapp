@@ -408,6 +408,7 @@ const VerifyCodeScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const emailFromParam = route.params?.email || '';
+  const flow = route.params?.flow || 'forgot_password'; // 'registration' or 'forgot_password'
 
   const [code, setCode] = useState('');
   const [timer, setTimer] = useState(59);
@@ -415,17 +416,27 @@ const VerifyCodeScreen = () => {
 
   const { mutateAsync: verifyAsync, isPending: verifying } = useVerifyOtp();
   const { mutateAsync: resendAsync, isPending: resending } = useForgotPassword();
+  
+  const isRegistrationFlow = flow === 'registration';
 
   // Avoid double auto-send
   const autoSentRef = useRef(false);
 
-  // Auto-send code once on mount (or when email arrives)
+  // Auto-send code once on mount (only for forgot password flow)
+  // For registration, OTP is already sent during registration
   useEffect(() => {
+    if (isRegistrationFlow) {
+      // For registration, OTP is sent during registration, so we just start the timer
+      setInitialSendDone(true);
+      setTimer(59);
+      return;
+    }
+    
     const doAutoSend = async () => {
       if (autoSentRef.current || !emailFromParam) return;
       autoSentRef.current = true;
       try {
-        await resendAsync({ email: emailFromParam, otp:code });
+        await resendAsync({ email: emailFromParam });
         setInitialSendDone(true);
         setTimer(59); // start countdown AFTER a successful send
       } catch (err) {
@@ -434,7 +445,7 @@ const VerifyCodeScreen = () => {
       }
     };
     doAutoSend();
-  }, [emailFromParam, resendAsync]);
+  }, [emailFromParam, resendAsync, isRegistrationFlow]);
 
   // countdown (only tick while > 0)
   useEffect(() => {
@@ -453,7 +464,15 @@ const VerifyCodeScreen = () => {
     }
     try {
       await verifyAsync({ email: emailFromParam, otp: code });
-      navigation.navigate('NewPass', { email: emailFromParam,  code });
+      
+      if (isRegistrationFlow) {
+        // For registration, navigate to Login after successful verification
+        Alert.alert('Success', 'Email verified successfully. You can now login.');
+        navigation.navigate('Login');
+      } else {
+        // For forgot password, navigate to NewPass screen
+        navigation.navigate('NewPass', { email: emailFromParam, code });
+      }
     } catch (err) {
       Alert.alert('Error', err?.message || 'Invalid code. Please try again.');
     }
@@ -472,7 +491,13 @@ const VerifyCodeScreen = () => {
       return;
     }
     try {
-      await resendAsync({ email: emailFromParam });
+      if (isRegistrationFlow) {
+        // For registration, we might need a resend registration OTP endpoint
+        // For now, use the same forgot password endpoint as it might work
+        await resendAsync({ email: emailFromParam });
+      } else {
+        await resendAsync({ email: emailFromParam });
+      }
       Alert.alert('Code sent', 'A new verification code has been sent to your email.');
       setInitialSendDone(true);
       restartTimer();
@@ -496,9 +521,13 @@ const VerifyCodeScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.card}>
-          <ThemedText style={styles.title}>Reset Password</ThemedText>
+          <ThemedText style={styles.title}>
+            {isRegistrationFlow ? 'Verify Email' : 'Reset Password'}
+          </ThemedText>
           <ThemedText style={styles.subtitle}>
-            Reset you password via your registered email
+            {isRegistrationFlow 
+              ? 'Please enter the verification code sent to your email'
+              : 'Reset you password via your registered email'}
           </ThemedText>
 
           <View style={styles.inputWrapper}>

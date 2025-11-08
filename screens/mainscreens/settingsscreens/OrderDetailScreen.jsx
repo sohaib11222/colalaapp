@@ -94,6 +94,7 @@ const InfoRow = ({ left, right, strongRight, topBorder }) => (
 
 /* ---------- Track Order full-screen modal (unchanged UI) ---------- */
 function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status = 0, trackingData = null, orderData = null, onShowFullDetails = null }) {
+  const navigation = useNavigation();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [codeOpen, setCodeOpen] = useState(false);
   
@@ -196,11 +197,48 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                 </ThemedText>
               </TouchableOpacity>
 
-              <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
-                <TouchableOpacity style={[styles.ghostBtn, { flex: 1 }]}>
-                  <ThemedText style={{ color: COLOR.text, fontSize: 12 }}>Return</ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.ghostBtn, { flex: 1 }]}>
+              <View style={{ marginTop: 10 }}>
+                <TouchableOpacity 
+                  style={styles.ghostBtn}
+                  onPress={() => {
+                    // Navigate to ChatDetailsScreen for dispute
+                    const storeId = orderData?.store?.id || orderData?.id;
+                    const chatId = orderData?.chat?.id;
+                    
+                    if (chatId) {
+                      // If chat exists, navigate to it
+                      navigation.navigate("ServiceNavigator", {
+                        screen: "ChatDetails",
+                        params: {
+                          store: {
+                            id: storeId,
+                            name: orderData?.name || storeName,
+                            profileImage: orderData?.profileImage,
+                          },
+                          chat_id: chatId,
+                          store_order_id: storeId,
+                        },
+                      });
+                      onClose();
+                    } else {
+                      // If no chat exists, create one first
+                      // This will be handled by the chat creation logic in StoreBlock
+                      // For now, navigate and let ChatDetailsScreen handle it
+                      navigation.navigate("ServiceNavigator", {
+                        screen: "ChatDetails",
+                        params: {
+                          store: {
+                            id: storeId,
+                            name: orderData?.name || storeName,
+                            profileImage: orderData?.profileImage,
+                          },
+                          store_order_id: storeId,
+                        },
+                      });
+                      onClose();
+                    }
+                  }}
+                >
                   <ThemedText style={{ color: COLOR.text, fontSize: 12 }}>Dispute</ThemedText>
                 </TouchableOpacity>
               </View>
@@ -1172,22 +1210,29 @@ export default function SingleOrderDetailsScreen() {
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabsWrap}>
-        {STATUS.map((label, i) => {
-          const active = i === statusIdx;
-          return (
-            <TouchableOpacity
-              key={label}
-              style={[styles.tabBtn, active ? styles.tabActive : styles.tabInactive]}
-              onPress={() => setStatusIdx(i)}
-              activeOpacity={0.9}
-            >
-              <ThemedText style={[styles.tabTxt, active ? { color: "#fff" } : { color: COLOR.text }]}>
-                {label}
-              </ThemedText>
-            </TouchableOpacity>
-          );
-        })}
+      <View style={styles.tabsWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsWrap}
+          style={styles.tabsScrollView}
+        >
+          {STATUS.map((label, i) => {
+            const active = i === statusIdx;
+            return (
+              <TouchableOpacity
+                key={label}
+                style={[styles.tabBtn, active ? styles.tabActive : styles.tabInactive]}
+                onPress={() => setStatusIdx(i)}
+                activeOpacity={0.7}
+              >
+                <ThemedText style={[styles.tabTxt, active ? { color: "#fff" } : { color: COLOR.text }]}>
+                  {label}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       <ScrollView 
@@ -1455,23 +1500,32 @@ const styles = StyleSheet.create({
   },
 
   /* tabs */
+  tabsWrapper: {
+    backgroundColor: COLOR.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  tabsScrollView: {
+    flexGrow: 0,
+  },
   tabsWrap: {
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 6,
     flexDirection: "row",
-    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
   },
   tabBtn: {
-    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     height: 40,
-    borderRadius: 7,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    minWidth: 80,
   },
   tabActive: { backgroundColor: COLOR.primary },
-  tabInactive: { backgroundColor: "#ECEFF3", borderWidth: 1, borderColor: COLOR.line },
-  tabTxt: { fontSize: 9, fontWeight: "400" },
+  tabInactive: { backgroundColor: COLOR.chip, borderWidth: 1, borderColor: COLOR.line },
+  tabTxt: { fontSize: 13, fontWeight: "600" },
 
   /* store section */
   section: { marginBottom: 16 },

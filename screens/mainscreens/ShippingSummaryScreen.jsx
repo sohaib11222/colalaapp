@@ -405,9 +405,16 @@ export default function ShippingSummaryScreen() {
           {placeOrderMut.isPending ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <ThemedText style={styles.proceedTxt}>Proceed to payment</ThemedText>
+            <ThemedText style={styles.proceedTxt}>Place Order</ThemedText>
           )}
         </TouchableOpacity>
+
+        {/* Note below Place Order button */}
+        <View style={styles.noteContainer}>
+          <ThemedText style={styles.noteText}>
+            Please note that the vendor will have to confirm the order and set delivery fees before you can complete payment for the order
+          </ThemedText>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -663,4 +670,20 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   proceedTxt: { color: "#fff", fontWeight: "700" },
+
+  // Note container below Place Order button
+  noteContainer: {
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    backgroundColor: "#FFF9E6",
+  },
+  noteText: {
+    color: COLOR.text,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+  },
 });

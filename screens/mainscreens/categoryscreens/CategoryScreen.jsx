@@ -18,7 +18,7 @@ import { useNavigation } from "expo-router";
 import { useRoute } from "@react-navigation/native";
 import * as ImagePicker from 'expo-image-picker';
 import ThemedText from "../../../components/ThemedText";
-import { useCategories, useCartQuantity, useCameraSearch } from "../../../config/api.config";
+import { useCategories, useCartQuantity, useCameraSearch, useVipProducts } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
 
 const CategoryScreen = () => {
@@ -154,12 +154,20 @@ const CategoryScreen = () => {
       : null;
 
   const { data, isLoading, isError } = useCategories();
+  
+  // Fetch VIP products
+  const { data: vipProductsData, isLoading: vipProductsLoading } = useVipProducts();
+  const vipProducts = Array.isArray(vipProductsData?.data) ? vipProductsData.data : [];
 
   // Query client for refresh functionality
   const queryClient = useQueryClient();
   
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Helper function to get image URL
+  const HOST = "https://colala.hmstech.xyz";
+  const absUrl = (u) => (u?.startsWith("http") ? u : `${HOST}${u || ""}`);
 
   const apiCategories = Array.isArray(data?.data) ? data.data : [];
   const [expanded, setExpanded] = useState({}); // { [parentId]: boolean }
@@ -186,14 +194,82 @@ const CategoryScreen = () => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Invalidate and refetch categories query
-      await queryClient.invalidateQueries({ queryKey: ['categories'] });
+      // Invalidate and refetch categories and VIP products
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['categories'] }),
+        queryClient.invalidateQueries({ queryKey: ['vipProducts'] })
+      ]);
     } catch (error) {
       console.log('Refresh error:', error);
     } finally {
       setRefreshing(false);
     }
   }, [queryClient]);
+  
+  // Map VIP products for carousel
+  const vipProductsMapped = useMemo(() => {
+    return vipProducts.map((p) => {
+      const imgs = Array.isArray(p.images) ? p.images : [];
+      const main = imgs.find((im) => Number(im.is_main) === 1) || imgs[0];
+      const imageUri = main?.path ? absUrl(`/storage/${main.path}`) : null;
+      
+      const priceNum = Number(p.discount_price || p.price || 0);
+      const origNum = Number(p.price || 0);
+      const toNaira = (n) => `₦${Number(n).toLocaleString()}`;
+      
+      return {
+        id: String(p.id),
+        title: p.name || "Product",
+        price: priceNum ? toNaira(priceNum) : toNaira(origNum),
+        originalPrice: priceNum && origNum && priceNum < origNum ? toNaira(origNum) : "",
+        image: imageUri ? { uri: imageUri } : require("../../../assets/phone5.png"),
+        store: {
+          name: p.store?.store_name || "Store",
+          rating: p.store?.average_rating || 0,
+          location: p.store?.store_location || "Lagos, Nigeria",
+        },
+        productData: p, // Keep full product data for navigation
+      };
+    });
+  }, [vipProducts]);
+  
+  // Render VIP product carousel item
+  const renderVipProduct = ({ item }) => (
+    <TouchableOpacity
+      style={styles.vipCard}
+      onPress={() =>
+        navigation.navigate("ProductDetails", {
+          productId: item.id,
+          product: item.productData,
+        })
+      }
+      activeOpacity={0.8}
+    >
+      <Image source={item.image} style={styles.vipImage} resizeMode="cover" />
+      <View style={styles.vipCardContent}>
+        <View style={styles.vipStoreRow}>
+          <ThemedText style={styles.vipStoreName} numberOfLines={1}>
+            {item.store.name}
+          </ThemedText>
+          {item.store.rating > 0 && (
+            <View style={styles.vipRatingRow}>
+              <Ionicons name="star" color="#FFD700" size={12} />
+              <ThemedText style={styles.vipRating}>{item.store.rating.toFixed(1)}</ThemedText>
+            </View>
+          )}
+        </View>
+        <ThemedText style={styles.vipProductTitle} numberOfLines={2}>
+          {item.title}
+        </ThemedText>
+        <View style={styles.vipPriceRow}>
+          <ThemedText style={styles.vipPrice}>{item.price}</ThemedText>
+          {item.originalPrice && (
+            <ThemedText style={styles.vipOriginalPrice}>{item.originalPrice}</ThemedText>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   // Filter categories based on search query and hide empty categories
   const filteredCategories = useMemo(() => {
@@ -457,12 +533,6 @@ const CategoryScreen = () => {
         <View style={{ padding: 24 }}>
           <ThemedText>Failed to load categories</ThemedText>
         </View>
-      ) : categories.length === 0 && searchQuery.trim() ? (
-        <View style={{ padding: 24, alignItems: 'center' }}>
-          <ThemedText style={{ color: '#888', textAlign: 'center' }}>
-            No categories found for "{searchQuery}"
-          </ThemedText>
-        </View>
       ) : (
         <FlatList
           data={categories}
@@ -478,6 +548,32 @@ const CategoryScreen = () => {
               title="Pull to refresh"
               titleColor={'#6C727A'}
             />
+          }
+          ListHeaderComponent={
+            vipProductsMapped.length > 0 ? (
+              <View style={styles.vipCarouselContainer}>
+                <View style={styles.vipSectionHeader}>
+                  <ThemedText style={styles.vipSectionTitle}>VIP Products</ThemedText>
+                </View>
+                <FlatList
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  data={vipProductsMapped}
+                  renderItem={renderVipProduct}
+                  keyExtractor={(item) => `vip-${item.id}`}
+                  contentContainerStyle={styles.vipCarouselContent}
+                />
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            categories.length === 0 && searchQuery.trim() ? (
+              <View style={{ padding: 24, alignItems: 'center' }}>
+                <ThemedText style={{ color: '#888', textAlign: 'center' }}>
+                  No categories found for "{searchQuery}"
+                </ThemedText>
+              </View>
+            ) : null
           }
         />
       )}
@@ -744,5 +840,93 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 2,
+  },
+  
+  // VIP Products Carousel Styles
+  vipCarouselContainer: {
+    marginBottom: 20,
+    paddingBottom: 10,
+  },
+  vipSectionHeader: {
+    backgroundColor: "#E53E3E",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    marginBottom: 12,
+    marginHorizontal: 4,
+  },
+  vipSectionTitle: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  vipCarouselContent: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  vipCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginRight: 12,
+    width: 180,
+    overflow: "hidden",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  vipImage: {
+    width: "100%",
+    height: 140,
+    backgroundColor: "#f0f0f0",
+  },
+  vipCardContent: {
+    padding: 10,
+  },
+  vipStoreRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  vipStoreName: {
+    fontSize: 11,
+    color: "#E53E3E",
+    fontWeight: "500",
+    flex: 1,
+    marginRight: 4,
+  },
+  vipRatingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  vipRating: {
+    fontSize: 10,
+    color: "#666",
+    fontWeight: "500",
+  },
+  vipProductTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1A1A1A",
+    marginBottom: 6,
+    minHeight: 36,
+  },
+  vipPriceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  vipPrice: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#E53E3E",
+  },
+  vipOriginalPrice: {
+    fontSize: 11,
+    color: "#999",
+    textDecorationLine: "line-through",
   },
 });

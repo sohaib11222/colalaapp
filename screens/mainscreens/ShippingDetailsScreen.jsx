@@ -63,7 +63,7 @@ export default function ShippingDetailsScreen() {
       ? incomingStores.map((s) => ({
           id: String(s.id),
           name: s.name || `Store ${s.id}`, // name not in API -> stays hardcoded
-          expanded: false,
+          expanded: true,
           coupon: "",
           points: "",
           discount: 0, // Store the actual coupon discount from API
@@ -95,7 +95,7 @@ export default function ShippingDetailsScreen() {
           {
             id: "s1",
             name: "Sasha Stores",
-            expanded: false,
+            expanded: true,
             coupon: "",
             points: "",
             discount: 0,
@@ -789,7 +789,7 @@ export default function ShippingDetailsScreen() {
           {previewMut.isPending ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <ThemedText style={styles.proceedTxt}>Proceed to Paymentss</ThemedText>
+            <ThemedText style={styles.proceedTxt}>Proceed to Preview</ThemedText>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -924,7 +924,7 @@ export default function ShippingDetailsScreen() {
                 onPress={handleTopUpAmount}
               >
                 <ThemedText style={styles.proceedTxt}>
-                  Proceed to Payment
+                  Place Order
                 </ThemedText>
               </TouchableOpacity>
             </View>

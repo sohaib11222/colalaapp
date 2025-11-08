@@ -28,7 +28,8 @@ import {
   useAddPostComment,
   useGetPostComments,
   useCartQuantity,
-  useCameraSearch
+  useCameraSearch,
+  useReportPost
 } from "../../config/api.config";
 
 /* -------------------- THEME -------------------- */
@@ -730,8 +731,29 @@ export default function FeedScreen() {
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [sharePopupVisible, setSharePopupVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
-  const [reportProcessingVisible, setReportProcessingVisible] = useState(false);
-  const [reportMessage, setReportMessage] = useState("");
+  const [selectedReason, setSelectedReason] = useState(null);
+  const [reportDescription, setReportDescription] = useState("");
+  
+  // Report post mutation
+  const { mutate: reportPost, isPending: isReporting } = useReportPost({
+    onSuccess: (response) => {
+      Alert.alert(
+        "Report Submitted",
+        response?.message || "Post reported successfully. Our team will review it shortly.",
+        [{ text: "OK", onPress: () => {
+          setReportModalVisible(false);
+          setSelectedReason(null);
+          setReportDescription("");
+        }}]
+      );
+    },
+    onError: (error) => {
+      Alert.alert(
+        "Error",
+        error?.response?.data?.message || error?.message || "Failed to report post. Please try again."
+      );
+    }
+  });
   
   // Camera search functionality
   const { mutate: cameraSearch, isPending: isCameraSearching } = useCameraSearch();
@@ -985,18 +1007,31 @@ export default function FeedScreen() {
   };
 
   const handleReportSubmit = () => {
-    if (!reportMessage.trim()) {
-      Alert.alert("Error", "Please enter a message");
+    if (!selectedReason) {
+      Alert.alert("Error", "Please select a reason for reporting");
       return;
     }
-    setReportModalVisible(false);
-    setReportProcessingVisible(true);
-    // Simulate processing delay
-    setTimeout(() => {
-      setReportProcessingVisible(false);
-      setReportMessage("");
-    }, 2000);
+    
+    if (!activePost?.id) {
+      Alert.alert("Error", "Post information not available");
+      return;
+    }
+    
+    reportPost({
+      postId: activePost.id,
+      reason: selectedReason,
+      description: reportDescription.trim() || null,
+    });
   };
+  
+  const reportReasons = [
+    { value: "spam", label: "Spam" },
+    { value: "inappropriate_content", label: "Inappropriate Content" },
+    { value: "harassment", label: "Harassment" },
+    { value: "false_information", label: "False Information" },
+    { value: "copyright_violation", label: "Copyright Violation" },
+    { value: "other", label: "Other" },
+  ];
 
   const loadMore = () => {
     if (isFetching) return;
@@ -1174,51 +1209,63 @@ export default function FeedScreen() {
             </View>
 
             <ThemedText style={styles.reportModalSubtitle}>
-              Please describe the issue with this post
+              Why are you reporting this post?
+            </ThemedText>
+
+            <ScrollView style={styles.reportReasonsContainer} showsVerticalScrollIndicator={false}>
+              {reportReasons.map((reason) => (
+                <TouchableOpacity
+                  key={reason.value}
+                  style={[
+                    styles.reportReasonItem,
+                    selectedReason === reason.value && styles.reportReasonItemSelected
+                  ]}
+                  onPress={() => setSelectedReason(reason.value)}
+                >
+                  <View style={styles.reportReasonRadio}>
+                    {selectedReason === reason.value && (
+                      <View style={styles.reportReasonRadioInner} />
+                    )}
+                  </View>
+                  <ThemedText style={styles.reportReasonLabel}>{reason.label}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <ThemedText style={[styles.reportModalSubtitle, { marginTop: 16, marginBottom: 8 }]}>
+              Additional Details (Optional)
             </ThemedText>
 
             <TextInput
               style={styles.reportTextInput}
-              placeholder="Type your message here..."
+              placeholder="Provide more details about the issue..."
               placeholderTextColor={COLOR.sub}
-              value={reportMessage}
-              onChangeText={setReportMessage}
+              value={reportDescription}
+              onChangeText={setReportDescription}
               multiline
-              numberOfLines={4}
+              numberOfLines={3}
               textAlignVertical="top"
+              maxLength={1000}
             />
 
             <TouchableOpacity
               style={[
                 styles.reportProceedBtn,
-                !reportMessage.trim() && styles.reportProceedBtnDisabled
+                (!selectedReason || isReporting) && styles.reportProceedBtnDisabled
               ]}
               onPress={handleReportSubmit}
-              disabled={!reportMessage.trim()}
+              disabled={!selectedReason || isReporting}
             >
-              <ThemedText style={styles.reportProceedBtnText}>Proceed</ThemedText>
+              {isReporting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <ThemedText style={styles.reportProceedBtnText}>Submit Report</ThemedText>
+              )}
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Report Processing Popup */}
-      <Modal
-        visible={reportProcessingVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setReportProcessingVisible(false)}
-      >
-        <View style={styles.popupOverlay}>
-          <View style={styles.popupContainer}>
-            <ActivityIndicator size="large" color={COLOR.primary} style={{ marginBottom: 16 }} />
-            <ThemedText style={styles.popupTitle}>Processing</ThemedText>
-            <ThemedText style={styles.popupMessage}>
-              Your request is under processing now.
-            </ThemedText>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -1662,6 +1709,46 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  reportReasonsContainer: {
+    maxHeight: 200,
+    marginBottom: 16,
+  },
+  reportReasonItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: COLOR.bg,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+  },
+  reportReasonItemSelected: {
+    backgroundColor: '#FDE9E9',
+    borderColor: COLOR.primary,
+  },
+  reportReasonRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLOR.sub,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportReasonRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLOR.primary,
+  },
+  reportReasonLabel: {
+    fontSize: 14,
+    color: COLOR.text,
+    flex: 1,
   },
 
   // Image Picker Modal styles
