@@ -237,9 +237,9 @@ export default TopStoresSection;
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 16,
+    marginTop: 10,
     paddingHorizontal: 16,
-    marginBottom: 150,
+    marginBottom: 110,
   },
   headerRow: {
     backgroundColor: "#E53E3E",

@@ -106,6 +106,9 @@ const TopSellingSection = () => {
     }));
   }, [apiData]);
 
+  // Check if there are exactly 3 products
+  const isThreeProducts = processedProducts.length === 3;
+
   // Loading state
   if (isLoading) {
     return (
@@ -170,93 +173,260 @@ const TopSellingSection = () => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={processedProducts}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={{ justifyContent: "space-around", gap: 10 }}
-        contentContainerStyle={{ paddingBottom: 20 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => handleProductPress(item.id)}
-          >
-            <Image
-              source={item.image}
-              style={styles.image}
-              resizeMode="cover"
-            />
-            <View>
-              <View
-                style={[
-                  styles.rowBetween,
-                  { backgroundColor: "#F2F2F2", width: "100%", padding: 7 },
-                ]}
+      {isThreeProducts ? (
+        <View style={{ paddingBottom: 20 }}>
+          {/* First two products in a row */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+            {processedProducts.slice(0, 2).map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.card}
+                onPress={() => handleProductPress(item.id)}
               >
-                <View style={styles.storeRow}>
-                  <Image source={item.store_image} style={styles.storeAvatar} />
-                  <ThemedText style={styles.storeName}>{item.store}</ThemedText>
+                <Image
+                  source={item.image}
+                  style={styles.image}
+                  resizeMode="cover"
+                />
+                <View>
+                  <View
+                    style={[
+                      styles.rowBetween,
+                      { backgroundColor: "#F2F2F2", width: "100%", padding: 7 },
+                    ]}
+                  >
+                    <View style={styles.storeRow}>
+                      <Image source={item.store_image} style={styles.storeAvatar} />
+                      <ThemedText style={styles.storeName}>{item.store}</ThemedText>
+                    </View>
+                    <View style={styles.ratingRow}>
+                      <Ionicons name="star" color="#FF0000" size={10} />
+                      <ThemedText style={styles.rating}>{item.rating}</ThemedText>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.ratingRow}>
-                  <Ionicons name="star" color="#FF0000" size={10} />
-                  <ThemedText style={styles.rating}>{item.rating}</ThemedText>
-                </View>
-              </View>
-            </View>
-            <View style={styles.infoContainer}>
-              <ThemedText style={styles.productTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</ThemedText>
+                <View style={styles.infoContainer}>
+                  <ThemedText style={styles.productTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</ThemedText>
 
-              <View style={styles.priceRow}>
-                <ThemedText style={styles.price}>{item.price}</ThemedText>
-                {item.originalPrice && (
-                  <ThemedText style={styles.originalPrice}>
-                    {item.originalPrice}
-                  </ThemedText>
-                )}
-              </View>
+                  <View style={styles.priceRow}>
+                    <ThemedText style={styles.price}>{item.price}</ThemedText>
+                    {item.originalPrice && (
+                      <ThemedText style={styles.originalPrice}>
+                        {item.originalPrice}
+                      </ThemedText>
+                    )}
+                  </View>
 
-              {/* Tag Images - Only show if tags exist */}
-              {item.hasTags && item.tagImages.length > 0 && (
-                <View style={styles.tagsRow}>
-                  {item.tagImages.map((tagImg, index) => (
-                    <Image
-                      key={index}
-                      source={tagImg}
-                      style={styles.tagIcon}
-                      resizeMode="contain"
-                    />
-                  ))}
-                </View>
-              )}
+                  {item.hasTags && item.tagImages.length > 0 && (
+                    <View style={styles.tagsRow}>
+                      {item.tagImages.map((tagImg, index) => (
+                        <Image
+                          key={index}
+                          source={tagImg}
+                          style={styles.tagIcon}
+                          resizeMode="contain"
+                        />
+                      ))}
+                    </View>
+                  )}
 
-              <View style={styles.rowBetween}>
-                <View style={styles.locationRow}>
-                  <Ionicons
-                    name="location-outline"
-                    size={12}
-                    color="#444"
-                    style={{ marginRight: 2 }}
-                  />
-                  <ThemedText style={styles.location}>
-                    {item.location}
-                  </ThemedText>
+                  <View style={styles.rowBetween}>
+                    <View style={styles.locationRow}>
+                      <Ionicons
+                        name="location-outline"
+                        size={12}
+                        color="#444"
+                        style={{ marginRight: 2 }}
+                      />
+                      <ThemedText style={styles.location}>
+                        {item.location}
+                      </ThemedText>
+                    </View>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleCartPress(item.id);
+                      }}
+                    >
+                      <Image
+                        source={require("../assets/Frame 265.png")}
+                        style={{ width: 30, height: 30, resizeMode: "contain" }}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <TouchableOpacity
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleCartPress(item.id);
-                  }}
+              </TouchableOpacity>
+            ))}
+          </View>
+          {/* Third product full width */}
+          {processedProducts[2] && (
+            <TouchableOpacity
+              style={[styles.card, { width: width - 32, marginTop: 12, alignSelf: 'center' }]}
+              onPress={() => handleProductPress(processedProducts[2].id)}
+            >
+              <Image
+                source={processedProducts[2].image}
+                style={styles.image}
+                resizeMode="cover"
+              />
+              <View>
+                <View
+                  style={[
+                    styles.rowBetween,
+                    { backgroundColor: "#F2F2F2", width: "100%", padding: 7 },
+                  ]}
                 >
-                  <Image
-                    source={require("../assets/Frame 265.png")}
-                    style={{ width: 30, height: 30, resizeMode: "contain" }}
-                  />
-                </TouchableOpacity>
+                  <View style={styles.storeRow}>
+                    <Image source={processedProducts[2].store_image} style={styles.storeAvatar} />
+                    <ThemedText style={styles.storeName}>{processedProducts[2].store}</ThemedText>
+                  </View>
+                  <View style={styles.ratingRow}>
+                    <Ionicons name="star" color="#FF0000" size={10} />
+                    <ThemedText style={styles.rating}>{processedProducts[2].rating}</ThemedText>
+                  </View>
+                </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        )}
-      />
+              <View style={styles.infoContainer}>
+                <ThemedText style={styles.productTitle} numberOfLines={1} ellipsizeMode="tail">{processedProducts[2].title}</ThemedText>
+
+                <View style={styles.priceRow}>
+                  <ThemedText style={styles.price}>{processedProducts[2].price}</ThemedText>
+                  {processedProducts[2].originalPrice && (
+                    <ThemedText style={styles.originalPrice}>
+                      {processedProducts[2].originalPrice}
+                    </ThemedText>
+                  )}
+                </View>
+
+                {processedProducts[2].hasTags && processedProducts[2].tagImages.length > 0 && (
+                  <View style={styles.tagsRow}>
+                    {processedProducts[2].tagImages.map((tagImg, index) => (
+                      <Image
+                        key={index}
+                        source={tagImg}
+                        style={styles.tagIcon}
+                        resizeMode="contain"
+                      />
+                    ))}
+                  </View>
+                )}
+
+                <View style={styles.rowBetween}>
+                  <View style={styles.locationRow}>
+                    <Ionicons
+                      name="location-outline"
+                      size={12}
+                      color="#444"
+                      style={{ marginRight: 2 }}
+                    />
+                    <ThemedText style={styles.location}>
+                      {processedProducts[2].location}
+                    </ThemedText>
+                  </View>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleCartPress(processedProducts[2].id);
+                    }}
+                  >
+                    <Image
+                      source={require("../assets/Frame 265.png")}
+                      style={{ width: 30, height: 30, resizeMode: "contain" }}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : (
+        <FlatList
+          data={processedProducts}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={{ justifyContent: "space-around", gap: 10 }}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => handleProductPress(item.id)}
+            >
+              <Image
+                source={item.image}
+                style={styles.image}
+                resizeMode="cover"
+              />
+              <View>
+                <View
+                  style={[
+                    styles.rowBetween,
+                    { backgroundColor: "#F2F2F2", width: "100%", padding: 7 },
+                  ]}
+                >
+                  <View style={styles.storeRow}>
+                    <Image source={item.store_image} style={styles.storeAvatar} />
+                    <ThemedText style={styles.storeName}>{item.store}</ThemedText>
+                  </View>
+                  <View style={styles.ratingRow}>
+                    <Ionicons name="star" color="#FF0000" size={10} />
+                    <ThemedText style={styles.rating}>{item.rating}</ThemedText>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.infoContainer}>
+                <ThemedText style={styles.productTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</ThemedText>
+
+                <View style={styles.priceRow}>
+                  <ThemedText style={styles.price}>{item.price}</ThemedText>
+                  {item.originalPrice && (
+                    <ThemedText style={styles.originalPrice}>
+                      {item.originalPrice}
+                    </ThemedText>
+                  )}
+                </View>
+
+                {item.hasTags && item.tagImages.length > 0 && (
+                  <View style={styles.tagsRow}>
+                    {item.tagImages.map((tagImg, index) => (
+                      <Image
+                        key={index}
+                        source={tagImg}
+                        style={styles.tagIcon}
+                        resizeMode="contain"
+                      />
+                    ))}
+                  </View>
+                )}
+
+                <View style={styles.rowBetween}>
+                  <View style={styles.locationRow}>
+                    <Ionicons
+                      name="location-outline"
+                      size={12}
+                      color="#444"
+                      style={{ marginRight: 2 }}
+                    />
+                    <ThemedText style={styles.location}>
+                      {item.location}
+                    </ThemedText>
+                  </View>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleCartPress(item.id);
+                    }}
+                  >
+                    <Image
+                      source={require("../assets/Frame 265.png")}
+                      style={{ width: 30, height: 30, resizeMode: "contain" }}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </View>
   );
 };

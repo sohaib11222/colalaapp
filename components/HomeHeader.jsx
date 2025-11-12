@@ -230,7 +230,11 @@ const HomeHeader = ({ user: propUser = { name: 'Maleek', location: 'Lagos, Niger
         <View style={styles.userSection}>
           <Image
             source={
-              user.avatar ? user.avatar : require('../assets/Avatar 1.png')
+              user.avatar 
+                ? user.avatar 
+                : isGuest 
+                  ? require('../assets/image.png')
+                  : require('../assets/Avatar 1.png')
             }
             style={styles.profileImage}
           />

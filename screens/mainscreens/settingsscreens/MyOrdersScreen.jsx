@@ -8,6 +8,7 @@ import {
   Platform,
   ActivityIndicator,
   RefreshControl,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -32,7 +33,7 @@ export default function MyOrdersScreen() {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   
-  // Tab state: 0 = Pending, 1 = Accepted, 2 = In Process, 3 = Rejected
+  // Tab state: 0 = Pending, 1 = Accepted, 2 = In Process, 3 = Rejected, 4 = Completed
   const [activeTab, setActiveTab] = useState(0);
   
   // Refresh state
@@ -68,11 +69,14 @@ export default function MyOrdersScreen() {
             // Accepted: accepted
             return status === 'accepted';
           } else if (activeTab === 2) {
-            // In Process: all other statuses except rejected
-            return status !== 'pending_acceptance' && status !== 'accepted' && status !== 'rejected';
+            // In Process: all other statuses except rejected and delivered
+            return status !== 'pending_acceptance' && status !== 'accepted' && status !== 'rejected' && status !== 'delivered';
           } else if (activeTab === 3) {
             // Rejected: rejected
             return status === 'rejected';
+          } else if (activeTab === 4) {
+            // Completed: delivered
+            return status === 'delivered';
           }
           
           return false;
@@ -91,11 +95,14 @@ export default function MyOrdersScreen() {
           // Accepted: accepted
           return status === 'accepted';
         } else if (activeTab === 2) {
-          // In Process: all other statuses except rejected
-          return status !== 'pending_acceptance' && status !== 'accepted' && status !== 'rejected';
+          // In Process: all other statuses except rejected and delivered
+          return status !== 'pending_acceptance' && status !== 'accepted' && status !== 'rejected' && status !== 'delivered';
         } else if (activeTab === 3) {
           // Rejected: rejected
           return status === 'rejected';
+        } else if (activeTab === 4) {
+          // Completed: delivered
+          return status === 'delivered';
         }
       }
       
@@ -141,38 +148,52 @@ export default function MyOrdersScreen() {
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 0 && styles.activeTab]}
-          onPress={() => setActiveTab(0)}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsScrollContent}
         >
-          <ThemedText style={[styles.tabText, activeTab === 0 && styles.activeTabText]}>
-            Pending
-          </ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 1 && styles.activeTab]}
-          onPress={() => setActiveTab(1)}
-        >
-          <ThemedText style={[styles.tabText, activeTab === 1 && styles.activeTabText]}>
-            Accepted
-          </ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 2 && styles.activeTab]}
-          onPress={() => setActiveTab(2)}
-        >
-          <ThemedText style={[styles.tabText, activeTab === 2 && styles.activeTabText]}>
-            In Process
-          </ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 3 && styles.activeTab]}
-          onPress={() => setActiveTab(3)}
-        >
-          <ThemedText style={[styles.tabText, activeTab === 3 && styles.activeTabText]}>
-            Rejected
-          </ThemedText>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 0 && styles.activeTab]}
+            onPress={() => setActiveTab(0)}
+          >
+            <ThemedText style={[styles.tabText, activeTab === 0 && styles.activeTabText]}>
+              Pending
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 1 && styles.activeTab]}
+            onPress={() => setActiveTab(1)}
+          >
+            <ThemedText style={[styles.tabText, activeTab === 1 && styles.activeTabText]}>
+              Accepted
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 2 && styles.activeTab]}
+            onPress={() => setActiveTab(2)}
+          >
+            <ThemedText style={[styles.tabText, activeTab === 2 && styles.activeTabText]}>
+              In Process
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 3 && styles.activeTab]}
+            onPress={() => setActiveTab(3)}
+          >
+            <ThemedText style={[styles.tabText, activeTab === 3 && styles.activeTabText]}>
+              Rejected
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 4 && styles.activeTab]}
+            onPress={() => setActiveTab(4)}
+          >
+            <ThemedText style={[styles.tabText, activeTab === 4 && styles.activeTabText]}>
+              Completed
+            </ThemedText>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* Header loading indicator */}
@@ -364,18 +385,21 @@ const styles = StyleSheet.create({
 
   // Tabs styles
   tabsContainer: {
-    flexDirection: "row",
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: COLOR.line,
+  },
+  tabsScrollContent: {
     paddingHorizontal: 16,
+    alignItems: "center",
   },
   tab: {
-    flex: 1,
     paddingVertical: 14,
+    paddingHorizontal: 16,
     alignItems: "center",
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
+    minWidth: 80,
   },
   activeTab: {
     borderBottomColor: COLOR.primary,

@@ -190,21 +190,36 @@ const handleLikePress = async () => {
 };
 
 
+  const handleStoreNavigation = () => {
+    if (item.storeId && navigation) {
+      navigation.navigate("ServiceNavigator", {
+        screen: "StoreDetails",
+        params: { storeId: item.storeId }
+      });
+    }
+  };
+
   return (
     <View style={[styles.postCard, isLastItem && styles.postCardLast]}>
       {/* Top bar */}
       <View style={styles.postTop}>
-        <Image
-          source={item.avatar ? { uri: item.avatar } : require("../../assets/Ellipse 18.png")}
-          style={styles.avatar}
-          defaultSource={require("../../assets/Ellipse 18.png")}
-        />
-        <View style={{ flex: 1 }}>
+        <TouchableOpacity onPress={handleStoreNavigation} activeOpacity={0.7}>
+          <Image
+            source={item.avatar ? { uri: item.avatar } : require("../../assets/Ellipse 18.png")}
+            style={styles.avatar}
+            defaultSource={require("../../assets/Ellipse 18.png")}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={{ flex: 1 }} 
+          onPress={handleStoreNavigation}
+          activeOpacity={0.7}
+        >
           <ThemedText style={styles.storeName}>{item.store}</ThemedText>
           <ThemedText style={styles.metaText}>
             {item.location} • {item.timeAgo}
           </ThemedText>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => onOpenOptions(item)}>
           <Ionicons name="ellipsis-vertical" size={18} />
         </TouchableOpacity>
@@ -282,14 +297,7 @@ const handleLikePress = async () => {
         <View style={styles.actionsRight}>
           <TouchableOpacity
             style={styles.visitBtn}
-            onPress={() => {
-              if (item.storeId && navigation) {
-                navigation.navigate("ServiceNavigator", {
-                  screen: "StoreDetails",
-                  params: { storeId: item.storeId }
-                });
-              }
-            }}
+            onPress={handleStoreNavigation}
           >
             <ThemedText style={styles.visitBtnText}>Visit Store</ThemedText>
           </TouchableOpacity>

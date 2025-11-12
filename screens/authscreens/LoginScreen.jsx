@@ -116,7 +116,9 @@ const LoginScreen = () => {
           keyboardShouldPersistTaps="handled"
         >
           {/* Top Image Banner */}
-          <Image source={require('../../assets/mainimage.png')} style={styles.topImage} />
+          <View style={styles.imageContainer}>
+            <Image source={require('../../assets/mainimage.png')} style={styles.topImage} />
+          </View>
 
           {/* White Card Container */}
           <View style={styles.card}>
@@ -249,7 +251,8 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#D5232C' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
-  topImage: { width: '100%', height: 400, resizeMode: 'cover' },
+  imageContainer: { width: '100%', height: 400, justifyContent: 'center', alignItems: 'center', backgroundColor: '#D5232C' },
+  topImage: { width: '100%', height: '100%', resizeMode: 'contain' },
 
   card: {
     flex: 1,

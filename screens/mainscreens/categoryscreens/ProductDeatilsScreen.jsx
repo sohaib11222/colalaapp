@@ -1260,14 +1260,7 @@ const ProductDetailsScreen = () => {
     )}
   </TouchableOpacity>
 
-  {/* Phone Number Display - Only show when revealed */}
-  {phoneRevealData.is_revealed && (
-    <View style={styles.phoneDisplay}>
-      <ThemedText style={styles.phoneNumber}>{storePhoneNumber}</ThemedText>
-    </View>
-  )}
-
-  {/* Request/Call Button */}
+  {/* Request/Call Button - Shows phone number when revealed */}
   <TouchableOpacity
     style={styles.revealBtn}
     onPress={() => {
@@ -1287,7 +1280,7 @@ const ProductDetailsScreen = () => {
       <ActivityIndicator size="small" color="#fff" />
     ) : (
       <ThemedText style={{ color: "#fff", fontSize: 12 }}>
-        {phoneRevealData.is_revealed ? "Call Now" : "Request Phone Number"}
+        {phoneRevealData.is_revealed ? storePhoneNumber : "Request Phone Number"}
       </ThemedText>
     )}
   </TouchableOpacity>

@@ -144,10 +144,16 @@ const StarsEditable = ({ value, onChange, size = 28 }) => (
   </View>
 );
 
-const Capsule = ({ left, onRightPress, rightText = "View Store" }) => (
-  <View style={styles.capsuleRow}>
-    <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-      <Image source={{ uri: left.image }} style={styles.capsuleImg} />
+const Capsule = ({ left, onRightPress, rightText = "View Store" }) => {
+  // Handle image source - can be a string (URL) or object (require)
+  const imageSource = typeof left.image === 'string' 
+    ? { uri: left.image } 
+    : left.image;
+  
+  return (
+    <View style={styles.capsuleRow}>
+      <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+        <Image source={imageSource} style={styles.capsuleImg} />
       <View style={{ marginLeft: 8 }}>
         {"rating" in left ? (
           <>
@@ -168,13 +174,17 @@ const Capsule = ({ left, onRightPress, rightText = "View Store" }) => (
     </View>
 
     <TouchableOpacity
-      onPress={onRightPress}
+      onPress={(e) => {
+        e?.stopPropagation?.();
+        onRightPress?.(e);
+      }}
       style={{ paddingHorizontal: 4, paddingVertical: 6 }}
     >
       <ThemedText style={styles.capsuleLink}>{rightText}</ThemedText>
     </TouchableOpacity>
   </View>
-);
+  );
+};
 
 const Gallery = ({ images = [] }) => {
   if (!images.length) return null;
@@ -336,6 +346,7 @@ export default function MyReviewsScreen() {
         rating: 4.5, 
         image: P1 
       },
+      store_id: apiReview.store_id, // Include store_id for navigation
       gallery: apiReview.images ? apiReview.images.map(img => fileUrl(img)) : [],
     };
   };
@@ -389,10 +400,13 @@ export default function MyReviewsScreen() {
       }) : "",
       body: apiReview.comment || "",
       product: { 
-        title: "Product", // Product name not provided in API
-        price: "₦0", 
-        image: P1 
+        title: apiReview.order_item?.product?.name || "Product",
+        price: apiReview.order_item?.product?.price ? `₦${Number(apiReview.order_item.product.price).toLocaleString()}` : "₦0", 
+        image: apiReview.order_item?.product?.images?.[0]?.path 
+          ? fileUrl(apiReview.order_item.product.images[0].path)
+          : P1 
       },
+      product_id: apiReview.order_item?.product?.id, // Include product_id for navigation
       gallery: apiReview.images ? apiReview.images.map(img => fileUrl(img)) : [],
     };
   };
@@ -626,19 +640,37 @@ export default function MyReviewsScreen() {
               item={item}
               type={tab}
               onPress={() => openView(item, tab)}
-              onPressRight={() => {
+              onPressRight={(e) => {
+                e?.stopPropagation?.(); // Prevent triggering the parent TouchableOpacity
                 if (tab === "store") {
-                  navigation.navigate("ServiceNavigator", {
-                    screen: "StoreDetails",
-                    params: {
-                      store: {
-                        name: item?.store?.name,
-                        rating: item?.store?.rating,
+                  // Navigate to StoreDetails with store_id
+                  if (item.store_id) {
+                    navigation.navigate("ServiceNavigator", {
+                      screen: "StoreDetails",
+                      params: {
+                        storeId: item.store_id,
+                        store: {
+                          id: item.store_id,
+                          name: item?.store?.name,
+                          rating: item?.store?.rating,
+                        },
                       },
-                    },
-                  });
+                    });
+                  }
                 } else {
-                  // navigation.navigate("ProductDetails", { id: ... })
+                  // Navigate to ProductDetails with product_id
+                  if (item.product_id) {
+                    navigation.navigate("CategoryNavigator", {
+                      screen: "ProductDetails",
+                      params: {
+                        productId: item.product_id,
+                        product: {
+                          id: item.product_id,
+                          name: item?.product?.title,
+                        },
+                      },
+                    });
+                  }
                 }
               }}
             />

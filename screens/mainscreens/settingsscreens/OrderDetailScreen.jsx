@@ -18,7 +18,7 @@ import * as Clipboard from "expo-clipboard";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
-import { useOrderDetails, fileUrl, useStartChat, useAddProductReview, useAddStoreReview, usePaymentInfo, useProcessPayment } from "../../../config/api.config"; // ⬅️ NEW
+import { useOrderDetails, fileUrl, useStartChat, useAddProductReview, useAddStoreReview, usePaymentInfo, useProcessPayment, useWalletBalance } from "../../../config/api.config"; // ⬅️ NEW
 
 /* ---------- THEME ---------- */
 const COLOR = {
@@ -939,6 +939,14 @@ export default function SingleOrderDetailsScreen() {
   // Payment modal state
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('flutterwave'); // 'flutterwave' | 'wallet'
+  
+  // Fetch wallet balance
+  const { data: walletData, isLoading: walletLoading } = useWalletBalance({
+    enabled: paymentModalVisible, // Only fetch when modal is visible
+  });
+  
+  const walletBalance = walletData?.data?.shopping_balance || 0;
 
   // Show toast notification
   const showToast = (message, type = 'success') => {
@@ -1041,6 +1049,7 @@ export default function SingleOrderDetailsScreen() {
       
       if (result.status === 'success' && result.data) {
         setPaymentInfo(result.data);
+        setSelectedPaymentMethod('flutterwave'); // Reset to default when opening modal
         setPaymentModalVisible(true);
       } else {
         showToast(result.message || "Failed to load payment info", "error");
@@ -1055,22 +1064,55 @@ export default function SingleOrderDetailsScreen() {
   const handleProceedToPayment = () => {
     if (!paymentInfo || !apiOrder) return;
     
-    const paymentMethod = paymentInfo.payment_method?.toLowerCase();
+    const amountToPay = Number(paymentInfo.amount_to_pay) || 0;
     
-    if (paymentMethod === 'flutterwave') {
+    if (selectedPaymentMethod === 'flutterwave') {
       // Navigate to Flutterwave WebView
       setPaymentModalVisible(false);
       navigation.navigate("FlutterwaveWebView", {
         order_id: String(apiOrder.id),
-        amount: Number(paymentInfo.amount_to_pay) || 0,
+        amount: amountToPay,
       });
-    } else {
-      // For other payment methods, call the process payment API
+    } else if (selectedPaymentMethod === 'wallet') {
+      // Check if wallet balance is sufficient
+      if (walletBalance < amountToPay) {
+        Alert.alert(
+          "Insufficient Balance",
+          `Your wallet balance (${currency(walletBalance)}) is less than the amount to pay (${currency(amountToPay)}). Please select Flutterwave or fund your account.`,
+          [
+            { text: "Cancel", style: "cancel" },
+            { 
+              text: "Fund Account", 
+              onPress: () => {
+                setPaymentModalVisible(false);
+                navigation.navigate("SettingsNavigator", {
+                  screen: "ShoppingWallet",
+                });
+              }
+            },
+            { 
+              text: "Use Flutterwave", 
+              onPress: () => setSelectedPaymentMethod('flutterwave'),
+              style: "default"
+            }
+          ]
+        );
+        return;
+      }
+      
+      // Process wallet payment
       processPayment({
         orderId: apiOrder.id,
-        tx_id: null, // Will be set if needed
+        payment_method: 'wallet',
+        tx_id: null,
       });
     }
+  };
+  
+  // Reset payment method when modal closes
+  const handleClosePaymentModal = () => {
+    setPaymentModalVisible(false);
+    setSelectedPaymentMethod('flutterwave'); // Reset to default
   };
 
   // Only use API data, no fallback to dummy data
@@ -1323,7 +1365,7 @@ export default function SingleOrderDetailsScreen() {
         visible={paymentModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setPaymentModalVisible(false)}
+        onRequestClose={handleClosePaymentModal}
       >
         <View style={styles.centerOverlay}>
           <View style={styles.alertCard}>
@@ -1392,13 +1434,83 @@ export default function SingleOrderDetailsScreen() {
                   </ThemedText>
                 </View>
 
-                <View style={{ marginBottom: 12 }}>
-                  <ThemedText style={{ fontSize: 14, fontWeight: '600', color: COLOR.text, marginBottom: 4 }}>
-                    Payment Method
+                {/* Payment Method Selection */}
+                <View style={{ marginBottom: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLOR.line }}>
+                  <ThemedText style={{ fontSize: 14, fontWeight: '600', color: COLOR.text, marginBottom: 12 }}>
+                    Select Payment Method
                   </ThemedText>
-                  <ThemedText style={{ fontSize: 14, color: COLOR.sub }}>
-                    {paymentInfo.payment_method?.toUpperCase()}
-                  </ThemedText>
+                  
+                  {/* Flutterwave Option */}
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentMethodOption,
+                      selectedPaymentMethod === 'flutterwave' && styles.paymentMethodOptionSelected
+                    ]}
+                    onPress={() => setSelectedPaymentMethod('flutterwave')}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <View style={[
+                        styles.paymentRadio,
+                        selectedPaymentMethod === 'flutterwave' && styles.paymentRadioSelected
+                      ]}>
+                        {selectedPaymentMethod === 'flutterwave' && (
+                          <View style={styles.paymentRadioInner} />
+                        )}
+                      </View>
+                      <ThemedText style={[
+                        styles.paymentMethodText,
+                        selectedPaymentMethod === 'flutterwave' && styles.paymentMethodTextSelected
+                      ]}>
+                        Flutterwave
+                      </ThemedText>
+                    </View>
+                  </TouchableOpacity>
+                  
+                  {/* Wallet Option */}
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentMethodOption,
+                      selectedPaymentMethod === 'wallet' && styles.paymentMethodOptionSelected,
+                      { marginTop: 8 }
+                    ]}
+                    onPress={() => setSelectedPaymentMethod('wallet')}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <View style={[
+                        styles.paymentRadio,
+                        selectedPaymentMethod === 'wallet' && styles.paymentRadioSelected
+                      ]}>
+                        {selectedPaymentMethod === 'wallet' && (
+                          <View style={styles.paymentRadioInner} />
+                        )}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <ThemedText style={[
+                          styles.paymentMethodText,
+                          selectedPaymentMethod === 'wallet' && styles.paymentMethodTextSelected
+                        ]}>
+                          Wallet
+                        </ThemedText>
+                        {selectedPaymentMethod === 'wallet' && (
+                          <ThemedText style={{ fontSize: 12, color: COLOR.sub, marginTop: 2 }}>
+                            {walletLoading ? 'Loading...' : `Balance: ${currency(walletBalance)}`}
+                          </ThemedText>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                  
+                  {/* Insufficient Balance Warning */}
+                  {selectedPaymentMethod === 'wallet' && walletBalance < (paymentInfo?.amount_to_pay || 0) && (
+                    <View style={styles.insufficientBalanceWarning}>
+                      <Ionicons name="warning-outline" size={18} color={COLOR.primary} />
+                      <ThemedText style={styles.insufficientBalanceText}>
+                        Insufficient balance. Please fund your account or use Flutterwave.
+                      </ThemedText>
+                    </View>
+                  )}
                 </View>
               </View>
             )}
@@ -1406,15 +1518,19 @@ export default function SingleOrderDetailsScreen() {
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <TouchableOpacity
                 style={[styles.ghostBtn, { flex: 1 }]}
-                onPress={() => setPaymentModalVisible(false)}
+                onPress={handleClosePaymentModal}
                 disabled={processingPayment}
               >
                 <ThemedText style={{ color: COLOR.text, fontWeight: '600' }}>Cancel</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.solidBtn, { flex: 1 }]}
+                style={[
+                  styles.solidBtn, 
+                  { flex: 1 },
+                  (selectedPaymentMethod === 'wallet' && walletBalance < (paymentInfo?.amount_to_pay || 0)) && styles.solidBtnDisabled
+                ]}
                 onPress={handleProceedToPayment}
-                disabled={processingPayment}
+                disabled={processingPayment || (selectedPaymentMethod === 'wallet' && walletBalance < (paymentInfo?.amount_to_pay || 0))}
               >
                 {processingPayment ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -1889,5 +2005,68 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     flex: 1,
+  },
+
+  /* Payment Method Selection Styles */
+  paymentMethodOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.line,
+    backgroundColor: '#fff',
+  },
+  paymentMethodOptionSelected: {
+    borderColor: COLOR.primary,
+    backgroundColor: '#FFF0F0',
+  },
+  paymentRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLOR.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  paymentRadioSelected: {
+    borderColor: COLOR.primary,
+  },
+  paymentRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLOR.primary,
+  },
+  paymentMethodText: {
+    fontSize: 14,
+    color: COLOR.text,
+    fontWeight: '500',
+  },
+  paymentMethodTextSelected: {
+    color: COLOR.primary,
+    fontWeight: '600',
+  },
+  insufficientBalanceWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#FFF0F0',
+    borderWidth: 1,
+    borderColor: '#FFD2D5',
+  },
+  insufficientBalanceText: {
+    fontSize: 12,
+    color: COLOR.primary,
+    marginLeft: 8,
+    flex: 1,
+  },
+  solidBtnDisabled: {
+    backgroundColor: COLOR.sub,
+    opacity: 0.5,
   },
 });

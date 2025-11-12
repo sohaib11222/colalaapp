@@ -64,6 +64,7 @@ const RegisterScreen = () => {
   const [phone, setPhone]       = useState('');
   const [password, setPassword] = useState('');
   const [refCode, setRefCode]   = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // country/state pickers
   const [showModal, setShowModal] = useState(false);
@@ -89,6 +90,32 @@ const RegisterScreen = () => {
 
   const handleCountrySelect = (c) => { setSelectedCountry(c); setShowModal(false); };
   const handleStateSelect = (s) => { setSelectedState(s); setShowStateModal(false); };
+
+  // Password strength validator
+  const getPasswordStrength = (pwd) => {
+    if (!pwd) return { strength: 'none', score: 0, label: '', color: '#ccc' };
+    
+    let score = 0;
+    const checks = {
+      length: pwd.length >= 8,
+      lowercase: /[a-z]/.test(pwd),
+      uppercase: /[A-Z]/.test(pwd),
+      number: /[0-9]/.test(pwd),
+      special: /[^a-zA-Z0-9]/.test(pwd),
+    };
+    
+    score = Object.values(checks).filter(Boolean).length;
+    
+    if (score <= 2) {
+      return { strength: 'weak', score, label: 'Weak', color: '#F44336' };
+    } else if (score <= 4) {
+      return { strength: 'medium', score, label: 'Medium', color: '#FF9800' };
+    } else {
+      return { strength: 'strong', score, label: 'Strong', color: '#4CAF50' };
+    }
+  };
+
+  const passwordStrength = getPasswordStrength(password);
 
   // pick image
   const pickImage = async () => {
@@ -170,7 +197,9 @@ const RegisterScreen = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Image source={require('../../assets/registermain1.png')} style={styles.topImage} />
+          <View style={styles.imageContainer}>
+            <Image source={require('../../assets/mainimage.png')} style={styles.topImage} />
+          </View>
 
           <View style={styles.card}>
           <ThemedText style={styles.title}>Register</ThemedText>
@@ -213,9 +242,48 @@ const RegisterScreen = () => {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
-          <View style={styles.inputWrapper}>
-            <TextInput placeholder="Password" placeholderTextColor="#999" style={styles.input}
-              secureTextEntry value={password} onChangeText={setPassword} />
+          <View>
+            <View style={[styles.inputWrapper, { position: 'relative' }]}>
+              <TextInput 
+                placeholder="Password" 
+                placeholderTextColor="#999" 
+                style={[styles.input, { paddingRight: 45 }]}
+                secureTextEntry={!showPassword}
+                value={password} 
+                onChangeText={setPassword} 
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons 
+                  name={showPassword ? "eye-outline" : "eye-off-outline"} 
+                  size={20} 
+                  color="#999" 
+                />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Password Strength Indicator */}
+            {password.length > 0 && (
+              <View style={styles.passwordStrengthContainer}>
+                <View style={styles.passwordStrengthBar}>
+                  <View 
+                    style={[
+                      styles.passwordStrengthFill,
+                      { 
+                        width: `${(passwordStrength.score / 5) * 100}%`,
+                        backgroundColor: passwordStrength.color
+                      }
+                    ]} 
+                  />
+                </View>
+                <ThemedText style={[styles.passwordStrengthText, { color: passwordStrength.color }]}>
+                  {passwordStrength.label}
+                </ThemedText>
+              </View>
+            )}
           </View>
 
           <View style={styles.inputWrapper}>
@@ -248,15 +316,20 @@ const RegisterScreen = () => {
             <ThemedText style={styles.loginText}>Login</ThemedText>
           </TouchableOpacity>
 
-          <ThemedText style={styles.footerText}>
-            By proceeding you agree to Colala’s{' '}
-            <TouchableOpacity style={{ marginTop: 7 }} onPress={() => setShowTermsModal(true)}>
+          <View style={styles.footerContainer}>
+            <ThemedText style={styles.footerText}>
+              By proceeding you agree to Colala's{' '}
+            </ThemedText>
+            <TouchableOpacity onPress={() => setShowTermsModal(true)}>
               <ThemedText style={[styles.linkText, { fontSize: 11 }]}>terms of use</ThemedText>
-            </TouchableOpacity>{' '}and{' '}
+            </TouchableOpacity>
+            <ThemedText style={styles.footerText}>
+              {' '}and{' '}
+            </ThemedText>
             <TouchableOpacity>
               <ThemedText style={[styles.linkText, { fontSize: 11 }]}>privacy policy</ThemedText>
             </TouchableOpacity>
-          </ThemedText>
+          </View>
         </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -358,20 +431,41 @@ const RegisterScreen = () => {
 const styles = StyleSheet.create({
   // (keep your existing styles)
   container: { flex: 1, backgroundColor: '#B91919' },
-  topImage: { marginTop: 30, width: 410, height: 140, resizeMode: 'cover' },
-  card: { flex: 1, backgroundColor: '#F9F9F9', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, marginTop: 5 },
+  imageContainer: { width: '100%', height: 400, justifyContent: 'center', alignItems: 'center', backgroundColor: '#B91919',marginLeft: -10 },
+  topImage: { width: '100%', height: '100%', resizeMode: 'contain' },
+  card: { flex: 1, backgroundColor: '#F9F9F9', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, marginTop: -40 },
   title: { fontSize: 24, fontWeight: '600', color: '#E53E3E', textAlign: 'center', marginBottom: 10 },
   subtitle: { fontSize: 14, textAlign: 'center', color: '#888', marginBottom: 24 },
   inputWrapper: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 16, height: 55, borderWidth:0.3, borderColor:"#CDCDCD", marginBottom: 16, justifyContent: 'center' },
-  input: { fontSize: 16, color: '#000' },
+  input: { fontSize: 16, color: '#000', flex: 1 },
+  eyeIcon: { position: 'absolute', right: 16, top: '50%', marginTop: -10, zIndex: 1 },
+  passwordStrengthContainer: { marginTop: -10, marginBottom: 16 },
+  passwordStrengthBar: { 
+    height: 4, 
+    backgroundColor: '#EDEDED', 
+    borderRadius: 2, 
+    overflow: 'hidden',
+    marginBottom: 6
+  },
+  passwordStrengthFill: { 
+    height: '100%', 
+    borderRadius: 2,
+    transition: 'width 0.3s ease'
+  },
+  passwordStrengthText: { 
+    fontSize: 12, 
+    fontWeight: '500',
+    marginLeft: 2
+  },
   selectWrapper: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 16, height: 55, marginBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   selectText: { fontSize: 16, color: '#999' },
   createAccountButton: { backgroundColor: '#E53E3E', paddingVertical: 20, borderRadius: 15, alignItems: 'center', marginTop: 10, marginBottom: 18 },
   createAccountText: { color: '#fff', fontSize: 14, fontWeight: '400' },
   loginButton: { backgroundColor: '#EBEBEB', paddingVertical: 20, borderRadius: 15, alignItems: 'center', marginBottom: 20 },
   loginText: { color: '#666', fontSize: 14 },
-  footerText: { fontSize: 11, color: '#999', textAlign: 'center', marginTop: -1 },
-  linkText: { color: '#E53E3E' },
+  footerContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginTop: -1 },
+  footerText: { fontSize: 11, color: '#999', textAlign: 'center' },
+  linkText: { color: '#E53E3E', fontSize: 11 },
   modalContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { backgroundColor: '#F9F9F9', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, maxHeight: height * 0.9 },
   dragIndicator: { width: 110, height: 8, backgroundColor: '#ccc', borderRadius: 5, alignSelf: 'center', marginBottom: 10, marginTop: -10 },

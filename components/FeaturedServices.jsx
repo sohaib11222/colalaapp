@@ -31,10 +31,14 @@ const FeaturedServices = () => {
     return `₦${from.toLocaleString()} - ₦${to.toLocaleString()}`;
   };
   
-  // Helper function to get service image
+  // Helper function to get service image (only images, no videos)
   const getServiceImage = (service) => {
     if (service?.media && service.media.length > 0) {
-      return { uri: `https://colala.hmstech.xyz/storage/${service.media[0].path}` };
+      // Filter to only get images, not videos
+      const imageMedia = service.media.filter((item) => item.type === "image");
+      if (imageMedia.length > 0) {
+        return { uri: `https://colala.hmstech.xyz/storage/${imageMedia[0].path}` };
+      }
     }
     // Fallback to default images
     const defaultImages = [
@@ -52,7 +56,7 @@ const FeaturedServices = () => {
     return (
       <View style={styles.container}>
         <View style={styles.headerRow}>
-          <ThemedText style={styles.title}>Features Services</ThemedText>
+          <ThemedText style={styles.title}>Featured Services</ThemedText>
           <TouchableOpacity
             onPress={() =>
               navigation.navigate("ServiceNavigator", {

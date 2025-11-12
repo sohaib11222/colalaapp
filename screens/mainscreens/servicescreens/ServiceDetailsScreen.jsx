@@ -307,10 +307,9 @@ const ServiceDetailsScreen = () => {
   };
 
   // Helper function to format price
-  const formatPrice = (priceFrom, priceTo) => {
+  const formatPrice = (priceFrom) => {
     const from = Number(priceFrom || 0);
-    const to = Number(priceTo || 0);
-    return `₦${from.toLocaleString()} - ₦${to.toLocaleString()}`;
+    return `₦${from.toLocaleString()}`;
   };
 
   // Helper function to get service image
@@ -388,7 +387,7 @@ const ServiceDetailsScreen = () => {
     if (subServices && subServices.length > 0) {
       return subServices.map((sub) => ({
         name: sub.name,
-        price: formatPrice(sub.price_from, sub.price_to),
+        price: formatPrice(sub.price_from),
       }));
     }
     // If no sub_services, show the main service price
@@ -397,7 +396,7 @@ const ServiceDetailsScreen = () => {
         name: "Service Price",
         price: serviceInfo?.discount_price
           ? `₦${Number(serviceInfo.discount_price).toLocaleString()}`
-          : formatPrice(serviceInfo?.price_from, serviceInfo?.price_to),
+          : formatPrice(serviceInfo?.price_from),
       },
     ];
   };
@@ -594,7 +593,7 @@ const ServiceDetailsScreen = () => {
                   },
                 ]}
               >
-                {serviceInfo?.store?.average_rating || 4.5}
+                {serviceInfo?.store?.average_rating ||0}
               </ThemedText>
             </View>
           </View>
@@ -683,7 +682,7 @@ const ServiceDetailsScreen = () => {
             <View style={styles.ratingRow}>
               <Ionicons name="star" size={16} color="#E53E3E" />
               <ThemedText style={styles.ratingText}>
-                {serviceInfo?.store?.average_rating || 4.5}
+                {serviceInfo?.store?.average_rating || 0}
               </ThemedText>
             </View>
           </View>
@@ -691,7 +690,7 @@ const ServiceDetailsScreen = () => {
           <ThemedText style={styles.price}>
             {serviceInfo?.discount_price
               ? `₦${Number(serviceInfo.discount_price).toLocaleString()}`
-              : formatPrice(serviceInfo?.price_from, serviceInfo?.price_to)}
+              : formatPrice(serviceInfo?.price_from)}
           </ThemedText>
           <View style={styles.divider} />
           {/* Description */}

@@ -10,11 +10,15 @@ import {
   ActivityIndicator,
   Alert,
    RefreshControl,   // ⬅️ add this
+  Modal,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import ThemedText from "../../components/ThemedText";
 import { useCart, useUpdateCartItem, useDeleteCartItem, fileUrl, useStartChat } from "../../config/api.config";
+
+const { height } = Dimensions.get('window');
 
 /* -------------------- THEME -------------------- */
 const COLOR = {
@@ -39,6 +43,8 @@ export default function CartScreen() {
   const [agree, setAgree] = useState(false);
   const [stores, setStores] = useState([]);
   const [refreshing, setRefreshing] = useState(false);  // ⬅️ new
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // Chat functionality
   const { mutate: startChat, isPending: creatingChat } = useStartChat();
@@ -463,7 +469,7 @@ const onRefresh = async () => {
         </View>
 
         {/* Terms */}
-        <TouchableOpacity style={styles.termsRow} onPress={() => setAgree((v) => !v)}>
+        <TouchableOpacity style={styles.termsRow} onPress={() => setAgree((v) => !v)} activeOpacity={0.7}>
           <View
             style={[
               styles.smallCheck,
@@ -472,14 +478,132 @@ const onRefresh = async () => {
           >
             {agree && <Ionicons name="checkmark" size={12} color="#fff" />}
           </View>
-          <ThemedText style={styles.termsTxt}>
-            I agree to Colala’s{" "}
-            <ThemedText style={styles.link}>terms of use</ThemedText>,{" "}
-            <ThemedText style={styles.link}>returns policy</ThemedText> and{" "}
-            <ThemedText style={styles.link}>privacy policy</ThemedText>
+          <ThemedText style={styles.termsTxt} numberOfLines={0}>
+            I agree to Colala's{" "}
+            <ThemedText 
+              style={styles.link}
+              onPress={(e) => {
+                e.stopPropagation();
+                setShowTermsModal(true);
+              }}
+            >
+              terms of use
+            </ThemedText>
+            ,{" "}
+            <ThemedText style={styles.link}>returns policy</ThemedText>
+            {" "}and{" "}
+            <ThemedText 
+              style={styles.link}
+              onPress={(e) => {
+                e.stopPropagation();
+                setShowPrivacyModal(true);
+              }}
+            >
+              privacy policy
+            </ThemedText>
           </ThemedText>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Terms of Use Modal */}
+      <Modal
+        visible={showTermsModal}
+        animationType="slide"
+        transparent={true}
+      >
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, { height: 500, padding: 20 }]}>
+            <View style={styles.dragIndicator} />
+
+            <View style={styles.modalHeader}>
+              <ThemedText style={{ fontSize: 18, fontWeight: 'bold', fontStyle: 'italic', marginLeft: 140, marginBottom: 10 }}>Terms of use</ThemedText>
+              <TouchableOpacity  style={{ borderColor: "#000", borderWidth: 1.5, borderRadius: 20, }}  onPress={() => setShowTermsModal(false)}>
+                <Ionicons name="close" size={18} />
+              </TouchableOpacity>
+            </View>
+            <ThemedText style={{ fontSize: 14, fontWeight: 400, marginBottom: 20 }}>Kindly read the Colala mall terms of use</ThemedText>
+
+            <ScrollView>
+              <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 20, marginBottom: 20, elevation: 3 }}>
+                <ThemedText style={{ fontWeight: 'bold', marginBottom: 10 }}>Terms of Use for Colala Mall</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  Welcome to colala mall, an eCommerce platform operated by Colala. By downloading, accessing, or using the app...
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>1. Acceptance of Terms</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  By using this app, you confirm that you are at least 18 years old or have legal parental/guardian consent, and that you have the legal capacity to enter into this agreement.
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>2. User Account</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>3. Products and Services</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  We strive to provide accurate product descriptions and pricing. However, we reserve the right to correct any errors, inaccuracies, or omissions.
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>4. Payment and Billing</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  All payments are processed securely. You agree to provide current, complete, and accurate purchase and account information for all purchases.
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>5. Returns and Refunds</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  Please review our returns policy for information about returning products and requesting refunds.
+                </ThemedText>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Privacy Policy Modal */}
+      <Modal
+        visible={showPrivacyModal}
+        animationType="slide"
+        transparent={true}
+      >
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, { height: 500, padding: 20 }]}>
+            <View style={styles.dragIndicator} />
+
+            <View style={styles.modalHeader}>
+              <ThemedText style={{ fontSize: 18, fontWeight: 'bold', fontStyle: 'italic', marginLeft: 130, marginBottom: 10 }}>Privacy Policy</ThemedText>
+              <TouchableOpacity  style={{ borderColor: "#000", borderWidth: 1.5, borderRadius: 20, }}  onPress={() => setShowPrivacyModal(false)}>
+                <Ionicons name="close" size={18} />
+              </TouchableOpacity>
+            </View>
+            <ThemedText style={{ fontSize: 14, fontWeight: 400, marginBottom: 20 }}>Kindly read the Colala mall privacy policy</ThemedText>
+
+            <ScrollView>
+              <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 20, marginBottom: 20, elevation: 3 }}>
+                <ThemedText style={{ fontWeight: 'bold', marginBottom: 10 }}>Privacy Policy for Colala Mall</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  At Colala Mall, we are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application.
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>1. Information We Collect</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  We collect information that you provide directly to us, including your name, email address, phone number, shipping address, and payment information.
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>2. How We Use Your Information</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  We use the information we collect to process your orders, communicate with you, improve our services, and personalize your experience.
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>3. Information Sharing</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  We do not sell, trade, or rent your personal information to third parties. We may share your information only as necessary to provide our services or as required by law.
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>4. Data Security</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
+                </ThemedText>
+                <ThemedText style={{ fontWeight: 'bold' }}>5. Your Rights</ThemedText>
+                <ThemedText style={{ marginBottom: 10 }}>
+                  You have the right to access, update, or delete your personal information at any time by contacting us or through your account settings.
+                </ThemedText>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Checkout bar */}
       <View style={styles.checkoutBar}>
@@ -650,7 +774,12 @@ const styles = StyleSheet.create({
   },
 
   /* Terms */
-  termsRow: { flexDirection: "row", alignItems: "center", marginTop: 14, gap: 8 },
+  termsRow: { 
+    flexDirection: "row", 
+    alignItems: "flex-start", 
+    marginTop: 14, 
+    gap: 8,
+  },
   smallCheck: {
     width: 16,
     height: 16,
@@ -660,9 +789,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
+    marginTop: 2,
+    flexShrink: 0,
   },
-  termsTxt: { color: COLOR.text, flex: 1 },
-  link: { color: COLOR.primary },
+  termsTxt: { 
+    color: COLOR.text, 
+    flex: 1,
+    lineHeight: 20,
+    flexShrink: 1,
+  },
+  link: { 
+    color: COLOR.primary,
+  },
 
   /* Checkout bar */
   checkoutBar: {
@@ -683,4 +821,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkoutTxt: { color: "#fff", fontWeight: "700" },
+
+  /* Modal styles */
+  modalContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: { backgroundColor: '#F9F9F9', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, maxHeight: height * 0.9 },
+  dragIndicator: { width: 110, height: 8, backgroundColor: '#ccc', borderRadius: 5, alignSelf: 'center', marginBottom: 10, marginTop: -10 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });

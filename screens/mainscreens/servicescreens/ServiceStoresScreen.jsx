@@ -192,11 +192,14 @@ export default function ServiceStoresScreen() {
     return `₦${from.toLocaleString()} - ₦${to.toLocaleString()}`;
   };
   
-  // Helper function to get service image
+  // Helper function to get service image (always returns an image, skips videos)
   const getServiceImage = (service) => {
-    // Use actual service media if available
+    // Filter media to only get images (skip videos)
     if (service.media && service.media.length > 0) {
-      return { uri: absUrl(`/storage/${service.media[0].path}`) };
+      const imageMedia = service.media.filter(item => item.type === "image" || !item.type);
+      if (imageMedia.length > 0) {
+        return { uri: absUrl(`/storage/${imageMedia[0].path}`) };
+      }
     }
     
     // Fallback to default images
@@ -346,10 +349,15 @@ export default function ServiceStoresScreen() {
       // Get store information from the service
       const store = service.store || {};
       
-      // Get service image (use first media item or fallback)
-      const serviceImage = service.media && service.media.length > 0 
-        ? { uri: absUrl(`/storage/${service.media[0].path}`) }
-        : require("../../../assets/Frame 264.png");
+      // Get service image (always use an image, skip videos)
+      let serviceImage = require("../../../assets/Frame 264.png");
+      if (service.media && service.media.length > 0) {
+        // Filter to only get images (skip videos)
+        const imageMedia = service.media.filter(item => item.type === "image" || !item.type);
+        if (imageMedia.length > 0) {
+          serviceImage = { uri: absUrl(`/storage/${imageMedia[0].path}`) };
+        }
+      }
       
       // Get store profile image
       const storeProfileImage = store.profile_image 

@@ -255,11 +255,14 @@ export default function SupportScreen() {
               <View style={styles.ticketContent}>
                 <View style={styles.ticketLeft}>
                   <Image
-                    source={require("../../../assets/Ellipse 18.png")}
+                    source={require("../../../assets/image copy.png")}
                     style={styles.ticketAvatar}
                   />
                   <View style={styles.ticketInfo}>
                     <ThemedText style={styles.ticketSubject} numberOfLines={1}>
+                      Customer Support
+                    </ThemedText>
+                    <ThemedText style={styles.ticketCategory} numberOfLines={1}>
                       {item.subject}
                     </ThemedText>
                     <ThemedText

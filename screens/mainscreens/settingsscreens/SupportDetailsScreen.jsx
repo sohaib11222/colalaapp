@@ -305,7 +305,7 @@ export default function SupportDetailsScreen() {
         >
           {!mine && !isSystem && (
             <ThemedText style={styles.senderName}>
-              {item.senderInfo?.full_name || "Support"}
+              Customer Support
             </ThemedText>
           )}
           <ThemedText style={[
@@ -411,15 +411,15 @@ export default function SupportDetailsScreen() {
 
           <View style={styles.headerCenter}>
             <Image
-              source={require("../../../assets/Ellipse 18.png")}
+              source={require("../../../assets/image copy.png")}
               style={styles.avatar}
             />
             <View>
               <ThemedText style={styles.storeName}>
-                Sasha Stores
+                Customer Support
               </ThemedText>
               <ThemedText style={styles.lastSeen}>
-                Last seen 3 min ago
+                We're here to help
               </ThemedText>
             </View>
           </View>

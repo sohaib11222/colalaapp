@@ -220,7 +220,16 @@ export default function SearchScreen() {
             ? { uri: imgUrl(item.media[0].path) }
             : require("../../assets/Frame 264.png");
         return (
-            <View style={styles.serviceCard}>
+            <TouchableOpacity
+                style={styles.serviceCard}
+                onPress={() =>
+                    navigation.navigate("ServiceNavigator", {
+                        screen: "ServiceDetails",
+                        params: { service: item },
+                    })
+                }
+                activeOpacity={0.9}
+            >
                 <Image source={img} style={styles.serviceImage} />
                 <View style={styles.serviceHeader}>
                     <Image
@@ -241,11 +250,20 @@ export default function SearchScreen() {
                         ₦{Number(item.price_from).toLocaleString()} - ₦
                         {Number(item.price_to).toLocaleString()}
                     </ThemedText>
-                    <TouchableOpacity style={styles.detailsBtn}>
+                    <TouchableOpacity
+                        style={styles.detailsBtn}
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            navigation.navigate("ServiceNavigator", {
+                                screen: "ServiceDetails",
+                                params: { service: item },
+                            });
+                        }}
+                    >
                         <ThemedText style={styles.detailsText}>Details</ThemedText>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </TouchableOpacity>
         );
     };
 
@@ -574,14 +592,23 @@ export default function SearchScreen() {
                     ? { uri: imgUrl(item.media[0].path) }
                     : require("../../assets/Frame 264.png");
                 return (
-                    <View style={[
-                        styles.serviceCard, 
-                        shouldUseFullWidth && { 
-                            width: width - 32,
-                            marginHorizontal: 16,
-                            alignSelf: 'stretch'
+                    <TouchableOpacity
+                        style={[
+                            styles.serviceCard, 
+                            shouldUseFullWidth && { 
+                                width: width - 32,
+                                marginHorizontal: 16,
+                                alignSelf: 'stretch'
+                            }
+                        ]}
+                        onPress={() =>
+                            navigation.navigate("ServiceNavigator", {
+                                screen: "ServiceDetails",
+                                params: { service: item },
+                            })
                         }
-                    ]}>
+                        activeOpacity={0.9}
+                    >
                         <Image source={img} style={styles.serviceImage} />
                         <View style={styles.serviceHeader}>
                             <Image
@@ -602,11 +629,20 @@ export default function SearchScreen() {
                                 ₦{Number(item.price_from).toLocaleString()} - ₦
                                 {Number(item.price_to).toLocaleString()}
                             </ThemedText>
-                            <TouchableOpacity style={styles.detailsBtn}>
+                            <TouchableOpacity
+                                style={styles.detailsBtn}
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    navigation.navigate("ServiceNavigator", {
+                                        screen: "ServiceDetails",
+                                        params: { service: item },
+                                    });
+                                }}
+                            >
                                 <ThemedText style={styles.detailsText}>Details</ThemedText>
                             </TouchableOpacity>
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 );
             }
         };
