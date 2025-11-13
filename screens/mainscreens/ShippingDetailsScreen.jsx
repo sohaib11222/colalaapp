@@ -258,11 +258,11 @@ export default function ShippingDetailsScreen() {
     setTopUpModalVisible(false);
     setTopUpAmount("");
     
-    // Navigate to Flutterwave with the entered amount
+    // Navigate to Flutterwave with the entered amount (email will be fetched from AsyncStorage in the component)
     navigation.navigate('FlutterwaveWebView', { 
       amount: amount, 
       order_id: 'topup_' + Date.now(), 
-      isTopUp: true 
+      isTopUp: true,
     });
   };
 

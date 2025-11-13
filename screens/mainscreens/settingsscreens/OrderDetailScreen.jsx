@@ -12,13 +12,15 @@ import {
   RefreshControl,
   TextInput,
   Alert,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ThemedText from "../../../components/ThemedText";
-import { useOrderDetails, fileUrl, useStartChat, useAddProductReview, useAddStoreReview, usePaymentInfo, useProcessPayment, useWalletBalance } from "../../../config/api.config"; // ⬅️ NEW
+import { useOrderDetails, fileUrl, useStartChat, useAddProductReview, useAddStoreReview, usePaymentInfo, useProcessPayment, useWalletBalance, useCreateDispute } from "../../../config/api.config"; // ⬅️ NEW
+import * as ImagePicker from 'expo-image-picker';
 
 /* ---------- THEME ---------- */
 const COLOR = {
@@ -32,6 +34,16 @@ const COLOR = {
 };
 const currency = (n) => `₦${Number(n || 0).toLocaleString()}`;
 const productImg = require("../../../assets/Frame 314.png");
+
+// Dispute categories
+const DISPUTE_CATEGORIES = [
+  "Order Dispute",
+  "Wrong Item",
+  "Damaged Item",
+  "Late Delivery",
+  "Refund Request",
+  "Other",
+];
 
 /* ---------- FALLBACK (kept for dev safety only) ---------- */
 const ORDERS_DETAIL = [
@@ -93,7 +105,7 @@ const InfoRow = ({ left, right, strongRight, topBorder }) => (
 );
 
 /* ---------- Track Order full-screen modal (unchanged UI) ---------- */
-function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status = 0, trackingData = null, orderData = null, onShowFullDetails = null }) {
+function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status = 0, trackingData = null, orderData = null, onShowFullDetails = null, apiOrder = null }) {
   const navigation = useNavigation();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [codeOpen, setCodeOpen] = useState(false);
@@ -108,6 +120,13 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
   const code = trackingData?.delivery_code || "1415"; // Use API delivery code or fallback
   const trackingStatus = trackingData?.status || "pending";
   const trackingNotes = trackingData?.notes || "Order has been placed and is pending processing.";
+  
+  // Find the store order from apiOrder to get the store_order_id
+  const storeOrder = apiOrder?.store_orders?.find(so => 
+    so.store?.store_name === storeName || 
+    (orderData?.store?.id && so.store_id === orderData.store.id)
+  );
+  const storeOrderId = storeOrder?.id || orderData?.store_order_id;
   
   // Map API status to step index for the modal
   const getStepIndex = (status) => {
@@ -204,6 +223,8 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                     // Navigate to ChatDetailsScreen for dispute
                     const storeId = orderData?.store?.id || orderData?.id;
                     const chatId = orderData?.chat?.id;
+                    // Use storeOrderId from the modal scope (found from apiOrder)
+                    const finalStoreOrderId = storeOrderId || orderData?.store_order_id;
                     
                     if (chatId) {
                       // If chat exists, navigate to it
@@ -216,7 +237,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                             profileImage: orderData?.profileImage,
                           },
                           chat_id: chatId,
-                          store_order_id: storeId,
+                          store_order_id: finalStoreOrderId, // Use actual store_order_id
                         },
                       });
                       onClose();
@@ -232,7 +253,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                             name: orderData?.name || storeName,
                             profileImage: orderData?.profileImage,
                           },
-                          store_order_id: storeId,
+                          store_order_id: finalStoreOrderId, // Use actual store_order_id
                         },
                       });
                       onClose();
@@ -298,7 +319,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
           {currentStepIndex >= 2 && <Step index={2} title="Delivered" showWarning={false} showActions={false} />}
         </ScrollView>
 
-        {/* Confirm reveal modal */}
+        {/* Disclaimer modal before revealing code */}
         <Modal
           visible={confirmOpen}
           transparent
@@ -306,25 +327,45 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
           onRequestClose={() => setConfirmOpen(false)}
         >
           <View style={styles.centerOverlay}>
-            <View style={styles.alertCard}>
-              <Ionicons
-                name="warning-outline"
-                size={46}
-                color={COLOR.primary}
-                style={{ alignSelf: "center", marginBottom: 8 }}
-              />
-              <ThemedText
-                style={{ color: COLOR.text, textAlign: "center", marginBottom: 18, fontSize: 13 }}
-              >
-                Do you confirm that your product has been delivered
-              </ThemedText>
+            <View style={[styles.alertCard, { maxHeight: '80%' }]}>
+              <ScrollView showsVerticalScrollIndicator={true} style={{ maxHeight: 400 }}>
+                <Ionicons
+                  name="warning-outline"
+                  size={46}
+                  color={COLOR.primary}
+                  style={{ alignSelf: "center", marginBottom: 16 }}
+                />
+                <ThemedText
+                  style={{ color: COLOR.text, textAlign: "center", marginBottom: 16, fontSize: 16, fontWeight: "700" }}
+                >
+                  Important Notice
+                </ThemedText>
+                
+                <ThemedText
+                  style={{ color: COLOR.text, marginBottom: 12, fontSize: 13, lineHeight: 20 }}
+                >
+                  Please ensure you have received your product and confirmed it is in good condition before revealing the delivery confirmation code. Once the code is revealed, your payment will be automatically released to the seller, and no refunds or disputes will be possible afterward.
+                </ThemedText>
 
-              <View style={{ flexDirection: "row", gap: 12 }}>
+                <ThemedText
+                  style={{ color: COLOR.text, marginBottom: 12, fontSize: 13, lineHeight: 20 }}
+                >
+                  You are required to reveal the delivery code immediately after inspecting your product. If you fail to do so within 48 hours, the system will automatically confirm delivery and release payment to the seller.
+                </ThemedText>
+
+                <ThemedText
+                  style={{ color: COLOR.text, marginBottom: 18, fontSize: 13, lineHeight: 20 }}
+                >
+                  If you experience any issues with this order, please create a dispute below before the 48-hour window expires.
+                </ThemedText>
+              </ScrollView>
+
+              <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
                 <TouchableOpacity
                   style={[styles.ghostBtn, { flex: 1 }]}
                   onPress={() => setConfirmOpen(false)}
                 >
-                  <ThemedText style={{ color: COLOR.text, fontSize: 12 }}>Go Back</ThemedText>
+                  <ThemedText style={{ color: COLOR.text, fontSize: 12 }}>Cancel</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.solidBtn, { flex: 1 }]}
@@ -334,7 +375,7 @@ function TrackOrderModal({ visible, onClose, storeName = "Sasha Store", status =
                   }}
                 >
                   <ThemedText style={{ color: "#fff", fontWeight: "600", fontSize: 12 }}>
-                    Reveal Code
+                   Reveal Code
                   </ThemedText>
                 </TouchableOpacity>
               </View>
@@ -482,7 +523,7 @@ function ReviewModal({ visible, onClose, type, store, onSubmit, isSubmitting = f
 }
 
 /* ---------- Store block (unchanged UI) ---------- */
-function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData = null, isExpanded = false, onToggleExpanded = null, onReviewProduct = null, onReviewStore = null, addingProductReview = false, addingStoreReview = false, onPayOrder = null }) {
+function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData = null, isExpanded = false, onToggleExpanded = null, onReviewProduct = null, onReviewStore = null, addingProductReview = false, addingStoreReview = false, onPayOrder = null, onOpenDispute = null }) {
   const [expanded, setExpanded] = useState(isExpanded);
   const navigation = useNavigation();
   
@@ -497,7 +538,9 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
   const handleStartChat = async () => {
     try {
       const storeId = store.store?.id || store.id;
+      const storeOrderId = store.store_order_id; // Use the actual store_order_id
       console.log("Starting chat with store ID:", storeId);
+      console.log("Store order ID:", storeOrderId);
       
       // Check if we already have a chat_id from the API
       const existingChatId = store.chat?.id;
@@ -515,48 +558,49 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
               profileImage: store.profileImage,
             },
             chat_id: existingChatId,
-            store_order_id: storeId,
+            store_order_id: storeOrderId, // Use actual store_order_id
           },
         });
       } else {
         // Create new chat if none exists
         console.log("Creating new chat...");
-        startChat(
-          { storeId },
-          {
-            onSuccess: (data) => {
-              console.log("Chat created successfully:", data);
-              const { chat_id } = data;
-              
-              navigation.navigate("ServiceNavigator", {
-                screen: "ChatDetails",
-                params: {
-                  store: {
-                    id: storeId,
-                    name: store.name,
-                    profileImage: store.profileImage,
-                  },
-                  chat_id,
-                  store_order_id: storeId,
+      startChat(
+        { storeId },
+        {
+          onSuccess: (data) => {
+            console.log("Chat created successfully:", data);
+            const { chat_id } = data;
+            
+            navigation.navigate("ServiceNavigator", {
+              screen: "ChatDetails",
+              params: {
+                store: {
+                  id: storeId,
+                  name: store.name,
+                  profileImage: store.profileImage,
                 },
-              });
-            },
-            onError: (error) => {
-              console.error("Failed to create chat:", error);
-              // Fallback: navigate without chat_id
-              navigation.navigate("ServiceNavigator", {
-                screen: "ChatDetails",
-                params: {
-                  store: {
-                    id: storeId,
-                    name: store.name,
-                    profileImage: store.profileImage,
-                  },
+                chat_id,
+                store_order_id: storeOrderId, // Use actual store_order_id
+              },
+            });
+          },
+          onError: (error) => {
+            console.error("Failed to create chat:", error);
+            // Fallback: navigate without chat_id
+            navigation.navigate("ServiceNavigator", {
+              screen: "ChatDetails",
+              params: {
+                store: {
+                  id: storeId,
+                  name: store.name,
+                  profileImage: store.profileImage,
                 },
-              });
-            },
-          }
-        );
+                store_order_id: storeOrderId, // Use actual store_order_id
+              },
+            });
+          },
+        }
+      );
       }
     } catch (error) {
       console.error("Error starting chat:", error);
@@ -676,7 +720,7 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
                     }}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
+                  <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -691,7 +735,7 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
                     }}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
+                  <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -713,7 +757,7 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
                     }}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
+                  <Ionicons name="copy-outline" size={14} color={COLOR.sub} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -748,19 +792,36 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
           </ThemedText>
         </TouchableOpacity>
 
-        {/* Pay Order button - only show for accepted orders (status = 1) */}
-        {store.status === 1 && onPayOrder && (
-          <View style={styles.reviewButtonsRow}>
+        {/* Action buttons row - Pay Order and Dispute */}
+        <View style={styles.reviewButtonsRow}>
+          {/* Pay Order button - only show for accepted orders (status = 1) */}
+          {store.status === 1 && onPayOrder && (
             <TouchableOpacity 
-              style={[styles.reviewBtn, { backgroundColor: COLOR.primary, borderColor: COLOR.primary }]}
+              style={[styles.reviewBtn, { backgroundColor: COLOR.primary, borderColor: COLOR.primary, flex: 1 }]}
               onPress={onPayOrder}
             >
               <ThemedText style={[styles.reviewBtnText, { color: '#fff', fontWeight: '700' }]}>
                 Pay Order
               </ThemedText>
             </TouchableOpacity>
-          </View>
-        )}
+          )}
+
+          {/* Dispute button - show for all orders that are not delivered yet (status 0-3) */}
+          {store.status < 4 && onOpenDispute && (
+            <TouchableOpacity 
+              style={[
+                styles.disputeBtn,
+                store.status === 1 && onPayOrder && { flex: 1, marginLeft: 12 }
+              ]}
+              onPress={() => onOpenDispute(store)}
+            >
+              <Ionicons name="alert-circle-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+              <ThemedText style={styles.disputeBtnText}>
+                Dispute Order
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Review buttons - only show for delivered orders */}
         {store.status >= 4 && (
@@ -886,6 +947,8 @@ export default function SingleOrderDetailsScreen() {
         profileImage: so.store?.profile_image ? fileUrl(so.store.profile_image) : null, // Store profile image
         orderTracking: so.order_tracking, // Keep tracking data for modal
         chat: so.chat, // Keep chat data for existing chat functionality
+        store_order_id: so.id, // Store the actual store_order_id for dispute creation
+        store_order_status: so.status, // Keep original status string for dispute eligibility
       };
     });
 
@@ -922,7 +985,7 @@ export default function SingleOrderDetailsScreen() {
   const [trackOpen, setTrackOpen] = useState(false);
   const [trackStoreName, setTrackStoreName] = useState("");
   const [trackStatus, setTrackStatus] = useState(0);
-  
+
   // Expanded stores state - initialized empty, will be populated when order loads
   const [expandedStores, setExpandedStores] = useState(new Set());
 
@@ -947,6 +1010,40 @@ export default function SingleOrderDetailsScreen() {
   });
   
   const walletBalance = walletData?.data?.shopping_balance || 0;
+
+  // Dispute modal state
+  const [disputeModalVisible, setDisputeModalVisible] = useState(false);
+  const [selectedStoreForDispute, setSelectedStoreForDispute] = useState(null);
+  const [disputeCategory, setDisputeCategory] = useState("");
+  const [disputeDetails, setDisputeDetails] = useState("");
+  const [disputeImageUri, setDisputeImageUri] = useState(null);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  
+  // Create dispute mutation
+  const { mutate: createDispute, isPending: isCreatingDispute } = useCreateDispute({
+    onSuccess: (data) => {
+      setDisputeModalVisible(false);
+      resetDisputeForm();
+      
+      // Navigate to dispute chat screen
+      // Backend returns: { dispute: {...}, dispute_chat: {...} }
+      const disputeId = data?.data?.dispute?.id || data?.data?.dispute_id;
+      if (disputeId) {
+        navigation.navigate("SettingsNavigator", {
+          screen: "DisputeChat",
+          params: { disputeId },
+        });
+      } else {
+        showToast("Dispute created successfully! A customer agent will join you shortly.", "success");
+        // Refresh order details
+        handleRefresh();
+      }
+    },
+    onError: (error) => {
+      console.error('Dispute creation error:', error);
+      showToast(error?.message || "Failed to create dispute. Please try again.", "error");
+    }
+  });
 
   // Show toast notification
   const showToast = (message, type = 'success') => {
@@ -1067,7 +1164,7 @@ export default function SingleOrderDetailsScreen() {
     const amountToPay = Number(paymentInfo.amount_to_pay) || 0;
     
     if (selectedPaymentMethod === 'flutterwave') {
-      // Navigate to Flutterwave WebView
+      // Navigate to Flutterwave WebView (email will be fetched from AsyncStorage in the component)
       setPaymentModalVisible(false);
       navigation.navigate("FlutterwaveWebView", {
         order_id: String(apiOrder.id),
@@ -1113,6 +1210,111 @@ export default function SingleOrderDetailsScreen() {
   const handleClosePaymentModal = () => {
     setPaymentModalVisible(false);
     setSelectedPaymentMethod('flutterwave'); // Reset to default
+  };
+
+  // Dispute form handlers
+  const resetDisputeForm = () => {
+    setDisputeCategory("");
+    setDisputeDetails("");
+    setDisputeImageUri(null);
+    setShowCategoryModal(false);
+    setSelectedStoreForDispute(null);
+  };
+
+  const pickDisputeImage = async () => {
+    try {
+      // Request both camera and media library permissions
+      const [cameraStatus, libraryStatus] = await Promise.all([
+        ImagePicker.requestCameraPermissionsAsync(),
+        ImagePicker.requestMediaLibraryPermissionsAsync(),
+      ]);
+
+      if (cameraStatus.status !== "granted" && libraryStatus.status !== "granted") {
+        Alert.alert("Permission Required", "Please grant permission to access your camera and photo library.");
+        return;
+      }
+
+      // Show action sheet to choose camera or gallery
+      Alert.alert(
+        "Select Image",
+        "Choose an option",
+        [
+          {
+            text: "Camera",
+            onPress: async () => {
+              const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.8,
+              });
+              if (!result.canceled && result.assets[0]) {
+                setDisputeImageUri(result.assets[0].uri);
+              }
+            },
+          },
+          {
+            text: "Gallery",
+            onPress: async () => {
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.8,
+              });
+              if (!result.canceled && result.assets[0]) {
+                setDisputeImageUri(result.assets[0].uri);
+              }
+            },
+          },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+    } catch (error) {
+      console.log("Image picker error:", error);
+      Alert.alert("Error", "Failed to pick image. Please try again.");
+    }
+  };
+
+  // Open dispute modal - no need to create chat first, backend creates it automatically
+  const handleOpenDispute = (store) => {
+    setSelectedStoreForDispute(store);
+    setDisputeModalVisible(true);
+  };
+
+  const handleSubmitDispute = () => {
+    if (!selectedStoreForDispute) return;
+    
+    const storeOrderId = selectedStoreForDispute.store_order_id;
+
+    if (!disputeCategory || !disputeDetails.trim()) {
+      Alert.alert("Missing Information", "Please fill in all required fields.");
+      return;
+    }
+
+    if (!storeOrderId) {
+      Alert.alert("Error", "Store Order ID is not available. Please contact support.");
+      return;
+    }
+
+    // Create form data - backend automatically creates dispute chat
+    const formData = new FormData();
+    formData.append("store_order_id", storeOrderId.toString());
+    formData.append("category", disputeCategory);
+    formData.append("details", disputeDetails.trim());
+
+    // Add image if selected - backend expects images as array
+    // Using images[] ensures Laravel receives it as an array
+    if (disputeImageUri) {
+      formData.append("images[]", {
+        uri: disputeImageUri,
+        type: "image/jpeg",
+        name: "dispute_image.jpg",
+      });
+    }
+
+    // Submit dispute
+    createDispute(formData);
   };
 
   // Only use API data, no fallback to dummy data
@@ -1259,21 +1461,21 @@ export default function SingleOrderDetailsScreen() {
           contentContainerStyle={styles.tabsWrap}
           style={styles.tabsScrollView}
         >
-          {STATUS.map((label, i) => {
-            const active = i === statusIdx;
-            return (
-              <TouchableOpacity
-                key={label}
-                style={[styles.tabBtn, active ? styles.tabActive : styles.tabInactive]}
-                onPress={() => setStatusIdx(i)}
+        {STATUS.map((label, i) => {
+          const active = i === statusIdx;
+          return (
+            <TouchableOpacity
+              key={label}
+              style={[styles.tabBtn, active ? styles.tabActive : styles.tabInactive]}
+              onPress={() => setStatusIdx(i)}
                 activeOpacity={0.7}
-              >
-                <ThemedText style={[styles.tabTxt, active ? { color: "#fff" } : { color: COLOR.text }]}>
-                  {label}
-                </ThemedText>
-              </TouchableOpacity>
-            );
-          })}
+            >
+              <ThemedText style={[styles.tabTxt, active ? { color: "#fff" } : { color: COLOR.text }]}>
+                {label}
+              </ThemedText>
+            </TouchableOpacity>
+          );
+        })}
         </ScrollView>
       </View>
 
@@ -1290,12 +1492,12 @@ export default function SingleOrderDetailsScreen() {
       >
         {visibleStores.length > 0 ? (
           visibleStores.map((s) => (
-            <StoreBlock
-              key={s.id}
-              store={s}
-              orderId={order.id}
+          <StoreBlock
+            key={s.id}
+            store={s}
+            orderId={order.id}
               orderData={apiOrder}
-              showSingleItem={statusIdx === 2}
+            showSingleItem={statusIdx === 2}
               isExpanded={expandedStores.has(s.id)}
               onToggleExpanded={(storeId, isExpanded) => {
                 setExpandedStores(prev => {
@@ -1308,16 +1510,17 @@ export default function SingleOrderDetailsScreen() {
                   return newSet;
                 });
               }}
-              onTrack={(storeName, stat) => {
-                setTrackStoreName(storeName);
-                setTrackStatus(stat);
-                setTrackOpen(true);
-              }}
+            onTrack={(storeName, stat) => {
+              setTrackStoreName(storeName);
+              setTrackStatus(stat);
+              setTrackOpen(true);
+            }}
               onReviewProduct={handleReviewProduct}
               onReviewStore={handleReviewStore}
               addingProductReview={addingProductReview}
               addingStoreReview={addingStoreReview}
               onPayOrder={handlePayOrder}
+              onOpenDispute={handleOpenDispute}
             />
           ))
         ) : (
@@ -1339,6 +1542,7 @@ export default function SingleOrderDetailsScreen() {
         trackingData={transformed?.stores?.find(s => s.name === trackStoreName)?.orderTracking?.[0]}
         orderData={transformed?.stores?.find(s => s.name === trackStoreName)}
         onShowFullDetails={() => handleShowFullDetails(trackStoreName)}
+        apiOrder={apiOrder}
       />
 
       {/* Review Modals */}
@@ -1541,6 +1745,175 @@ export default function SingleOrderDetailsScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Dispute Form Modal */}
+      <Modal
+        animationType="slide"
+        visible={disputeModalVisible}
+        presentationStyle="fullScreen"
+        onRequestClose={() => {
+          setDisputeModalVisible(false);
+          resetDisputeForm();
+        }}
+      >
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: "#fff" }}
+          edges={["top", "bottom"]}
+        >
+          {/* Modal header */}
+          <View style={styles.disputeModalHeader}>
+            <TouchableOpacity
+              onPress={() => {
+                setDisputeModalVisible(false);
+                resetDisputeForm();
+              }}
+              style={styles.disputeModalBackBtn}
+            >
+              <Ionicons name="chevron-back" size={22} color="#000" />
+            </TouchableOpacity>
+            <ThemedText style={styles.disputeModalTitle}>Create Dispute</ThemedText>
+            <View style={{ width: 32 }} />
+          </View>
+
+          <ScrollView
+            style={{
+              flex: 1,
+              backgroundColor: COLOR.bg,
+              paddingHorizontal: 16,
+              paddingTop: 8,
+            }}
+            contentContainerStyle={{ paddingBottom: 20 }}
+          >
+            {/* Category field */}
+            <TouchableOpacity
+              style={styles.disputeSelectRow}
+              onPress={() => setShowCategoryModal(true)}
+              disabled={isCreatingDispute}
+            >
+              <ThemedText
+                style={[
+                  styles.disputeSelectText,
+                  { color: disputeCategory ? "#000" : "#9BA0A6" },
+                ]}
+              >
+                {disputeCategory || "Issue Category"}
+              </ThemedText>
+              <Ionicons name="chevron-forward" size={18} color="#000" />
+            </TouchableOpacity>
+
+            {/* Details */}
+            <TextInput
+              style={styles.disputeDetailsInput}
+              placeholder="Type Issue Details"
+              placeholderTextColor="#9BA0A6"
+              value={disputeDetails}
+              onChangeText={setDisputeDetails}
+              multiline
+              textAlignVertical="top"
+              editable={!isCreatingDispute}
+            />
+
+            {/* Image attach (optional) */}
+            <TouchableOpacity
+              style={styles.disputeImageBox}
+              onPress={pickDisputeImage}
+              disabled={isCreatingDispute}
+            >
+              {disputeImageUri ? (
+                <Image
+                  source={{ uri: disputeImageUri }}
+                  style={{ width: "100%", height: "100%", borderRadius: 10 }}
+                />
+              ) : (
+                <Ionicons name="image" size={22} color="#9BA0A6" />
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+
+          {/* Proceed button */}
+          <View style={{ padding: 16, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: COLOR.line }}>
+            <TouchableOpacity
+              onPress={handleSubmitDispute}
+              disabled={
+                !disputeCategory || !disputeDetails.trim() || isCreatingDispute
+              }
+              style={[
+                styles.disputeProceedBtn,
+                {
+                  opacity:
+                    !disputeCategory || !disputeDetails.trim() || isCreatingDispute
+                      ? 0.6
+                      : 1,
+                },
+              ]}
+            >
+              {isCreatingDispute ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <ThemedText style={{ color: "#fff", fontWeight: "600" }}>
+                  Submit Dispute
+                </ThemedText>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Category Selection Modal */}
+      <Modal
+        visible={showCategoryModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCategoryModal(false)}
+      >
+        <Pressable
+          style={styles.categoryOverlay}
+          onPress={() => setShowCategoryModal(false)}
+        >
+          <View style={styles.categoryModal} onStartShouldSetResponder={() => true}>
+            <View style={styles.categoryHeader}>
+              <ThemedText style={styles.categoryTitle}>
+                Select Issue Category
+              </ThemedText>
+              <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
+                <Ionicons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.categoryList}>
+              {DISPUTE_CATEGORIES.map((category, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.categoryItem,
+                    disputeCategory === category && styles.categoryItemSelected,
+                  ]}
+                  onPress={() => {
+                    setDisputeCategory(category);
+                    setShowCategoryModal(false);
+                  }}
+                >
+                  <ThemedText
+                    style={[
+                      styles.categoryText,
+                      disputeCategory === category && styles.categoryTextSelected,
+                    ]}
+                  >
+                    {category}
+                  </ThemedText>
+                  {disputeCategory === category && (
+                    <Ionicons
+                      name="checkmark"
+                      size={20}
+                      color={COLOR.primary}
+                    />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
       </Modal>
 
       {/* Toast Notification */}
@@ -1890,6 +2263,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
+  disputeBtn: {
+    backgroundColor: '#FF6B6B',
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    flex: 1,
+    ...shadow(4),
+  },
+  disputeBtnText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
 
   /* Review modal */
   reviewModal: {
@@ -2068,5 +2459,116 @@ const styles = StyleSheet.create({
   solidBtnDisabled: {
     backgroundColor: COLOR.sub,
     opacity: 0.5,
+  },
+
+  /* Dispute Modal Styles */
+  disputeModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.line,
+  },
+  disputeModalBackBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  disputeModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLOR.text,
+    flex: 1,
+    textAlign: "center",
+  },
+  disputeSelectRow: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 12,
+  },
+  disputeSelectText: {
+    fontSize: 14,
+    color: COLOR.text,
+  },
+  disputeDetailsInput: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginTop: 12,
+    height: 160,
+    padding: 12,
+    fontSize: 14,
+    color: COLOR.text,
+  },
+  disputeImageBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 10,
+    backgroundColor: "#EDEDED",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 14,
+  },
+  disputeProceedBtn: {
+    backgroundColor: COLOR.primary,
+    borderRadius: 15,
+    alignItems: "center",
+    paddingVertical: 18,
+  },
+  categoryOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  categoryModal: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "70%",
+  },
+  categoryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5E5",
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000",
+  },
+  categoryList: {
+    paddingVertical: 10,
+    maxHeight: 400,
+  },
+  categoryItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  categoryItemSelected: {
+    backgroundColor: "#FFF5F5",
+  },
+  categoryText: {
+    fontSize: 16,
+    color: "#000",
+  },
+  categoryTextSelected: {
+    color: COLOR.primary,
+    fontWeight: "600",
   },
 });

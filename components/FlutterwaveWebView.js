@@ -1,16 +1,49 @@
 // components/FlutterwaveWebView.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BASE_URL, http } from '../config/api.config';
 
 const FlutterwaveWebView = ({ route, navigation }) => {
     const { amount, order_id, isTopUp = false } = route.params;
+    const [userEmail, setUserEmail] = useState(null);
+    const [flutterwaveUrl, setFlutterwaveUrl] = useState(null);
+
+    // Get user email from AsyncStorage
+    useEffect(() => {
+        const getUserEmail = async () => {
+            try {
+                const userData = await AsyncStorage.getItem('auth_user');
+                if (userData) {
+                    const user = JSON.parse(userData);
+                    const email = user?.email;
+                    setUserEmail(email);
+                    
+                    // Build URL with email if available
+                    const emailParam = email ? `&email=${encodeURIComponent(email)}` : '';
+                    const url = `https://hmstech.xyz/flutterwave-payment.html?amount=${amount}&order_id=${order_id}${emailParam}`;
+                    setFlutterwaveUrl(url);
+                } else {
+                    // No user data, build URL without email
+                    const url = `https://hmstech.xyz/flutterwave-payment.html?amount=${amount}&order_id=${order_id}`;
+                    setFlutterwaveUrl(url);
+                }
+            } catch (error) {
+                console.log('Error getting user email:', error);
+                // Build URL without email on error
+                const url = `https://hmstech.xyz/flutterwave-payment.html?amount=${amount}&order_id=${order_id}`;
+                setFlutterwaveUrl(url);
+            }
+        };
+
+        getUserEmail();
+    }, [amount, order_id]);
 
     const handleWebViewMessage = async (event) => {
         try {
             const data = JSON.parse(event.nativeEvent.data);
-
+            console.log('🔍 WebView message:', data);
             if (data.event === 'success') {
                 console.log('✅ Payment Success:', data.data);
 
@@ -65,7 +98,14 @@ const FlutterwaveWebView = ({ route, navigation }) => {
         }
     };
 
-    const flutterwaveUrl = `https://hmstech.xyz/flutterwave-payment.html?amount=${amount}&order_id=${order_id}`;
+    // Don't render WebView until URL is ready
+    if (!flutterwaveUrl) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#992C55" />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>

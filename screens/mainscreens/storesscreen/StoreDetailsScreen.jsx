@@ -1148,11 +1148,11 @@ export default function StoreDetailsScreen() {
             </View>
           ) : (
             <View style={styles.promoWrap}>
-              <Image
+              {/* <Image
                 source={promoSrc}
                 style={styles.promoImage}
                 resizeMode="cover"
-              />
+              /> */}
             </View>
           )}
         </View>

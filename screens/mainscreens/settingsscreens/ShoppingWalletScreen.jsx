@@ -522,6 +522,7 @@ export default function ShoppingWalletScreen() {
                   onPress={() => {
                     if (depositAmount && Number(depositAmount) > 0) {
                       setDepositVisible(false);
+                      // Navigate to Flutterwave (email will be fetched from AsyncStorage in the component)
                       navigation.navigate("FlutterwaveWebView", {
                         amount: Number(depositAmount),
                         order_id: "topup_" + Date.now(),

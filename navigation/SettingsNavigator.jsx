@@ -19,6 +19,8 @@ import SupportFormScreen from '../screens/mainscreens/settingsscreens/SupportFor
 import SupportDetailsScreen from '../screens/mainscreens/settingsscreens/SupportDetailsScreen.jsx';
 import LeaderBoardScreen from '../screens/mainscreens/settingsscreens/LeaderBoardScreen.jsx';
 import HelpScreen from '../screens/mainscreens/settingsscreens/HelpScreen.jsx';
+import DisputesScreen from '../screens/mainscreens/settingsscreens/DisputesScreen.jsx';
+import DisputeChatScreen from '../screens/mainscreens/settingsscreens/DisputeChatScreen.jsx';
 
 const Stack = createNativeStackNavigator();
 
@@ -41,6 +43,8 @@ const SettingsNavigator = () => {
       <Stack.Screen name="SupportDetails" component={SupportDetailsScreen} />
       <Stack.Screen name="LeaderBoard" component={LeaderBoardScreen} />
       <Stack.Screen name="Help" component={HelpScreen} />
+      <Stack.Screen name="Disputes" component={DisputesScreen} />
+      <Stack.Screen name="DisputeChat" component={DisputeChatScreen} />
 
     
 

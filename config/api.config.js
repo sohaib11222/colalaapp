@@ -67,9 +67,9 @@ const API = {
   List_Of_All_Saved_Items: `${BASE_URL}/buyer/saved-items`,
   Escrow_Wallet: `${BASE_URL}/faqs/escrow`,
   Escrow_Wallet_History: `${BASE_URL}/faqs/escrow/history`,
-  Create_Dispute: `${BASE_URL}/faqs/dispute`,
-  All_Disputes: `${BASE_URL}/faqs/dispute/all`,
-  Dispute_Details: `${BASE_URL}/faqs/dispute/details`,
+  Create_Dispute: `${BASE_URL}/dispute`,
+  All_Disputes: `${BASE_URL}/dispute`,
+  Dispute_Details: (id) => `${BASE_URL}/dispute/${id}`,
   // Support Tickets
   Support_Tickets: `${BASE_URL}/buyer/support/tickets`,
   Support_Ticket_Details: (ticketId) => `${BASE_URL}/buyer/support/tickets/${ticketId}`,
@@ -870,6 +870,16 @@ export const useDisputeDetails = (disputeId, options) =>
     queryKey: ["disputeDetails", disputeId],
     queryFn: () => http.get(API.Dispute_Details(disputeId)),
     ...options,
+  });
+
+// Send message in dispute chat
+export const useDisputeMessage = (opts) =>
+  useMutation({
+    mutationFn: ({ disputeId, payload }) => {
+      // Endpoint: POST /api/dispute/{id}/message
+      return http.post(`${API.Dispute_Details(disputeId)}/message`, payload);
+    },
+    ...opts,
   });
 
 

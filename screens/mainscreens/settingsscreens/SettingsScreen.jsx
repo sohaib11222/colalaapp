@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Text,
   Alert,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -157,6 +158,18 @@ const SettingsScreen = () => {
       img: require("../../../assets/Question.png"),
       leftColor: "#3EC9E5",
     }, // sky
+    {
+      key: "disputes",
+      label: "Disputes",
+      img: require("../../../assets/Vector (16).png"),
+      leftColor: "#FF6B6B",
+    }, // red/pink for disputes
+    {
+      key: "sellOnColala",
+      label: "Sell On Colala",
+      img: require("../../../assets/Vector (4).png"),
+      leftColor: "#4CAF50",
+    }, // green
   ];
 
   const menuOthers = [
@@ -220,6 +233,18 @@ const SettingsScreen = () => {
           navigation.navigate("SettingsNavigator", {
             screen: "LeaderBoard",
           });
+
+        if (key === "disputes")
+          navigation.navigate("SettingsNavigator", {
+            screen: "Disputes",
+          });
+
+        if (key === "sellOnColala") {
+          // Open external link
+          Linking.openURL("https://download.colalamall.com/").catch((err) =>
+            console.error("Failed to open URL:", err)
+          );
+        }
       });
     } else {
       // Handle logout directly
