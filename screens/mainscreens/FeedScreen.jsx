@@ -345,51 +345,54 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
     enabled: visible && !!post?.id,
   });
 
-  // Process API comments data and sort by created_at descending (latest first)
+  // Helper function to process a single comment (including nested replies)
+  const processComment = (comment) => {
+    // Ensure user is a string, not an object
+    const userName = typeof comment.user === 'object' 
+      ? (comment.user?.full_name || "Unknown")
+      : (comment.user || "Unknown");
+    
+    // Handle profile picture with better error handling
+    let userAvatar = require("../../assets/Ellipse 18.png"); // Default fallback
+    
+    if (typeof comment.user === 'object' && comment.user?.profile_picture) {
+      const profilePic = comment.user.profile_picture.trim();
+      if (profilePic !== '') {
+        try {
+          const avatarPath = profilePic.startsWith("/storage") 
+            ? profilePic 
+            : `/storage/${profilePic}`;
+          userAvatar = { uri: absUrl(avatarPath) };
+        } catch (error) {
+          userAvatar = require("../../assets/Ellipse 18.png");
+        }
+      }
+    }
+
+    // Process nested replies recursively
+    const processedReplies = (comment.replies || []).map(reply => processComment(reply));
+
+    return {
+      id: String(comment.id),
+      parent_id: comment.parent_id ? String(comment.parent_id) : null,
+      user: userName,
+      time: timeAgo(comment.created_at),
+      avatar: userAvatar,
+      body: comment.body || "",
+      likes: 0,
+      replies: processedReplies,
+      created_at: comment.created_at,
+    };
+  };
+
+  // Process API comments data - only top-level comments (parent_id is null)
   const apiComments = useMemo(() => {
     if (!commentsData?.data?.data) return [];
 
     return commentsData.data.data
+      .filter(comment => !comment.parent_id) // Only top-level comments
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // Sort latest first
-      .map((comment) => {
-        // Ensure user is a string, not an object
-        const userName = typeof comment.user === 'object' 
-          ? (comment.user?.full_name || "Unknown")
-          : (comment.user || "Unknown");
-        
-        // Handle profile picture with better error handling
-        let userAvatar = require("../../assets/Ellipse 18.png"); // Default fallback
-        
-        if (typeof comment.user === 'object' && comment.user?.profile_picture) {
-          const profilePic = comment.user.profile_picture.trim();
-          if (profilePic !== '') {
-            try {
-              const avatarPath = profilePic.startsWith("/storage") 
-                ? profilePic 
-                : `/storage/${profilePic}`;
-              userAvatar = { uri: absUrl(avatarPath) };
-              console.log('Using profile picture for', comment.user.full_name, ':', absUrl(avatarPath));
-            } catch (error) {
-              console.log('Error processing profile picture for', comment.user.full_name, ':', error);
-              userAvatar = require("../../assets/Ellipse 18.png");
-            }
-          }
-        }
-
-        const commentData = {
-          id: String(comment.id),
-          user: userName,
-          time: timeAgo(comment.created_at),
-          avatar: userAvatar,
-          body: comment.body || "",
-          likes: 0,
-          replies: comment.replies || [],
-          created_at: comment.created_at, // Keep original timestamp for sorting
-        };
-        
-        console.log('Final comment data for:', userName, 'avatar:', userAvatar);
-        return commentData;
-      });
+      .map(comment => processComment(comment));
   }, [commentsData]);
 
   // Local comments state - reset when post changes
@@ -412,7 +415,9 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
 
   const startReply = (c) => {
     const username = typeof c.user === 'string' ? c.user : (c.user?.full_name || "Unknown");
-    setReplyTo({ commentId: c.id, username });
+    // When replying, the parent_id should be the comment's id (not its parent_id)
+    // This allows replying to both top-level comments and nested replies
+    setReplyTo({ commentId: c.id, username, parentId: c.id });
     setText(`@${username} `);
     setTimeout(() => inputRef.current?.focus(), 0);
   };
@@ -427,9 +432,13 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
     const trimmed = text.trim();
     if (!trimmed || !post?.id) return;
     try {
-      const created = await onSubmitComment?.(post.id, trimmed);
+      // If replying, parent_id should be the comment's id we're replying to
+      // If not replying, parent_id should be null (top-level comment)
+      const parentId = replyTo?.commentId ? replyTo.commentId : null;
+      const created = await onSubmitComment?.(post.id, trimmed, parentId);
       const newComment = {
         id: String(created?.id ?? `c-${Date.now()}`),
+        parent_id: parentId ? String(parentId) : null,
         user: created?.user?.full_name ?? currentUser.name,
         time: "Just now",
         avatar: (() => {
@@ -447,9 +456,26 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
         body: created?.body ?? trimmed,
         likes: 0,
         replies: [],
-        created_at: new Date().toISOString(), // Add timestamp for proper sorting
+        created_at: new Date().toISOString(),
       };
-      setLocalComments((prev) => [...prev, newComment]);
+      
+      // If it's a reply, add it to the parent comment's replies, otherwise add as new top-level comment
+      if (parentId) {
+        // Recursive function to find and update the parent comment
+        const updateCommentWithReply = (comment) => {
+          if (comment.id === String(parentId)) {
+            return { ...comment, replies: [...(comment.replies || []), newComment] };
+          }
+          if (comment.replies && comment.replies.length > 0) {
+            return { ...comment, replies: comment.replies.map(updateCommentWithReply) };
+          }
+          return comment;
+        };
+        
+        setLocalComments((prev) => prev.map(updateCommentWithReply));
+      } else {
+        setLocalComments((prev) => [...prev, newComment]);
+      }
       setText("");
       setReplyTo(null);
     } catch { }
@@ -509,93 +535,51 @@ const CommentsSheet = ({ visible, onClose, post, onSubmitComment }) => {
               keyExtractor={(i) => i.id}
               style={{ maxHeight: 420, width: '100%' }}
               showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <View style={{ paddingBottom: 4 }}>
-                  {/* main comment */}
-                  <View style={styles.commentRow}>
-                    <Image
-                      source={item.avatar}
-                      style={styles.commentAvatar}
-                      defaultSource={require("../../assets/Ellipse 18.png")}
-                      onError={(error) => {
-                        console.log('Image load error for comment:', item.user, 'error:', error);
-                      }}
-                      onLoad={() => {
-                        console.log('Image loaded successfully for comment:', item.user);
-                      }}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <View
-                        style={{ flexDirection: "row", alignItems: "center" }}
-                      >
-                        <ThemedText style={styles.commentName}>
-                          {typeof item.user === 'string' ? item.user : (item.user?.full_name || "Unknown")}
-                        </ThemedText>
-                        <ThemedText style={styles.commentTime}>
-                          {" "}
-                          {item.time}
-                        </ThemedText>
-                      </View>
-                      <ThemedText style={styles.commentBody}>
-                        {item.body}
-                      </ThemedText>
-
-                      <View style={styles.commentMetaRow}>
-                        <TouchableOpacity onPress={() => startReply(item)}>
-                          <ThemedText style={styles.replyText}>Reply</ThemedText>
-                        </TouchableOpacity>
-                        {/* <View
+              renderItem={({ item }) => {
+                // Recursive function to render comments and nested replies
+                const renderComment = (comment, depth = 0) => (
+                  <View key={comment.id} style={{ paddingBottom: 4 }}>
+                    {/* Comment */}
+                    <View style={[styles.commentRow, depth > 0 && styles.nestedCommentRow]}>
+                      <Image
+                        source={comment.avatar}
+                        style={styles.commentAvatar}
+                        defaultSource={require("../../assets/Ellipse 18.png")}
+                      />
+                      <View style={{ flex: 1 }}>
+                        <View
                           style={{ flexDirection: "row", alignItems: "center" }}
                         >
-                          <Ionicons
-                            name="chatbubble-ellipses-outline"
-                            size={14}
-                            color={COLOR.text}
-                          />
-                          <ThemedText style={styles.commentLikeCount}>
-                            {" "}
-                            {item.likes}
+                          <ThemedText style={styles.commentName}>
+                            {typeof comment.user === 'string' ? comment.user : (comment.user?.full_name || "Unknown")}
                           </ThemedText>
-                        </View> */}
+                          <ThemedText style={styles.commentTime}>
+                            {" "}
+                            {comment.time}
+                          </ThemedText>
+                        </View>
+                        <ThemedText style={styles.commentBody}>
+                          {comment.body}
+                        </ThemedText>
+
+                        <View style={styles.commentMetaRow}>
+                          <TouchableOpacity onPress={() => startReply(comment)}>
+                            <ThemedText style={styles.replyText}>Reply</ThemedText>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
-                  </View>
 
-                  {/* replies kept for parity (not used) */}
-                  {item.replies?.length ? (
-                    <View style={styles.repliesWrap}>
-                      {item.replies.map((r) => (
-                        <View key={r.id} style={styles.replyContainer}>
-                          <Image
-                            source={r.avatar}
-                            style={styles.commentAvatar}
-                            defaultSource={require("../../assets/Ellipse 18.png")}
-                          />
-                          <View style={{ flex: 1 }}>
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                              }}
-                            >
-                              <ThemedText style={styles.commentName}>
-                                {typeof r.user === 'string' ? r.user : (r.user?.full_name || "Unknown")}
-                              </ThemedText>
-                              <ThemedText style={styles.commentTime}>
-                                {" "}
-                                {r.time}
-                              </ThemedText>
-                            </View>
-                            <ThemedText style={styles.commentBody}>
-                              {r.body}
-                            </ThemedText>
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  ) : null}
-                </View>
-              )}
+                    {/* Nested replies */}
+                    {comment.replies?.length > 0 && (
+                      <View style={[styles.repliesWrap, depth > 0 && styles.nestedRepliesWrap]}>
+                        {comment.replies.map((reply) => renderComment(reply, depth + 1))}
+                      </View>
+                    )}
+                  </View>
+                );
+                return renderComment(item);
+              }}
             />
           )}
 
@@ -923,8 +907,8 @@ export default function FeedScreen() {
     return { liked: res?.data?.liked, likes_count: res?.data?.likes_count };
   };
 
-  const handleSubmitComment = async (postId, body) => {
-    const res = await addCommentMutation.mutateAsync({ postId, body });
+  const handleSubmitComment = async (postId, body, parent_id = null) => {
+    const res = await addCommentMutation.mutateAsync({ postId, body, parent_id });
     setPostOverrides((prev) => ({
       ...prev,
       [postId]: {
@@ -1490,6 +1474,8 @@ const styles = StyleSheet.create({
   commentLikeCount: { color: COLOR.text, fontSize: 12 },
 
   repliesWrap: { marginLeft: 44, marginTop: 6 },
+  nestedRepliesWrap: { marginLeft: 20 },
+  nestedCommentRow: { marginLeft: 0 },
   replyContainer: { flexDirection: "row", marginTop: 10 },
   mentionText: { color: COLOR.primary, fontWeight: "600" },
 

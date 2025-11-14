@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -34,6 +35,8 @@ import {
   useTogglePostLike,
   useAddPostComment,
   useGetPostComments,
+  useAddToCart,
+  useStoreHasOrdered,
 } from "../../../config/api.config";
 
 import { useToggleFollowStore } from "../../../config/api.config";
@@ -106,6 +109,10 @@ export default function StoreDetailsScreen() {
 
   const { data: reviewsRes } = useStoreReviews(storeId);
   const reviewsApiList = reviewsRes?.data ?? apiStore?.store_reveiews; // prefer endpoint; fallback to payload key
+
+  // Check if user has ordered from this store
+  const { data: hasOrderedRes, isLoading: isLoadingHasOrdered } = useStoreHasOrdered(storeId);
+  const hasOrdered = hasOrderedRes?.data?.has_ordered ?? false;
   const { mutateAsync: startChat, isPending: creatingChat } = useStartChat();
   
   // Fetch existing chats to check for duplicates
@@ -394,6 +401,32 @@ export default function StoreDetailsScreen() {
     }
   };
 
+  // Add to cart functionality
+  const addToCartMutation = useAddToCart({
+    onSuccess: (res) => {
+      console.log("Product added to cart:", res);
+      Alert.alert("Success", "Product added to cart successfully!");
+    },
+    onError: (err) => {
+      console.error("Failed to add to cart:", err);
+      Alert.alert("Error", "Failed to add product to cart. Please try again.");
+    },
+  });
+
+  const handleAddToCart = (product) => {
+    handleGuestAction(() => {
+      if (!product?._api?.id) {
+        Alert.alert("Error", "Product information not available.");
+        return;
+      }
+
+      addToCartMutation.mutate({
+        product_id: product._api.id,
+        qty: 1,
+      });
+    });
+  };
+
   const handleFollowToggle = async () => {
     handleGuestAction(async () => {
       try {
@@ -526,10 +559,10 @@ export default function StoreDetailsScreen() {
   });
 
   const [leaveReviewVisible, setLeaveReviewVisible] = useState(false);
-  const handleSubmitReview = ({ rating, text }) => {
+  const handleSubmitReview = ({ rating, text, images = [] }) => {
     // POST to API
     if (storeId) {
-      addReview({ storeId, rating, comment: text, images: [] });
+      addReview({ storeId, rating, comment: text, images: images || [] });
       return;
     }
     // Fallback: keep your local behavior if no storeId (shouldn’t happen)
@@ -632,6 +665,7 @@ export default function StoreDetailsScreen() {
           },
         })
       }
+      style={{ position: 'relative' }}
     >
       <View style={[
         styles.card,
@@ -715,12 +749,26 @@ export default function StoreDetailsScreen() {
                 {item?.location || mergedStore?.location || "Lagos, Nigeria"}
               </ThemedText>
             </View>
-            <TouchableOpacity>
-              <Image
-                source={require("../../../assets/Frame 265.png")}
-                style={{ width: 28, height: 28, resizeMode: "contain" }}
-              />
-            </TouchableOpacity>
+            <View
+              onStartShouldSetResponder={() => true}
+              onResponderTerminationRequest={() => false}
+            >
+              <TouchableOpacity
+                onPress={() => handleAddToCart(item)}
+                disabled={addToCartMutation.isPending}
+                style={{ opacity: addToCartMutation.isPending ? 0.5 : 1 }}
+                activeOpacity={0.7}
+              >
+                {addToCartMutation.isPending ? (
+                  <ActivityIndicator size="small" color={mergedStore?.theme_color || "#E53E3E"} />
+                ) : (
+                  <Image
+                    source={require("../../../assets/Frame 265.png")}
+                    style={{ width: 28, height: 28, resizeMode: "contain" }}
+                  />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
@@ -1209,9 +1257,22 @@ export default function StoreDetailsScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.bigBtn, styles.bigBtnGreen]}
-            onPress={() => setLeaveReviewVisible(true)}
-            disabled={addingReview}
+            style={[
+              styles.bigBtn, 
+              styles.bigBtnGreen,
+              (!hasOrdered || isLoadingHasOrdered) && { opacity: 0.5 }
+            ]}
+            onPress={() => {
+              if (!hasOrdered) {
+                Alert.alert(
+                  "Order Required",
+                  "You need to order from this store first before you can leave a review."
+                );
+                return;
+              }
+              setLeaveReviewVisible(true);
+            }}
+            disabled={addingReview || !hasOrdered || isLoadingHasOrdered}
           >
             <ThemedText style={styles.bigBtnTxt}>
               {addingReview ? "Sending..." : "Leave a store review"}
@@ -2102,11 +2163,14 @@ const OptionsSheet = ({ visible, onClose, onHidePost, onShare, onReport }) => {
 function ReviewSheet({ visible, onClose, onSubmit, mergedStore }) {
   const [rating, setRating] = useState(4);
   const [text, setText] = useState("");
+  const [images, setImages] = useState([]);
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
 
   useEffect(() => {
     if (!visible) {
       setRating(4);
       setText("");
+      setImages([]);
     }
   }, [visible]);
 
@@ -2123,11 +2187,55 @@ function ReviewSheet({ visible, onClose, onSubmit, mergedStore }) {
     </TouchableOpacity>
   );
 
-  const thumbs = [
-    "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?q=80&w=200&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1580910051074-3eb694886505?q=80&w=200&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=200&auto=format&fit=crop",
-  ];
+  const handleCameraCapture = async () => {
+    try {
+      setShowImagePickerModal(false);
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera permission to take photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setImages(prev => [...prev, result.assets[0].uri]);
+      }
+    } catch (error) {
+      console.log("Camera error:", error);
+      Alert.alert('Error', 'Failed to open camera. Please try again.');
+    }
+  };
+
+  const handleGallerySelection = async () => {
+    try {
+      setShowImagePickerModal(false);
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant media library permission to select images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+        allowsMultipleSelection: true,
+      });
+
+      if (!result.canceled && result.assets) {
+        const newImages = result.assets.map(asset => asset.uri);
+        setImages(prev => [...prev, ...newImages]);
+      }
+    } catch (error) {
+      console.log("Gallery error:", error);
+      Alert.alert('Error', 'Failed to open gallery. Please try again.');
+    }
+  };
 
   return (
     <Modal
@@ -2180,22 +2288,87 @@ function ReviewSheet({ visible, onClose, onSubmit, mergedStore }) {
             style={styles.textArea}
           />
 
-          {/* Photos row (static thumbs to match design) */}
+          {/* Photos row */}
           <View style={styles.photosRow}>
-            <TouchableOpacity style={styles.addPhoto}>
+            <TouchableOpacity 
+              style={styles.addPhoto}
+              onPress={() => setShowImagePickerModal(true)}
+            >
               <Ionicons name="image-outline" size={20} color={COLOR.sub} />
             </TouchableOpacity>
-            {thumbs.map((t, i) => (
-              <Image key={i} source={{ uri: t }} style={styles.photoThumb} />
+            {images.map((img, i) => (
+              <View key={i} style={{ position: 'relative', marginRight: 8 }}>
+                <Image source={{ uri: img }} style={styles.photoThumb} />
+                <TouchableOpacity
+                  onPress={() => setImages(prev => prev.filter((_, idx) => idx !== i))}
+                  style={{
+                    position: 'absolute',
+                    top: -6,
+                    right: -6,
+                    backgroundColor: COLOR.primary,
+                    borderRadius: 12,
+                    width: 24,
+                    height: 24,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="close" size={14} color="#fff" />
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
 
           <TouchableOpacity
             style={styles.sendReviewBtn}
-            onPress={() => onSubmit?.({ rating, text })}
+            onPress={() => onSubmit?.({ rating, text, images })}
           >
             <ThemedText style={styles.sendReviewTxt}>Send Review</ThemedText>
           </TouchableOpacity>
+
+          {/* Image Picker Modal */}
+          <Modal
+            visible={showImagePickerModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowImagePickerModal(false)}
+          >
+            <View style={styles.imagePickerOverlay}>
+              <View style={styles.imagePickerModalContainer}>
+                <View style={styles.imagePickerModalHeader}>
+                  <ThemedText style={styles.imagePickerModalTitle}>Select Image Source</ThemedText>
+                  <TouchableOpacity
+                    onPress={() => setShowImagePickerModal(false)}
+                    style={styles.imagePickerCloseButton}
+                  >
+                    <Ionicons name="close" size={24} color="#666" />
+                  </TouchableOpacity>
+                </View>
+                
+                <View style={styles.imagePickerModalOptions}>
+                  <TouchableOpacity
+                    style={styles.imagePickerOptionButton}
+                    onPress={handleCameraCapture}
+                  >
+                    <View style={styles.imagePickerOptionIcon}>
+                      <Ionicons name="camera" size={32} color="#E53E3E" />
+                    </View>
+                    <ThemedText style={styles.imagePickerOptionText}>Take Photo</ThemedText>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.imagePickerOptionButton}
+                    onPress={handleGallerySelection}
+                  >
+                    <View style={styles.imagePickerOptionIcon}>
+                      <Ionicons name="images" size={32} color="#E53E3E" />
+                    </View>
+                    <ThemedText style={styles.imagePickerOptionText}>Choose from Gallery</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -2893,6 +3066,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    width: '100%',
   },
   sheetHandle: {
     alignSelf: "center",
@@ -3284,8 +3458,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     width: '100%',
-    maxWidth: 400,
-    marginHorizontal: 7,
   },
   reportModalHeader: {
     flexDirection: 'row',
@@ -3335,5 +3507,56 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  imagePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagePickerModalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    width: '80%',
+    maxWidth: 300,
+  },
+  imagePickerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  imagePickerModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLOR.text,
+  },
+  imagePickerCloseButton: {
+    padding: 4,
+  },
+  imagePickerModalOptions: {
+    gap: 16,
+  },
+  imagePickerOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: COLOR.pill,
+    borderRadius: 12,
+    gap: 12,
+  },
+  imagePickerOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FEEAEA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imagePickerOptionText: {
+    fontSize: 16,
+    color: COLOR.text,
+    fontWeight: '500',
   },
 });

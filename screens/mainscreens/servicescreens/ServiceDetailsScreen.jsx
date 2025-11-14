@@ -790,7 +790,7 @@ const ServiceDetailsScreen = () => {
           </View>
 
             {/* Store Details Section */}
-            <View style={{ paddingHorizontal: 16, marginBottom: 30 }}>
+            <View style={{ paddingHorizontal: 8, marginBottom: 50 }}>
             <ThemedText
               style={{ fontWeight: "500", fontSize: 15, marginBottom: 10 }}
             >
@@ -903,7 +903,7 @@ const ServiceDetailsScreen = () => {
                   justifyContent: "space-between",
                   alignItems: "center",
                   paddingHorizontal: 12,
-                  paddingBottom: 14,
+                  paddingBottom: 24,
                 }}
               >
                 <View style={{ alignItems: "center" }}>

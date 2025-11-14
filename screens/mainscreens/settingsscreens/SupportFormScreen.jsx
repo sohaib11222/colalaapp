@@ -71,8 +71,35 @@ export default function SupportFormScreen() {
     },
   });
 
-  const pickImage = async () => {
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
+
+  const handleCameraCapture = async () => {
     try {
+      setShowImagePickerModal(false);
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera permission to take photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log("Camera error:", error);
+      Alert.alert('Error', 'Failed to open camera. Please try again.');
+    }
+  };
+
+  const handleGallerySelection = async () => {
+    try {
+      setShowImagePickerModal(false);
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
@@ -84,8 +111,7 @@ export default function SupportFormScreen() {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false,
         quality: 0.8,
       });
 
@@ -197,7 +223,7 @@ export default function SupportFormScreen() {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.attachmentButton}
-            onPress={pickImage}
+            onPress={() => setShowImagePickerModal(true)}
             disabled={isCreating}
           >
             {imageUri ? (
@@ -296,6 +322,50 @@ export default function SupportFormScreen() {
             </View>
           </View>
         </Pressable>
+      </Modal>
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={showImagePickerModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImagePickerModal(false)}
+      >
+        <View style={styles.imagePickerOverlay}>
+          <View style={styles.imagePickerModalContainer}>
+            <View style={styles.imagePickerModalHeader}>
+              <ThemedText style={styles.imagePickerModalTitle}>Select Image Source</ThemedText>
+              <TouchableOpacity
+                onPress={() => setShowImagePickerModal(false)}
+                style={styles.imagePickerCloseButton}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.imagePickerModalOptions}>
+              <TouchableOpacity
+                style={styles.imagePickerOptionButton}
+                onPress={handleCameraCapture}
+              >
+                <View style={styles.imagePickerOptionIcon}>
+                  <Ionicons name="camera" size={32} color="#E53E3E" />
+                </View>
+                <ThemedText style={styles.imagePickerOptionText}>Take Photo</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.imagePickerOptionButton}
+                onPress={handleGallerySelection}
+              >
+                <View style={styles.imagePickerOptionIcon}>
+                  <Ionicons name="images" size={32} color="#E53E3E" />
+                </View>
+                <ThemedText style={styles.imagePickerOptionText}>Choose from Gallery</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -487,5 +557,56 @@ const styles = StyleSheet.create({
   categoryTextSelected: {
     color: COLOR.primary,
     fontWeight: "600",
+  },
+  imagePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagePickerModalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    width: '80%',
+    maxWidth: 300,
+  },
+  imagePickerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  imagePickerModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLOR.text,
+  },
+  imagePickerCloseButton: {
+    padding: 4,
+  },
+  imagePickerModalOptions: {
+    gap: 16,
+  },
+  imagePickerOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: COLOR.lightGray,
+    borderRadius: 12,
+    gap: 12,
+  },
+  imagePickerOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FEEAEA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imagePickerOptionText: {
+    fontSize: 16,
+    color: COLOR.text,
+    fontWeight: '500',
   },
 });

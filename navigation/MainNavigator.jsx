@@ -3,7 +3,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useCart } from "../config/api.config";
+import { useCart, useChatUnreadCount } from "../config/api.config";
 
 import HomeScreen from "../screens/mainscreens/HomeScreen";
 import FeedScreen from "../screens/mainscreens/FeedScreen";
@@ -33,9 +33,13 @@ const COLOR = {
 function CustomTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
   const { data: cartData } = useCart();
+  const { data: unreadData } = useChatUnreadCount();
   
   // Calculate total cart items count
   const cartCount = cartData?.data?.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0;
+  
+  // Get unread message count
+  const unreadCount = unreadData?.data?.total_unread || 0;
 
   const onPress = (route, isFocused, index) => {
     const event = navigation.emit({
@@ -109,6 +113,11 @@ function CustomTabBar({ state, descriptors, navigation }) {
                   {route.name === "Stores" && cartCount > 0 && (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
+                    </View>
+                  )}
+                  {route.name === "Chat" && unreadCount > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
                     </View>
                   )}
                 </View>

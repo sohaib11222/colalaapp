@@ -25,10 +25,9 @@ const FeaturedServices = () => {
   const { data: servicesData, isLoading, error } = useServices();
   
   // Helper function to format price
-  const formatPrice = (priceFrom, priceTo) => {
+  const formatPrice = (priceFrom) => {
     const from = Number(priceFrom || 0);
-    const to = Number(priceTo || 0);
-    return `₦${from.toLocaleString()} - ₦${to.toLocaleString()}`;
+    return `₦${from.toLocaleString()}`;
   };
   
   // Helper function to get service image (only images, no videos)
@@ -80,7 +79,7 @@ const FeaturedServices = () => {
     return (
       <View style={styles.container}>
         <View style={styles.headerRow}>
-          <ThemedText style={styles.title}>Features Services</ThemedText>
+          <ThemedText style={styles.title}>Featured Services</ThemedText>
           <TouchableOpacity
             onPress={() =>
               navigation.navigate("ServiceNavigator", {
@@ -107,7 +106,7 @@ const FeaturedServices = () => {
     return (
       <View style={styles.container}>
         <View style={styles.headerRow}>
-          <ThemedText style={styles.title}>Features Services</ThemedText>
+          <ThemedText style={styles.title}>Featured Services</ThemedText>
           <TouchableOpacity
             onPress={() =>
               navigation.navigate("ServiceNavigator", {
@@ -133,7 +132,7 @@ const FeaturedServices = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.headerRow}>
-        <ThemedText style={styles.title}>Features Services</ThemedText>
+        <ThemedText style={styles.title}>Featured Services</ThemedText>
         <TouchableOpacity
           onPress={() =>
             navigation.navigate("ServiceNavigator", {
@@ -189,7 +188,7 @@ const FeaturedServices = () => {
             <View style={styles.cardContent}>
               <ThemedText style={styles.serviceTitle}>{item.name}</ThemedText>
               <ThemedText style={styles.priceRange}>
-                {formatPrice(item.price_from, item.price_to)}
+                {formatPrice(item.price_from)}
               </ThemedText>
 
               <TouchableOpacity 

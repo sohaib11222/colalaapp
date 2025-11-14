@@ -100,7 +100,11 @@ export default function ChatListScreen({ navigation }) {
   };
 
   // Fetch chats with error handling (only for authenticated users)
-  const { data, isLoading, error, refetch, isFetching } = useChats();
+  // Poll every 2 seconds to keep chats updated
+  const { data, isLoading, error, refetch, isFetching } = useChats({
+    refetchInterval: 2000, // Poll every 2 seconds
+    refetchIntervalInBackground: true, // Continue polling when app is in background
+  });
   
   // Use shared cart quantity hook
   const { data: cartQuantity = 0, isLoading: isCartLoading } = useCartQuantity();
@@ -235,6 +239,7 @@ export default function ChatListScreen({ navigation }) {
   };
 
   // Map API → UI model with proper error handling
+  // Sort by last_message_at (latest first) and map to UI format
   const apiChats = useMemo(() => {
     const list = data?.data || [];
     if (!list?.length) return [];
@@ -242,7 +247,15 @@ export default function ChatListScreen({ navigation }) {
     // Debug logging to see what data is available
     console.log("Chat API data sample:", list[0]);
 
-    return list.map((c, idx) => ({
+    // Sort by last_message_at in descending order (latest first)
+    // Chats with messages come first, then sort by timestamp
+    const sortedList = [...list].sort((a, b) => {
+      const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+      const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+      return timeB - timeA; // Descending order (newest first)
+    });
+
+    return sortedList.map((c, idx) => ({
       id: String(c.chat_id),
       chat_id: c.chat_id, // IMPORTANT so details can fetch by chat id
       name: c.store || "Store",

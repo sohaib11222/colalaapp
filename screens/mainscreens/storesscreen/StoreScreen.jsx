@@ -61,7 +61,7 @@ const FALLBACK_AVATAR =
 
 // NOTE (as requested): tags & rating are NOT in the response -> kept hardcoded
 const HARDCODED_TAGS = ["Electronics", "Phones"];
-const HARDCODED_RATING = 4.5;
+const HARDCODED_RATING = 0;
 
 export default function StoresScreen() {
   const [query, setQuery] = useState("");
@@ -224,7 +224,12 @@ export default function StoresScreen() {
     return list.map((s) => {
       const cover = mediaUrl(s.banner_image) || FALLBACK_COVER;
       const avatar = mediaUrl(s.profile_image) || FALLBACK_AVATAR;
-      const ratingVal = Number(s.average_rating ?? s.rating ?? HARDCODED_RATING) || HARDCODED_RATING;
+      // Use rating from backend if available, otherwise default to 0
+      const ratingVal = s.average_rating != null 
+        ? Number(s.average_rating) 
+        : s.rating != null 
+        ? Number(s.rating) 
+        : HARDCODED_RATING;
       return {
         id: String(s.id),
         name: s.store_name || "Store",
@@ -491,7 +496,7 @@ export default function StoresScreen() {
         animationType="fade"
         onRequestClose={() => setShowImagePickerModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.imagePickerOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <ThemedText style={styles.modalTitle}>Select Image Source</ThemedText>
@@ -549,7 +554,7 @@ function LocationFilterModal({ visible, onClose, selectedLocation, setSelectedLo
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.sheet, { maxHeight: '70%' }]}>
+        <View style={[styles.sheet, { maxHeight: '70%', width: '100%' }]}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <ThemedText style={styles.sheetTitle}>Location</ThemedText>
@@ -611,7 +616,7 @@ function CategoryFilterModal({ visible, onClose, selectedCategoryIds, setSelecte
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.sheet, { maxHeight: '80%' }]}>
+        <View style={[styles.sheet, { maxHeight: '80%', width: '100%' }]}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <ThemedText style={styles.sheetTitle}>Category</ThemedText>
@@ -655,7 +660,7 @@ function ReviewFilterModal({ visible, onClose, selectedReview, setSelectedReview
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.sheet, { maxHeight: '60%' }]}>
+        <View style={[styles.sheet, { maxHeight: '60%', width: '100%' }]}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <ThemedText style={styles.sheetTitle}>Review</ThemedText>
@@ -810,7 +815,7 @@ const styles = StyleSheet.create({
 
   // Modal styles
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
-  sheet: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  sheet: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, borderTopLeftRadius: 20, borderTopRightRadius: 20, width: '100%' },
   sheetHandle: { alignSelf: 'center', width: 68, height: 6, borderRadius: 999, backgroundColor: '#D8DCE2', marginBottom: 6 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
   sheetTitle: { fontSize: 18, fontWeight: '700', color: COLOR.text },
@@ -880,7 +885,7 @@ const styles = StyleSheet.create({
   ctaText: { color: "#fff", fontWeight: "400", fontSize: 9 },
 
   // Image Picker Modal styles
-  modalOverlay: {
+  imagePickerOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
@@ -889,9 +894,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     backgroundColor: 'white',
     borderRadius: 16,
-    marginHorizontal: 40,
-    maxWidth: 400,
-    width: '90%',
+    width: '100%',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

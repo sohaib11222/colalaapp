@@ -30,6 +30,7 @@ const API = {
   APPLY_COUPON: `${BASE_URL}/buyer/cart/apply-coupon`,
   STORES: `${BASE_URL}/buyer/stores`,
   STORE_DETAILS: (id) => `${BASE_URL}/buyer/stores/${id}`,
+  STORE_HAS_ORDERED: (storeId) => `${BASE_URL}/buyer/stores/${storeId}/has-ordered`,
   CHECKOUT_PREVIEW: `${BASE_URL}/buyer/checkout/preview`,   // POST
   GET_BALANCE: `${BASE_URL}/buyer/getBalance`,
   CHECKOUT_PLACE: `${BASE_URL}/buyer/checkout/place`,
@@ -39,6 +40,7 @@ const API = {
   CHAT_MESSAGES: (chatId) => `${BASE_URL}/buyer/chats/${chatId}/messages`,
   SEND_CHAT_MESSAGE: (chatId) => `${BASE_URL}/buyer/chats/${chatId}/send`,
   START_SERVICE_CHAT: (storeId) => `${BASE_URL}/buyer/chats/start-service/${storeId}`,
+  CHAT_UNREAD_COUNT: `${BASE_URL}/buyer/chat/unread-count`,
   SUPPORT_TICKETS: `${BASE_URL}/buyer/support/tickets`,        // GET (index), POST (create)
   SUPPORT_TICKET_ID: (id) => `${BASE_URL}/buyer/support/tickets/${id}`,
   Supoort_Ticket_Message: `${BASE_URL}/buyer/support/messages`,
@@ -339,7 +341,7 @@ export const useTogglePostLike = (opts) =>
 // Add a comment to a post
 export const useAddPostComment = (opts) =>
   useMutation({
-    mutationFn: ({ postId, body }) => http.post(API.POST_COMMENTS(postId), { body }),
+    mutationFn: ({ postId, body, parent_id }) => http.post(API.POST_COMMENTS(postId), { body, parent_id }),
     // onSuccess: () => queryClient.invalidateQueries({ queryKey: ['posts'] }),
     ...opts,
   });
@@ -593,6 +595,16 @@ export const useChats = (options) =>
     queryKey: ["chats"],
     queryFn: () => http.get(API.CHATS),
     staleTime: 60 * 1000,
+    ...options,
+  });
+
+// Fetch unread chat count with polling every 2 seconds
+export const useChatUnreadCount = (options) =>
+  useQuery({
+    queryKey: ["chatUnreadCount"],
+    queryFn: () => http.get(API.CHAT_UNREAD_COUNT),
+    refetchInterval: 2000, // Poll every 2 seconds
+    refetchIntervalInBackground: true, // Continue polling when app is in background
     ...options,
   });
 
@@ -920,6 +932,15 @@ export const useStoreReviews = (storeId, options) =>
     enabled: !!storeId,
     queryKey: ["storeReviews", storeId],
     queryFn: () => http.get(API.STORE_REVIEWS(storeId)),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+
+export const useStoreHasOrdered = (storeId, options) =>
+  useQuery({
+    enabled: !!storeId,
+    queryKey: ["storeHasOrdered", storeId],
+    queryFn: () => http.get(API.STORE_HAS_ORDERED(storeId)),
     staleTime: 60 * 1000,
     ...options,
   });

@@ -521,34 +521,69 @@ const onRefresh = async () => {
                 <Ionicons name="close" size={18} />
               </TouchableOpacity>
             </View>
-            <ThemedText style={{ fontSize: 14, fontWeight: 400, marginBottom: 20 }}>Kindly read the Colala mall terms of use</ThemedText>
+            <ThemedText style={{ fontSize: 14, fontWeight: 400, marginBottom: 20 }}>Kindly read the Colala Mall Buyer Policy</ThemedText>
 
             <ScrollView>
               <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 20, marginBottom: 20, elevation: 3 }}>
-                <ThemedText style={{ fontWeight: 'bold', marginBottom: 10 }}>Terms of Use for Colala Mall</ThemedText>
-                <ThemedText style={{ marginBottom: 10 }}>
-                  Welcome to colala mall, an eCommerce platform operated by Colala. By downloading, accessing, or using the app...
+                <ThemedText style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 15 }}>COLALA MALL BUYER POLICY</ThemedText>
+                <ThemedText style={{ marginBottom: 15 }}>
+                  Welcome to Colala Mall, an online marketplace that connects buyers directly with verified sellers.
                 </ThemedText>
-                <ThemedText style={{ fontWeight: 'bold' }}>1. Acceptance of Terms</ThemedText>
-                <ThemedText style={{ marginBottom: 10 }}>
-                  By using this app, you confirm that you are at least 18 years old or have legal parental/guardian consent, and that you have the legal capacity to enter into this agreement.
+                <ThemedText style={{ marginBottom: 15 }}>
+                  By creating an account or making a purchase on Colala Mall, you agree to the following terms:
                 </ThemedText>
-                <ThemedText style={{ fontWeight: 'bold' }}>2. User Account</ThemedText>
-                <ThemedText style={{ marginBottom: 10 }}>
-                  You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.
-                </ThemedText>
-                <ThemedText style={{ fontWeight: 'bold' }}>3. Products and Services</ThemedText>
-                <ThemedText style={{ marginBottom: 10 }}>
-                  We strive to provide accurate product descriptions and pricing. However, we reserve the right to correct any errors, inaccuracies, or omissions.
-                </ThemedText>
-                <ThemedText style={{ fontWeight: 'bold' }}>4. Payment and Billing</ThemedText>
-                <ThemedText style={{ marginBottom: 10 }}>
-                  All payments are processed securely. You agree to provide current, complete, and accurate purchase and account information for all purchases.
-                </ThemedText>
-                <ThemedText style={{ fontWeight: 'bold' }}>5. Returns and Refunds</ThemedText>
-                <ThemedText style={{ marginBottom: 10 }}>
-                  Please review our returns policy for information about returning products and requesting refunds.
-                </ThemedText>
+
+                <ThemedText style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 8 }}>1. Role of Colala Mall</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Colala Mall is only a platform connecting buyers and sellers.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• We do not determine prices, do not handle delivery, and do not store or warehouse any products.</ThemedText>
+                <ThemedText style={{ marginBottom: 15 }}>• Prices, product descriptions, and availability are set solely by the sellers.</ThemedText>
+
+                <ThemedText style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 8 }}>2. Buying on Colala Mall</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Before placing an order, buyers are responsible for reviewing all product details, seller ratings, and return policies.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Ensure your delivery address and contact information are correct before checkout.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Payment is made through the Colala Mall system for security.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Any direct communication with the seller regarding product specifications, stock, or delivery should be conducted through approved platform channels.</ThemedText>
+                <ThemedText style={{ marginBottom: 15 }}>• Delivery codes are to be release to seller at delivery point</ThemedText>
+
+                <ThemedText style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 8 }}>3. Payment Protection & Release</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• All payments are held in a secure escrow system until the buyer confirms that the item has been received.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Once you confirm receipt, payment is automatically released to the seller.</ThemedText>
+                <ThemedText style={{ marginBottom: 15 }}>• If you do not confirm and release delivery code within 48 hours after the seller marks the order as "Delivered", the system will automatically release the payment to the seller.</ThemedText>
+
+                <ThemedText style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 8 }}>4. Delivery & Confirmation</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Delivery is managed directly by the seller.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• You are required to confirm receipt only when you've received your order.</ThemedText>
+                <ThemedText style={{ marginBottom: 15 }}>• If you notice any issue (wrong, missing, or damaged items), you must open a dispute within 48 hours after delivery is marked.</ThemedText>
+
+                <ThemedText style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 8 }}>5. Disputes & Refunds</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Each seller has their own refund and return policy.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• If a dispute is opened, both buyer and seller must provide clear evidence (e.g., pictures, delivery proof).</ThemedText>
+                <ThemedText style={{ marginBottom: 15 }}>• Colala Mall may act as a neutral mediator but is not responsible for the final outcome or refund fulfillment.</ThemedText>
+
+                <ThemedText style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 8 }}>6. Buyer Conduct</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>You agree not to:</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Submit false claims or disputes.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Attempt to make payment or delivery outside the platform.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Harass or abuse sellers or misuse the system.</ThemedText>
+                <ThemedText style={{ marginBottom: 15 }}>• Post misleading or fake reviews.</ThemedText>
+
+                <ThemedText style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 8 }}>7. Limitation of Liability</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Colala Mall is not responsible for product quality, late delivery, or misrepresentation by sellers.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• The buyer agrees to make purchases at their own discretion and risk.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>• Colala Mall's role ends once payment is processed and released as per the policy above.</ThemedText>
+                <ThemedText style={{ marginBottom: 15 }}>• Losses resulting from off-platform communication or payments.</ThemedText>
+
+                <ThemedText style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 8 }}>8. Policy Updates</ThemedText>
+                <ThemedText style={{ marginBottom: 15 }}>This Buyer Policy may be updated from time to time. Continuing to use the app means you agree to the most recent version.</ThemedText>
+
+                <ThemedText style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 8 }}>Buyer Acknowledgment</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>By signing up or continuing to use Colala Mall, I confirm that:</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>✅ I understand Colala Mall is only a connecting platform.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>✅ I understand Colala Mall does not determine prices, handle delivery, or warehouse items.</ThemedText>
+                <ThemedText style={{ marginBottom: 8 }}>✅ I agree that funds will be released to sellers automatically after 48 hours if vendor marks delivered and I do not confirm receipt.</ThemedText>
+                <ThemedText style={{ marginBottom: 15 }}>✅ I will open disputes, if any, within 48 hours of delivery.</ThemedText>
+
+                <ThemedText style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 8 }}>I have read and agree to the Colala Mall Buyer Policy.</ThemedText>
               </View>
             </ScrollView>
           </View>

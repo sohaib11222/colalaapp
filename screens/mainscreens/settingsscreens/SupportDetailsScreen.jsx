@@ -424,9 +424,6 @@ export default function SupportDetailsScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.cartButton}>
-            <Ionicons name="cart-outline" size={20} color="#000" />
-          </TouchableOpacity>
         </View>
 
         {/* Dispute Summary Card */}
