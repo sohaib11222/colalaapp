@@ -227,14 +227,20 @@ export default function ChatListScreen({ navigation }) {
     );
   };
 
+  // Manual refresh state (separate from automatic polling)
+  const [isManuallyRefreshing, setIsManuallyRefreshing] = useState(false);
+
   // Refresh functionality
   const handleRefresh = async () => {
     try {
+      setIsManuallyRefreshing(true);
       console.log("Refreshing chats...");
       await refetch();
       console.log("Chats refreshed successfully");
     } catch (error) {
       console.error("Error refreshing chats:", error);
+    } finally {
+      setIsManuallyRefreshing(false);
     }
   };
 
@@ -262,7 +268,7 @@ export default function ChatListScreen({ navigation }) {
       avatar: c.avatar || `https://i.pravatar.cc/100?img=${(idx % 70) + 1}`, // Use API avatar or fallback
       lastMessage: c.last_message || "No messages yet",
       time: formatTime(c.last_message_at),
-      unread: Number(c.unread_count) || 0,
+      unread: (c.unread_count != null && c.unread_count !== '' && !isNaN(Number(c.unread_count))) ? Math.max(0, Number(c.unread_count)) : 0,
       store_order_id: c.store_order_id || c.chat_id || null, // Use chat_id as fallback if store_order_id is missing
     }));
   }, [data]);
@@ -449,7 +455,7 @@ export default function ChatListScreen({ navigation }) {
               alwaysBounceVertical={false}
               refreshControl={
                 <RefreshControl
-                  refreshing={isFetching}
+                  refreshing={isManuallyRefreshing}
                   onRefresh={handleRefresh}
                   tintColor={COLOR.primary}
                   colors={[COLOR.primary]}
