@@ -249,7 +249,7 @@ const LoginScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#D5232C' },
+  container: { flex: 1, backgroundColor: '#F9F9F9' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
   imageContainer: { width: '100%', height: 400, justifyContent: 'center', alignItems: 'center', backgroundColor: '#D5232C' },
   topImage: { width: '100%', height: '100%', resizeMode: 'contain' },

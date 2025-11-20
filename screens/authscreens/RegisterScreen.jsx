@@ -88,8 +88,28 @@ const RegisterScreen = () => {
     s.toLowerCase().includes(stateSearchText.toLowerCase())
   );
 
-  const handleCountrySelect = (c) => { setSelectedCountry(c); setShowModal(false); };
+  const handleCountrySelect = (c) => { 
+    setSelectedCountry(c); 
+    setShowModal(false);
+    // Clear state if country is not Nigeria
+    if (c !== 'Nigeria') {
+      setSelectedState('');
+    }
+  };
   const handleStateSelect = (s) => { setSelectedState(s); setShowStateModal(false); };
+
+  // Phone validation handler - only allow numbers and limit to 11 digits
+  const handlePhoneChange = (text) => {
+    // Remove any non-numeric characters
+    const numericText = text.replace(/[^0-9]/g, '');
+    // Limit to 11 digits
+    if (numericText.length <= 11) {
+      setPhone(numericText);
+    }
+  };
+
+  // Check if phone is valid (exactly 11 digits)
+  const isPhoneValid = phone.length === 11;
 
   // Password strength validator
   const getPasswordStrength = (pwd) => {
@@ -158,8 +178,20 @@ const RegisterScreen = () => {
 
   const onSubmit = () => {
     // simple checks
-    if (!userName || !fullName || !email || !phone || !selectedState || !selectedCountry || !password) {
+    if (!userName || !fullName || !email || !phone || !selectedCountry || !password) {
       Alert.alert('Missing info', 'Please fill all required fields.');
+      return;
+    }
+
+    // Validate phone number
+    if (!isPhoneValid) {
+      Alert.alert('Invalid Phone', 'Phone number must be exactly 11 digits.');
+      return;
+    }
+
+    // Validate state only if Nigeria is selected
+    if (selectedCountry === 'Nigeria' && !selectedState) {
+      Alert.alert('Missing info', 'Please select a state.');
       return;
     }
 
@@ -170,8 +202,11 @@ const RegisterScreen = () => {
     fd.append('password', password);
     fd.append('phone', phone.trim());
     // API expects lowercase strings per your sample; normalize:
-    fd.append('state', String(selectedState).toLowerCase());
     fd.append('country', String(selectedCountry).toLowerCase());
+    // Only append state if Nigeria is selected
+    if (selectedCountry === 'Nigeria' && selectedState) {
+      fd.append('state', String(selectedState).toLowerCase());
+    }
     if (refCode) fd.append('referral_code', refCode.trim()); // optional if backend supports it
 
     if (photo?.uri) {
@@ -221,9 +256,26 @@ const RegisterScreen = () => {
               value={email} onChangeText={setEmail} />
           </View>
 
-          <View style={styles.inputWrapper}>
-            <TextInput placeholder="Phone Number" placeholderTextColor="#999" style={styles.input}
-              keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
+          <View>
+            <View style={[
+              styles.inputWrapper, 
+              phone.length > 0 && !isPhoneValid && styles.inputWrapperError
+            ]}>
+              <TextInput 
+                placeholder="Phone Number (11 digits)" 
+                placeholderTextColor="#999" 
+                style={styles.input}
+                keyboardType="phone-pad" 
+                value={phone} 
+                onChangeText={handlePhoneChange}
+                maxLength={11}
+              />
+            </View>
+            {phone.length > 0 && !isPhoneValid && (
+              <ThemedText style={styles.validationError}>
+                Phone number must be exactly 11 digits ({phone.length}/11)
+              </ThemedText>
+            )}
           </View>
 
           {/* Country */}
@@ -234,13 +286,15 @@ const RegisterScreen = () => {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
-          {/* State */}
-          <TouchableOpacity style={styles.selectWrapper} onPress={() => setShowStateModal(true)}>
-            <ThemedText style={[styles.selectText, { color: selectedState ? '#000' : '#999' }]}>
-              {selectedState || 'State'}
-            </ThemedText>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
+          {/* State - Only show if Nigeria is selected */}
+          {selectedCountry === 'Nigeria' && (
+            <TouchableOpacity style={styles.selectWrapper} onPress={() => setShowStateModal(true)}>
+              <ThemedText style={[styles.selectText, { color: selectedState ? '#000' : '#999' }]}>
+                {selectedState || 'State'}
+              </ThemedText>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+          )}
 
           <View>
             <View style={[styles.inputWrapper, { position: 'relative' }]}>
@@ -476,14 +530,16 @@ const RegisterScreen = () => {
 
 const styles = StyleSheet.create({
   // (keep your existing styles)
-  container: { flex: 1, backgroundColor: '#B91919' },
-  imageContainer: { width: '100%', height: 400, justifyContent: 'center', alignItems: 'center', backgroundColor: '#B91919',marginLeft: -10 },
+  container: { flex: 1, backgroundColor: '#F9F9F9' },
+  imageContainer: { width: '100%', height: 400, justifyContent: 'center', alignItems: 'center', backgroundColor: '#B91919' },
   topImage: { width: '100%', height: '100%', resizeMode: 'contain' },
   card: { flex: 1, backgroundColor: '#F9F9F9', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, marginTop: -40 },
   title: { fontSize: 24, fontWeight: '600', color: '#E53E3E', textAlign: 'center', marginBottom: 10 },
   subtitle: { fontSize: 14, textAlign: 'center', color: '#888', marginBottom: 24 },
   inputWrapper: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 16, height: 55, borderWidth:0.3, borderColor:"#CDCDCD", marginBottom: 16, justifyContent: 'center' },
+  inputWrapperError: { borderColor: '#E53E3E', borderWidth: 1 },
   input: { fontSize: 16, color: '#000', flex: 1 },
+  validationError: { fontSize: 12, color: '#E53E3E', marginTop: -12, marginBottom: 12, marginLeft: 4 },
   eyeIcon: { position: 'absolute', right: 16, top: '50%', marginTop: -10, zIndex: 1 },
   passwordStrengthContainer: { marginTop: -10, marginBottom: 16 },
   passwordStrengthBar: { 

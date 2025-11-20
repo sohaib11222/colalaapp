@@ -896,6 +896,24 @@ function StoreBlock({ store, orderId, onTrack, showSingleItem = false, orderData
               <InfoRow left="Points Discount" right={`-${currency(points)}`} topBorder />
               <InfoRow left="Shipping fee" right={currency(shippingFee)} topBorder />
               {/* <InfoRow left="Platform fee" right={currency(fee)} topBorder /> */}
+              {store.estimated_delivery_date && (
+                <InfoRow 
+                  left="Estimated Delivery" 
+                  right={(() => {
+                    try {
+                      const date = new Date(store.estimated_delivery_date);
+                      return date.toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      });
+                    } catch (e) {
+                      return store.estimated_delivery_date;
+                    }
+                  })()} 
+                  topBorder 
+                />
+              )}
               <InfoRow left="Total to pay" right={currency(totalPay)} strongRight topBorder />
             </View>
           </>
@@ -1074,6 +1092,7 @@ export default function SingleOrderDetailsScreen() {
         chat: so.chat, // Keep chat data for existing chat functionality
         store_order_id: so.id, // Store the actual store_order_id for dispute creation
         store_order_status: so.status, // Keep original status string for dispute eligibility
+        estimated_delivery_date: so.estimated_delivery_date, // Estimated delivery date from API
       };
     });
 

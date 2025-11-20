@@ -399,7 +399,11 @@ const SettingsScreen = () => {
             </View>
             <View style={styles.locationRow}>
               <ThemedText style={styles.locationText}>
-                {user?.location || "Location"}
+                {(() => {
+                  // Construct location from state and country
+                  const locParts = [user?.state, user?.country].filter(Boolean);
+                  return locParts.length ? locParts.join(', ') : (user?.location || "Location");
+                })()}
               </ThemedText>
               <Ionicons name="caret-down" size={12} color={COLOR.white} />
             </View>

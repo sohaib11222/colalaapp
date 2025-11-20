@@ -402,9 +402,15 @@ export default function MyReviewsScreen() {
       product: { 
         title: apiReview.order_item?.product?.name || "Product",
         price: apiReview.order_item?.product?.price ? `₦${Number(apiReview.order_item.product.price).toLocaleString()}` : "₦0", 
-        image: apiReview.order_item?.product?.images?.[0]?.path 
-          ? fileUrl(apiReview.order_item.product.images[0].path)
-          : P1 
+        image: (() => {
+          const imagePath = apiReview.order_item?.product?.images?.[0]?.path;
+          if (imagePath) {
+            const url = fileUrl(imagePath);
+            // Ensure we return a string, not an object
+            return typeof url === 'string' ? url : (url?.uri || `https://colala.hmstech.xyz/storage/${imagePath}`);
+          }
+          return P1;
+        })()
       },
       product_id: apiReview.order_item?.product?.id, // Include product_id for navigation
       gallery: apiReview.images ? apiReview.images.map(img => fileUrl(img)) : [],
@@ -664,10 +670,6 @@ export default function MyReviewsScreen() {
                       screen: "ProductDetails",
                       params: {
                         productId: item.product_id,
-                        product: {
-                          id: item.product_id,
-                          name: item?.product?.title,
-                        },
                       },
                     });
                   }

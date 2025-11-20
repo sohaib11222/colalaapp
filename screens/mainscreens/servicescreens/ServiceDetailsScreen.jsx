@@ -23,6 +23,7 @@ import { useServicesDetail } from "../../../config/api.config";
 import { useSavedToggleItem } from "../../../config/api.config";
 import { useCheckSavedItem } from "../../../config/api.config";
 import { useStartServiceChat } from "../../../config/api.config";
+import { useRequestPhoneNumber } from "../../../config/api.config";
 import { useQueryClient } from "@tanstack/react-query";
 import GuestService from "../../../utils/guestService";
 import LoginPromptModal from "../../../components/LoginPromptModal";
@@ -67,7 +68,10 @@ const ServiceDetailsScreen = () => {
   const [videoLoadError, setVideoLoadError] = useState(false);
   
   // Phone number reveal state
-  const [isPhoneRevealed, setIsPhoneRevealed] = useState(false);
+  const [phoneRevealData, setPhoneRevealData] = useState({
+    reveal_phone_id: null,
+    is_revealed: false,
+  });
 
   // Guest functionality
   const [isGuest, setIsGuest] = useState(false);
@@ -117,6 +121,28 @@ const ServiceDetailsScreen = () => {
   const { mutate: startServiceChat, isPending: creatingServiceChat } =
     useStartServiceChat();
 
+  // Phone number request functionality
+  const { mutate: requestPhoneNumber, isLoading: isRequestingPhone } = useRequestPhoneNumber({
+    onSuccess: (data) => {
+      console.log("Phone request success:", data);
+      const responseData = data?.data || {};
+      setPhoneRevealData({
+        reveal_phone_id: responseData.reveal_phone_id || null,
+        is_revealed: responseData.is_revealed || false,
+      });
+      
+      if (responseData.is_revealed) {
+        Alert.alert("Success", "Phone number has been revealed!");
+      } else {
+        Alert.alert("Request Sent", "Your phone number request has been sent to the store. You'll be notified when it's approved.");
+      }
+    },
+    onError: (error) => {
+      console.log("Phone request error:", error);
+      Alert.alert("Error", error?.message || "Failed to request phone number. Please try again.");
+    },
+  });
+
   // Check saved status when component mounts
   useEffect(() => {
     if (service?.id) {
@@ -133,7 +159,10 @@ const ServiceDetailsScreen = () => {
       // Reset video error state
       setVideoLoadError(false);
       // Reset phone reveal state
-      setIsPhoneRevealed(false);
+      setPhoneRevealData({
+        reveal_phone_id: null,
+        is_revealed: false,
+      });
       
       // If video is available, show video by default
       if (hasVideo(serviceInfo)) {
@@ -195,6 +224,23 @@ const ServiceDetailsScreen = () => {
           type_id: service.id.toString(),
         });
       }
+    });
+  };
+
+  // Handle phone request
+  const handlePhoneRequest = () => {
+    handleGuestAction(() => {
+      const currentServiceInfo = serviceData?.data || service;
+      const storeId = currentServiceInfo?.store?.id || currentServiceInfo?.store_id;
+      console.log("Requesting phone for store ID:", storeId);
+      
+      if (!storeId) {
+        console.error("Store ID not available");
+        Alert.alert("Error", "Store information not available");
+        return;
+      }
+      
+      requestPhoneNumber({ store_id: storeId });
     });
   };
 
@@ -734,11 +780,13 @@ const ServiceDetailsScreen = () => {
             <TouchableOpacity
               style={styles.iconBtn}
               onPress={() => {
-                if (storePhoneNumber) {
+                if (storePhoneNumber && phoneRevealData.is_revealed) {
                   const phone = storePhoneNumber.replace(/\D/g, ""); // clean digits
                   Linking.openURL(`https://wa.me/${phone}`).catch((err) =>
                     console.log("WhatsApp error:", err)
                   );
+                } else {
+                  Alert.alert("Phone Not Revealed", "Please request the phone number first.");
                 }
               }}
             >
@@ -749,10 +797,12 @@ const ServiceDetailsScreen = () => {
             <TouchableOpacity
               style={styles.iconBtn}
               onPress={() => {
-                if (storePhoneNumber) {
+                if (storePhoneNumber && phoneRevealData.is_revealed) {
                   Linking.openURL(`tel:${storePhoneNumber}`).catch((err) =>
                     console.log("Call error:", err)
                   );
+                } else {
+                  Alert.alert("Phone Not Revealed", "Please request the phone number first.");
                 }
               }}
             >
@@ -763,29 +813,40 @@ const ServiceDetailsScreen = () => {
              <TouchableOpacity
                style={styles.iconBtn}
                onPress={handleStartServiceChat}
+               disabled={creatingServiceChat}
              >
-               <Ionicons name="chatbox-outline" size={20} color="#000" />
+               {creatingServiceChat ? (
+                 <ActivityIndicator size="small" color="#000" />
+               ) : (
+                 <Ionicons name="chatbox-outline" size={20} color="#000" />
+               )}
              </TouchableOpacity>
 
+             {/* Request/Call Button - Shows phone number when revealed */}
              <TouchableOpacity
                style={styles.messageBtn}
                onPress={() => {
-                 if (isPhoneRevealed) {
-                   // If phone is already revealed, make the call
+                 if (phoneRevealData.is_revealed) {
+                   // If phone is already revealed, dial the number
                    if (storePhoneNumber) {
                      Linking.openURL(`tel:${storePhoneNumber}`).catch((err) =>
                        console.log("Call error:", err)
                      );
                    }
                  } else {
-                   // If phone is not revealed, reveal it
-                   setIsPhoneRevealed(true);
+                   // If phone is not revealed, request it
+                   handlePhoneRequest();
                  }
                }}
+               disabled={isRequestingPhone}
              >
-               <ThemedText style={styles.messageText}>
-                 {isPhoneRevealed ? (storePhoneNumber || "Call Store") : "Reveal Number"}
-               </ThemedText>
+               {isRequestingPhone ? (
+                 <ActivityIndicator size="small" color="#fff" />
+               ) : (
+                 <ThemedText style={styles.messageText}>
+                   {phoneRevealData.is_revealed ? (storePhoneNumber || "Call Store") : "Request Phone Number"}
+                 </ThemedText>
+               )}
              </TouchableOpacity>
           </View>
 

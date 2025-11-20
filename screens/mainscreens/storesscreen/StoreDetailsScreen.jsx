@@ -91,6 +91,7 @@ const toSrc = (v) =>
 export default function StoreDetailsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+  const scrollViewRef = useRef(null);
 
   // From Stores screen: params: { store: item, storeId }
   let initialStore = route?.params?.store ?? {};
@@ -359,14 +360,32 @@ export default function StoreDetailsScreen() {
     ? reviewsApiList.map(mapApiReviewToUi)
     : [];
 
+  // Extract product reviews from API store data
+  const apiProductReviewsList = Array.isArray(apiStore?.product_reviews)
+    ? apiStore.product_reviews
+    : [];
+  const apiProductReviewsUi = apiProductReviewsList.map(mapApiReviewToUi);
+
   const [reviewScope, setReviewScope] = useState("store"); // "store" | "product"
   const [reviewsStore, setReviewsStore] = useState(apiReviewsUi);
-  const [reviewsProduct, setReviewsProduct] = useState([]);
+  const [reviewsProduct, setReviewsProduct] = useState(apiProductReviewsUi);
 
   // If API reviews change, update local list while keeping replies feature
   useEffect(() => {
     if (apiReviewsUi.length) setReviewsStore(apiReviewsUi);
   }, [reviewsRes]); // eslint-disable-line
+
+  // Update product reviews when API data changes
+  useEffect(() => {
+    const productReviews = Array.isArray(apiStore?.product_reviews)
+      ? apiStore.product_reviews.map(mapApiReviewToUi)
+      : [];
+    if (productReviews.length) {
+      setReviewsProduct(productReviews);
+    } else {
+      setReviewsProduct([]);
+    }
+  }, [apiStore?.product_reviews, mergedStore?.avatar]); // eslint-disable-line
 
   // Check follow status when component mounts
   useEffect(() => {
@@ -597,8 +616,10 @@ export default function StoreDetailsScreen() {
     </View>
   );
 
-  const ReviewCard = ({ item, onReply }) => {
+  const ReviewCard = ({ item, onReply, scrollViewRef }) => {
     const [text, setText] = useState("");
+    const [cardY, setCardY] = useState(0);
+    
     const send = () => {
       const v = text.trim();
       if (!v) return;
@@ -606,8 +627,22 @@ export default function StoreDetailsScreen() {
       setText("");
     };
 
+    const handleInputFocus = () => {
+      // Scroll to the card when input is focused
+      setTimeout(() => {
+        if (scrollViewRef?.current && cardY > 0) {
+          scrollViewRef.current.scrollTo({ y: cardY - 150, animated: true });
+        }
+      }, 100);
+    };
+
+    const handleCardLayout = (event) => {
+      const { y } = event.nativeEvent.layout;
+      setCardY(y);
+    };
+
     return (
-      <View style={styles.reviewCard}>
+      <View onLayout={handleCardLayout} style={styles.reviewCard}>
         <View style={styles.reviewHeader}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Image source={toSrc(item.avatar)} style={styles.reviewAvatar} />
@@ -634,6 +669,7 @@ export default function StoreDetailsScreen() {
             placeholder="Write a reply"
             placeholderTextColor={COLOR.sub}
             style={styles.replyInput}
+            onFocus={handleInputFocus}
           />
           <TouchableOpacity style={styles.replySend} onPress={send}>
             <Ionicons name="send" size={18} color={COLOR.text} />
@@ -899,8 +935,15 @@ export default function StoreDetailsScreen() {
         </View>
       )}
 
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
       <ScrollView 
+        ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -1168,31 +1211,51 @@ export default function StoreDetailsScreen() {
         <View style={{ marginHorizontal: 16, marginTop: 12 }}>
           {mergedStore?.banners?.length > 0 ? (
             <View style={styles.promoWrap}>
-              <FlatList
-                data={mergedStore.banners}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item) => String(item.id)}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.bannerCarouselItem}
-                    onPress={() => {
-                      if (item.link) {
-                        Linking.openURL(item.link).catch(err => 
-                          console.log("Banner link error:", err)
-                        );
-                      }
-                    }}
-                  >
-                    <Image 
-                      source={{ uri: fileUrl(item.image_path) }} 
-                      style={styles.promoImage} 
-                      resizeMode="cover" 
-                    />
-                  </TouchableOpacity>
-                )}
-              />
+              {mergedStore.banners.length > 1 ? (
+                // Show carousel if more than one banner
+                <FlatList
+                  data={mergedStore.banners}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item) => String(item.id)}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.bannerCarouselItem}
+                      onPress={() => {
+                        if (item.link) {
+                          Linking.openURL(item.link).catch(err => 
+                            console.log("Banner link error:", err)
+                          );
+                        }
+                      }}
+                    >
+                      <Image 
+                        source={{ uri: fileUrl(item.image_path) }} 
+                        style={styles.promoImage} 
+                        resizeMode="cover" 
+                      />
+                    </TouchableOpacity>
+                  )}
+                />
+              ) : (
+                // Show single image if only one banner
+                <TouchableOpacity
+                  onPress={() => {
+                    if (mergedStore.banners[0]?.link) {
+                      Linking.openURL(mergedStore.banners[0].link).catch(err => 
+                        console.log("Banner link error:", err)
+                      );
+                    }
+                  }}
+                >
+                  <Image 
+                    source={{ uri: fileUrl(mergedStore.banners[0].image_path) }} 
+                    style={styles.promoImage} 
+                    resizeMode="cover" 
+                  />
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <View style={styles.promoWrap}>
@@ -1438,7 +1501,7 @@ export default function StoreDetailsScreen() {
             <View style={{ marginTop: 12 }}>
               {activeReviews.length > 0 ? (
                 activeReviews.map((rv) => (
-                  <ReviewCard key={rv.id} item={rv} onReply={addReply} />
+                  <ReviewCard key={rv.id} item={rv} onReply={addReply} scrollViewRef={scrollViewRef} />
                 ))
               ) : (
                 <View style={styles.emptyStateContainer}>
@@ -1455,6 +1518,7 @@ export default function StoreDetailsScreen() {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Bottom sheets you already had (simplified to keep the file focused) */}
       <ReviewSheet

@@ -107,14 +107,14 @@ export const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem("auth_token"); // optional
-    console.log('API Request - URL:', config.url);
-    console.log('API Request - Token:', token ? 'Present' : 'Missing');
+    // console.log('API Request - URL:', config.url);
+    // console.log('API Request - Token:', token ? 'Present' : 'Missing');
     config.headers = {
       ...(config.headers || {}),
       Accept: "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
-    console.log('API Request - Headers:', config.headers);
+    // console.log('API Request - Headers:', config.headers);
     return config;
   },
   (err) => Promise.reject(err)
@@ -125,8 +125,8 @@ import { handleTokenExpiration } from '../utils/navigationUtils';
 
 api.interceptors.response.use(
   (r) => {
-    console.log('API Response - Status:', r.status);
-    console.log('API Response - Data:', r.data);
+    // console.log('API Response - Status:', r.status);
+    // console.log('API Response - Data:', r.data);
     return r;
   },
   async (error) => {
